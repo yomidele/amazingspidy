@@ -16,16 +16,16 @@ const Header = () => {
 
   const services = [
     {
-      name: "Contribution System",
+      name: "Amana Market Contribution",
       description: "Join a contribution group and manage loans",
       href: "/login/contribution",
       icon: Users,
       color: "text-contribution",
     },
     {
-      name: "Travel & Academic",
+      name: "Teemah Travels",
       description: "Visa consultation and academic guidance",
-      href: "/login/travel",
+      href: "/teemah-travels",
       icon: Plane,
       color: "text-travel",
     },
@@ -41,7 +41,7 @@ const Header = () => {
               <Shield className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-heading text-xl font-bold text-foreground">
-              ServiPro
+              AMANA MARKET
             </span>
           </Link>
 

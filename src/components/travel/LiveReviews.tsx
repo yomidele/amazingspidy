@@ -36,7 +36,11 @@ interface Review {
   user_name?: string;
 }
 
-const LiveReviews = () => {
+interface LiveReviewsProps {
+  showPublicForm?: boolean;
+}
+
+const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [isWriteDialogOpen, setIsWriteDialogOpen] = useState(false);
@@ -46,6 +50,7 @@ const LiveReviews = () => {
     review_text: "",
     rating: 5,
     service_type: "visa_consultation",
+    name: "",
   });
   const [user, setUser] = useState<any>(null);
 
@@ -54,6 +59,8 @@ const LiveReviews = () => {
     { value: "visa_refusal_review", label: "Visa Refusal Review" },
     { value: "academic_guidance", label: "Academic Guidance" },
     { value: "travel_planning", label: "Travel Planning" },
+    { value: "booking_assistance", label: "Booking Assistance" },
+    { value: "admission_support", label: "Admission & Visits" },
   ];
 
   useEffect(() => {
@@ -91,7 +98,8 @@ const LiveReviews = () => {
   };
 
   const handleSubmitReview = async () => {
-    if (!user) {
+    // For public form, don't require login
+    if (!showPublicForm && !user) {
       toast.error("Please log in to submit a review");
       return;
     }
@@ -102,9 +110,12 @@ const LiveReviews = () => {
     }
 
     try {
+      // For public submissions, we create a temporary user id or use anonymous
+      const userId = user?.id || crypto.randomUUID();
+      
       const { error } = await supabase.from("reviews").insert({
-        user_id: user.id,
-        title: newReview.title || null,
+        user_id: userId,
+        title: newReview.title || (newReview.name ? `Review by ${newReview.name}` : null),
         review_text: newReview.review_text,
         rating: newReview.rating,
         service_type: newReview.service_type,
@@ -120,7 +131,11 @@ const LiveReviews = () => {
         review_text: "",
         rating: 5,
         service_type: "visa_consultation",
+        name: "",
       });
+      
+      // Refresh reviews
+      fetchReviews();
     } catch (error: any) {
       console.error("Error submitting review:", error);
       toast.error(error.message || "Failed to submit review");

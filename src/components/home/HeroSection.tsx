@@ -41,14 +41,13 @@ const HeroSection = () => {
             </motion.div>
 
             <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
-              Your Partner in{" "}
-              <span className="gradient-text-contribution">Financial Growth</span>{" "}
-              & <span className="gradient-text-travel">Global Dreams</span>
+              Welcome to{" "}
+              <span className="gradient-text-contribution">AMANA MARKET</span>
             </h1>
 
             <p className="text-lg md:text-xl text-primary-foreground/70 mb-8 max-w-xl mx-auto lg:mx-0">
-              Join a trusted community for contribution management and expert
-              guidance for your travel and academic aspirations.
+              Your trusted platform for Amana Market Contribution management and
+              Teemah Travels consultation services.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -58,15 +57,15 @@ const HeroSection = () => {
                 onClick={() => navigate("/login/contribution")}
                 className="group"
               >
-                Join Contribution Group
+                Amana Market Contribution
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
                 variant="hero-outline"
                 size="xl"
-                onClick={() => navigate("/login/travel")}
+                onClick={() => navigate("/teemah-travels")}
               >
-                Explore Travel Services
+                Teemah Travels
               </Button>
             </div>
 
@@ -142,7 +141,7 @@ const HeroSection = () => {
                     <Users className="w-6 h-6 text-contribution" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">Contribution</h3>
+                    <h3 className="font-semibold text-foreground">Amana Contribution</h3>
                     <p className="text-sm text-muted-foreground">This Month</p>
                   </div>
                 </div>
@@ -167,8 +166,8 @@ const HeroSection = () => {
                     <Plane className="w-6 h-6 text-travel" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">Visa Status</h3>
-                    <p className="text-sm text-muted-foreground">Application</p>
+                    <h3 className="font-semibold text-foreground">Teemah Travels</h3>
+                    <p className="text-sm text-muted-foreground">Visa Status</p>
                   </div>
                 </div>
                 <div className="space-y-2">
