@@ -11,13 +11,13 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight,
   AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ContributorTransactionList from "@/components/dashboard/ContributorTransactionList";
 
 interface LoanData {
   outstanding_balance: number;
@@ -49,8 +49,6 @@ const ContributorDashboard = () => {
   const [isBeneficiary, setIsBeneficiary] = useState(false);
   const [beneficiaryMonth, setBeneficiaryMonth] = useState("");
   const [expectedPayout, setExpectedPayout] = useState(0);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -82,7 +80,6 @@ const ContributorDashboard = () => {
   }, [navigate]);
 
   const fetchUserData = async (userId: string) => {
-    setLoading(true);
     try {
       // Fetch loan balance
       const { data: loansData, error: loansError } = await supabase
@@ -107,15 +104,6 @@ const ContributorDashboard = () => {
       if (!paymentsError && paymentsData) {
         const total = paymentsData.reduce((sum, p) => sum + (p.amount || 0), 0);
         setTotalContributed(total);
-
-        // Get recent activity
-        const activity = paymentsData.slice(0, 5).map((p) => ({
-          type: "contribution",
-          description: "Monthly contribution paid",
-          date: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : "Unknown",
-          amount: `£${p.amount.toFixed(2)}`,
-        }));
-        setRecentActivity(activity);
       }
 
       // Check if user is beneficiary for current or upcoming month
@@ -159,8 +147,6 @@ const ContributorDashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -329,47 +315,13 @@ const ContributorDashboard = () => {
               ))}
             </div>
 
-            {/* Recent Activity & Beneficiary Status */}
+            {/* Transactions & Beneficiary Status */}
             <div className="grid lg:grid-cols-2 gap-6">
-              {/* Recent Activity */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Recent Activity</span>
-                    <Button variant="ghost" size="sm">
-                      View all <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentActivity.map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            activity.type === "payout" ? "bg-success/10" : "bg-contribution-light"
-                          }`}>
-                            {activity.type === "payout" ? (
-                              <TrendingUp className="w-5 h-5 text-success" />
-                            ) : (
-                              <Wallet className="w-5 h-5 text-contribution" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{activity.description}</p>
-                            <p className="text-xs text-muted-foreground">{activity.date}</p>
-                          </div>
-                        </div>
-                        <span className={`font-semibold ${
-                          activity.type === "payout" ? "text-success" : "text-foreground"
-                        }`}>
-                          {activity.type === "payout" ? "+" : "-"}{activity.amount}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Transaction History with Receipts */}
+              <ContributorTransactionList
+                userId={user?.id || ""}
+                userName={user?.user_metadata?.full_name}
+              />
 
               {/* Beneficiary Status */}
               <Card>

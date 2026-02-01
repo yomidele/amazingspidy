@@ -7,6 +7,8 @@ import {
   X,
   Calendar,
   Users,
+  Eye,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +40,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import TransactionReceiptDialog from "@/components/shared/TransactionReceiptDialog";
 
 interface MonthlyContribution {
   id: string;
@@ -71,6 +74,9 @@ const PaymentRecordingPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedContribution, setSelectedContribution] = useState<string>("");
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [groupName, setGroupName] = useState<string>("Amana Market");
 
   const [newPayment, setNewPayment] = useState({
     user_id: "",
@@ -135,6 +141,17 @@ const PaymentRecordingPage = () => {
 
       if (error) throw error;
       setPayments(data || []);
+
+      // Fetch group name for the selected contribution
+      const contrib = contributions.find((c) => c.id === contributionId);
+      if (contrib?.group_id) {
+        const { data: groupData } = await supabase
+          .from("contribution_groups")
+          .select("name")
+          .eq("id", contrib.group_id)
+          .maybeSingle();
+        if (groupData) setGroupName(groupData.name);
+      }
     } catch (error: any) {
       console.error("Error fetching payments:", error);
     }
@@ -237,6 +254,23 @@ const PaymentRecordingPage = () => {
   const getMembersNotPaid = () => {
     const paidUserIds = payments.map((p) => p.user_id);
     return members.filter((m) => !paidUserIds.includes(m.user_id));
+  };
+
+  const handleViewReceipt = (payment: Payment) => {
+    const currentContrib = contributions.find((c) => c.id === selectedContribution);
+    setSelectedPayment({
+      id: payment.id,
+      type: "contribution",
+      amount: payment.amount,
+      date: payment.payment_date || new Date().toISOString(),
+      status: payment.status || "pending",
+      memberName: getMemberName(payment.user_id),
+      period: currentContrib
+        ? `${monthNames[currentContrib.month - 1]} ${currentContrib.year}`
+        : undefined,
+      groupName,
+    });
+    setReceiptOpen(true);
   };
 
   const currentContribution = contributions.find((c) => c.id === selectedContribution);
@@ -462,6 +496,14 @@ const PaymentRecordingPage = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewReceipt(payment)}
+                            title="View Receipt"
+                          >
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                           {payment.status !== "paid" && (
                             <Button
                               variant="ghost"
@@ -519,6 +561,13 @@ const PaymentRecordingPage = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Receipt Dialog */}
+      <TransactionReceiptDialog
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+        transaction={selectedPayment}
+      />
     </div>
   );
 };
