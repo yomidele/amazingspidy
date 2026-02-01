@@ -79,7 +79,6 @@ const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
       let query = supabase
         .from("reviews")
         .select("*")
-        .eq("is_approved", true)
         .order("created_at", { ascending: false });
 
       if (filterService !== "all") {
@@ -116,7 +115,7 @@ const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
         review_text: newReview.review_text,
         rating: newReview.rating,
         service_type: newReview.service_type,
-        is_approved: false, // Needs admin approval
+        is_approved: true, // Auto-approved - no admin approval needed
       };
       
       // Only add user_id if user is logged in
@@ -128,7 +127,7 @@ const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
 
       if (error) throw error;
 
-      toast.success("Review submitted! It will appear after admin approval.");
+      toast.success("Review submitted successfully! Thank you for your feedback.");
       setIsWriteDialogOpen(false);
       setNewReview({
         title: "",
@@ -277,7 +276,7 @@ const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
                   Submit Review
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  Your review will be visible after admin approval
+                  Your review will be published immediately
                 </p>
               </div>
             </DialogContent>
