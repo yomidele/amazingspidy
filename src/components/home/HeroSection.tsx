@@ -7,7 +7,7 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
+    <section className="relative min-h-[100dvh] flex items-center overflow-hidden">
       {/* Background */}
       <div
         className="absolute inset-0 z-0"
@@ -19,8 +19,8 @@ const HeroSection = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-foreground/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 lg:px-8 relative z-10 pt-24 lg:pt-0">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div className="container mx-auto px-4 lg:px-8 relative z-10 pt-20 sm:pt-24 lg:pt-0">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-20 items-center">
           {/* Content */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -40,30 +40,31 @@ const HeroSection = () => {
               </span>
             </motion.div>
 
-            <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
+            <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-4 sm:mb-6 leading-tight">
               Welcome to{" "}
               <span className="gradient-text-contribution">AMANA MARKET</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-primary-foreground/70 mb-8 max-w-xl mx-auto lg:mx-0">
+            <p className="text-base sm:text-lg md:text-xl text-primary-foreground/70 mb-6 sm:mb-8 max-w-xl mx-auto lg:mx-0">
               Your trusted platform for Amana Market Contribution management and
               Teemah Travels consultation services.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
               <Button
                 variant="contribution"
-                size="xl"
+                size="lg"
                 onClick={() => navigate("/login/contribution")}
-                className="group"
+                className="group w-full sm:w-auto text-sm sm:text-base"
               >
-                Amana Market Contribution
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                Amana Contribution
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
                 variant="hero-outline"
-                size="xl"
+                size="lg"
                 onClick={() => navigate("/teemah-travels")}
+                className="w-full sm:w-auto text-sm sm:text-base"
               >
                 Teemah Travels
               </Button>
@@ -92,29 +93,29 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-primary-foreground/10"
+              className="grid grid-cols-3 gap-3 sm:gap-6 mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-primary-foreground/10"
             >
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-primary-foreground">
+              <div className="text-center lg:text-left">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-foreground">
                   500+
                 </div>
-                <div className="text-sm text-primary-foreground/60">
+                <div className="text-xs sm:text-sm text-primary-foreground/60">
                   Active Members
                 </div>
               </div>
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-primary-foreground">
-                  $2M+
+              <div className="text-center lg:text-left">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-foreground">
+                  £2M+
                 </div>
-                <div className="text-sm text-primary-foreground/60">
+                <div className="text-xs sm:text-sm text-primary-foreground/60">
                   Contributions
                 </div>
               </div>
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-primary-foreground">
+              <div className="text-center lg:text-left">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-foreground">
                   98%
                 </div>
-                <div className="text-sm text-primary-foreground/60">
+                <div className="text-xs sm:text-sm text-primary-foreground/60">
                   Visa Success
                 </div>
               </div>

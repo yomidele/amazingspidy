@@ -228,11 +228,11 @@ const TeemahTravelsPage = () => {
               </div>
             </Link>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Link to="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Home
+                <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                  <ArrowLeft className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Back to Home</span>
                 </Button>
               </Link>
               <a
@@ -240,9 +240,9 @@ const TeemahTravelsPage = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="travel" size="sm">
-                  <Phone className="w-4 h-4 mr-2" />
-                  Contact Us
+                <Button variant="travel" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                  <Phone className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Contact Us</span>
                 </Button>
               </a>
             </div>
@@ -251,7 +251,7 @@ const TeemahTravelsPage = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-24 pb-16 relative overflow-hidden">
+      <section className="pt-20 sm:pt-24 pb-12 sm:pb-16 relative overflow-hidden">
         <div
           className="absolute inset-0 z-0"
           style={{ background: "var(--gradient-hero)" }}
@@ -273,12 +273,12 @@ const TeemahTravelsPage = () => {
               </span>
             </div>
 
-            <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
+            <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-4 sm:mb-6 px-2">
               Welcome to{" "}
               <span className="gradient-text-travel">Teemah Travels</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-primary-foreground/70 mb-8 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-primary-foreground/70 mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
               Expert travel consultation, visa assistance, and academic support
               services. We turn your travel and educational aspirations into
               reality.
@@ -306,7 +306,7 @@ const TeemahTravelsPage = () => {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-24 bg-background">
+      <section id="services" className="py-12 sm:py-24 bg-background">
         <div className="container mx-auto px-4 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -314,7 +314,7 @@ const TeemahTravelsPage = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
               Our Services
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -327,36 +327,36 @@ const TeemahTravelsPage = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid md:grid-cols-2 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
           >
             {services.map((service) => (
               <motion.div key={service.id} variants={itemVariants}>
                 <Card className="h-full card-hover border-travel/20 hover:border-travel/40 transition-colors">
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-travel to-teal-400 flex items-center justify-center shrink-0">
-                        <service.icon className="w-7 h-7 text-white" />
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-travel to-teal-400 flex items-center justify-center shrink-0">
+                        <service.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl mb-2">{service.title}</CardTitle>
-                        <p className="text-muted-foreground text-sm">
+                        <CardTitle className="text-lg sm:text-xl mb-2">{service.title}</CardTitle>
+                        <p className="text-muted-foreground text-xs sm:text-sm">
                           {service.description}
                         </p>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 mb-6">
+                  <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+                    <div className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6">
                       {service.features.map((feature, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="w-4 h-4 text-travel shrink-0" />
+                        <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
+                          <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-travel shrink-0" />
                           <span>{feature}</span>
                         </div>
                       ))}
                     </div>
                     <Button 
                       variant="travel" 
-                      className="w-full"
+                      className="w-full text-sm"
                       onClick={() => handleBookConsultation(service.title)}
                     >
                       <Calendar className="w-4 h-4 mr-2" />
@@ -371,18 +371,18 @@ const TeemahTravelsPage = () => {
       </section>
 
       {/* Contact Form Section */}
-      <section className="py-24 bg-muted/30">
+      <section className="py-12 sm:py-24 bg-muted/30">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
+              <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
                 Get in Touch
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8">
                 Have questions or ready to start your journey? Fill out the form
                 or reach out directly via WhatsApp.
               </p>
