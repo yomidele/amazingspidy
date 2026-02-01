@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import LiveReviews from "@/components/travel/LiveReviews";
+import BookingDialog from "@/components/travel/BookingDialog";
 
 const WHATSAPP_NUMBER = "447824812923";
 const CONTACT_EMAIL = "musashamsy@gmail.com";
@@ -44,6 +45,8 @@ const TeemahTravelsPage = () => {
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState("");
 
   const services: Service[] = [
     {
@@ -152,11 +155,9 @@ const TeemahTravelsPage = () => {
     },
   ];
 
-  const generateWhatsAppLink = (serviceName: string) => {
-    const message = encodeURIComponent(
-      `Hello, I would like to book ${serviceName} consultation with Teemah Travels.`
-    );
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
+  const handleBookConsultation = (serviceName: string) => {
+    setSelectedService(serviceName);
+    setBookingDialogOpen(true);
   };
 
   const handleInputChange = (
@@ -353,16 +354,14 @@ const TeemahTravelsPage = () => {
                         </div>
                       ))}
                     </div>
-                    <a
-                      href={generateWhatsAppLink(service.title)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Button 
+                      variant="travel" 
+                      className="w-full"
+                      onClick={() => handleBookConsultation(service.title)}
                     >
-                      <Button variant="travel" className="w-full">
-                        <Phone className="w-4 h-4 mr-2" />
-                        Book Consultation
-                      </Button>
-                    </a>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Book Consultation
+                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -560,11 +559,18 @@ const TeemahTravelsPage = () => {
             </Link>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-sidebar-border text-center text-sm text-sidebar-foreground/60">
+        <div className="mt-8 pt-8 border-t border-sidebar-border text-center text-sm text-sidebar-foreground/60">
             <p>© {new Date().getFullYear()} AMANA MARKET. All rights reserved.</p>
           </div>
         </div>
       </footer>
+
+      {/* Booking Dialog */}
+      <BookingDialog
+        open={bookingDialogOpen}
+        onOpenChange={setBookingDialogOpen}
+        serviceName={selectedService}
+      />
     </div>
   );
 };
