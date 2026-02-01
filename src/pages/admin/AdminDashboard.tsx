@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Routes, Route } from "react-router-dom";
+import { useNavigate, Routes, Route, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -19,18 +19,22 @@ import {
   TrendingDown,
   DollarSign,
   UserCheck,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ContributionSetupPage from "@/components/admin/ContributionSetupPage";
+import LiveReviews from "@/components/travel/LiveReviews";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
+  const [activePage, setActivePage] = useState("dashboard");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -74,16 +78,201 @@ const AdminDashboard = () => {
     { title: "Visa Approvals", value: "89%", icon: TrendingUp, change: "+4%", positive: true },
   ];
 
-  const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", active: true },
-    { icon: Users, label: "Members", active: false },
-    { icon: Wallet, label: "Contributions", active: false },
-    { icon: CreditCard, label: "Loans", active: false },
-    { icon: FileCheck, label: "Cases", active: false },
-    { icon: Calendar, label: "Consultations", active: false },
-    { icon: Bell, label: "Notifications", active: false },
-    { icon: Settings, label: "Settings", active: false },
+  const contributionNavItems = [
+    { icon: LayoutDashboard, label: "Dashboard", page: "dashboard" },
+    { icon: Users, label: "Members", page: "members" },
+    { icon: Wallet, label: "Contributions", page: "contributions" },
+    { icon: CreditCard, label: "Loans", page: "loans" },
+    { icon: Bell, label: "Notifications", page: "notifications" },
   ];
+
+  const travelNavItems = [
+    { icon: LayoutDashboard, label: "Dashboard", page: "dashboard" },
+    { icon: Users, label: "Clients", page: "clients" },
+    { icon: FileCheck, label: "Cases", page: "cases" },
+    { icon: Calendar, label: "Consultations", page: "consultations" },
+    { icon: Star, label: "Reviews", page: "reviews" },
+    { icon: Bell, label: "Notifications", page: "notifications" },
+  ];
+
+  const navItems = activeModule === "contribution" ? contributionNavItems : travelNavItems;
+
+  const renderContent = () => {
+    if (activeModule === "contribution") {
+      switch (activePage) {
+        case "contributions":
+          return <ContributionSetupPage />;
+        case "dashboard":
+        default:
+          return renderContributionDashboard();
+      }
+    } else {
+      switch (activePage) {
+        case "reviews":
+          return <LiveReviews />;
+        case "dashboard":
+        default:
+          return renderTravelDashboard();
+      }
+    }
+  };
+
+  const renderContributionDashboard = () => (
+    <div className="grid lg:grid-cols-2 gap-6">
+      {/* Recent Contributions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Contributions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { name: "Sarah Johnson", amount: "$500", date: "Today", status: "Paid" },
+              { name: "Michael Brown", amount: "$500", date: "Today", status: "Paid" },
+              { name: "Emily Davis", amount: "$500", date: "Yesterday", status: "Pending" },
+              { name: "James Wilson", amount: "$500", date: "Yesterday", status: "Paid" },
+            ].map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-contribution-light flex items-center justify-center">
+                    <span className="font-semibold text-contribution text-sm">
+                      {item.name.split(" ").map(n => n[0]).join("")}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.date}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-sm">{item.amount}</p>
+                  <span className={`text-xs ${item.status === "Paid" ? "text-success" : "text-warning"}`}>
+                    {item.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Outstanding Loans */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Outstanding Loans</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { name: "Robert Martinez", balance: "$2,500", monthly: "$200", status: "On Track" },
+              { name: "Amanda Lee", balance: "$1,800", monthly: "$150", status: "On Track" },
+              { name: "David Thompson", balance: "$3,200", monthly: "$250", status: "Overdue" },
+              { name: "Lisa Anderson", balance: "$1,000", monthly: "$100", status: "On Track" },
+            ].map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.monthly}/month</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-sm">{item.balance}</p>
+                  <span className={`text-xs ${item.status === "On Track" ? "text-success" : "text-destructive"}`}>
+                    {item.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderTravelDashboard = () => (
+    <div className="grid lg:grid-cols-2 gap-6">
+      {/* Active Visa Cases */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Visa Cases</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { name: "Chen Wei", type: "UK Student Visa", progress: 75, status: "In Progress" },
+              { name: "Maria Garcia", type: "Canada PR", progress: 45, status: "Documents Pending" },
+              { name: "Ahmed Hassan", type: "US B1/B2", progress: 90, status: "Interview Scheduled" },
+              { name: "Sophie Martin", type: "Schengen Visa", progress: 30, status: "Under Review" },
+            ].map((item, index) => (
+              <div key={index} className="p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-medium text-sm">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.type}</p>
+                  </div>
+                  <span className="text-xs text-travel font-medium">{item.status}</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span>{item.progress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-travel to-teal-400 rounded-full"
+                      style={{ width: `${item.progress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Today's Consultations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Today's Consultations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { name: "Jennifer Adams", time: "10:00 AM", type: "Visa Strategy", status: "Completed" },
+              { name: "Kevin Park", time: "11:30 AM", type: "Document Review", status: "In Progress" },
+              { name: "Rachel Green", time: "2:00 PM", type: "Academic Guidance", status: "Upcoming" },
+              { name: "Tom Wilson", time: "4:00 PM", type: "Refusal Analysis", status: "Upcoming" },
+            ].map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-travel-light flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-travel" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.type}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-sm">{item.time}</p>
+                  <span className={`text-xs ${
+                    item.status === "Completed" ? "text-success" :
+                    item.status === "In Progress" ? "text-travel" : "text-muted-foreground"
+                  }`}>
+                    {item.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -127,7 +316,7 @@ const AdminDashboard = () => {
             <div className="mb-6 p-1 rounded-xl bg-sidebar-accent/50">
               <div className="grid grid-cols-2 gap-1">
                 <button
-                  onClick={() => setActiveModule("contribution")}
+                  onClick={() => { setActiveModule("contribution"); setActivePage("dashboard"); }}
                   className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
                     activeModule === "contribution"
                       ? "bg-contribution text-white"
@@ -138,7 +327,7 @@ const AdminDashboard = () => {
                   <span>Contrib</span>
                 </button>
                 <button
-                  onClick={() => setActiveModule("travel")}
+                  onClick={() => { setActiveModule("travel"); setActivePage("dashboard"); }}
                   className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
                     activeModule === "travel"
                       ? "bg-travel text-white"
@@ -156,8 +345,9 @@ const AdminDashboard = () => {
                 <Button
                   key={item.label}
                   variant="ghost"
+                  onClick={() => setActivePage(item.page)}
                   className={`w-full justify-start ${
-                    item.active
+                    activePage === item.page
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   }`}
@@ -193,13 +383,17 @@ const AdminDashboard = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            key={`${activeModule}-${activePage}`}
             className="max-w-7xl mx-auto"
           >
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
               <div>
                 <h1 className="font-heading text-2xl lg:text-3xl font-bold text-foreground mb-1">
-                  Admin Dashboard
+                  {activePage === "dashboard" ? "Admin Dashboard" : 
+                   activePage === "contributions" ? "Monthly Contributions" :
+                   activePage === "reviews" ? "Client Reviews" :
+                   activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
                 <p className="text-muted-foreground">
                   Manage your {activeModule === "contribution" ? "contribution system" : "travel & academic services"}
@@ -219,199 +413,44 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {(activeModule === "contribution" ? contributionStats : travelStats).map((stat, index) => (
-                <motion.div
-                  key={stat.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card className="card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          activeModule === "contribution" ? "bg-contribution-light" : "bg-travel-light"
-                        }`}>
-                          <stat.icon className={`w-6 h-6 ${
-                            activeModule === "contribution" ? "text-contribution" : "text-travel"
-                          }`} />
-                        </div>
-                        <div className={`flex items-center gap-1 text-sm ${
-                          stat.positive ? "text-success" : "text-destructive"
-                        }`}>
-                          {stat.positive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                          <span>{stat.change}</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Module-specific Content */}
-            {activeModule === "contribution" ? (
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Recent Contributions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Contributions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {[
-                        { name: "Sarah Johnson", amount: "$500", date: "Today", status: "Paid" },
-                        { name: "Michael Brown", amount: "$500", date: "Today", status: "Paid" },
-                        { name: "Emily Davis", amount: "$500", date: "Yesterday", status: "Pending" },
-                        { name: "James Wilson", amount: "$500", date: "Yesterday", status: "Paid" },
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-contribution-light flex items-center justify-center">
-                              <span className="font-semibold text-contribution text-sm">
-                                {item.name.split(" ").map(n => n[0]).join("")}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">{item.date}</p>
-                            </div>
+            {/* Stats Grid - Only show on dashboard */}
+            {activePage === "dashboard" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {(activeModule === "contribution" ? contributionStats : travelStats).map((stat, index) => (
+                  <motion.div
+                    key={stat.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className="card-hover">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                            activeModule === "contribution" ? "bg-contribution-light" : "bg-travel-light"
+                          }`}>
+                            <stat.icon className={`w-6 h-6 ${
+                              activeModule === "contribution" ? "text-contribution" : "text-travel"
+                            }`} />
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-sm">{item.amount}</p>
-                            <span className={`text-xs ${
-                              item.status === "Paid" ? "text-success" : "text-warning"
-                            }`}>
-                              {item.status}
-                            </span>
+                          <div className={`flex items-center gap-1 text-sm ${
+                            stat.positive ? "text-success" : "text-destructive"
+                          }`}>
+                            {stat.positive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                            <span>{stat.change}</span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Outstanding Loans */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Outstanding Loans</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {[
-                        { name: "Robert Martinez", balance: "$2,500", monthly: "$200", status: "On Track" },
-                        { name: "Amanda Lee", balance: "$1,800", monthly: "$150", status: "On Track" },
-                        { name: "David Thompson", balance: "$3,200", monthly: "$250", status: "Overdue" },
-                        { name: "Lisa Anderson", balance: "$1,000", monthly: "$100", status: "On Track" },
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                              <DollarSign className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">{item.monthly}/month</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-sm">{item.balance}</p>
-                            <span className={`text-xs ${
-                              item.status === "On Track" ? "text-success" : "text-destructive"
-                            }`}>
-                              {item.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Active Visa Cases */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Active Visa Cases</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {[
-                        { name: "Chen Wei", type: "UK Student Visa", progress: 75, status: "In Progress" },
-                        { name: "Maria Garcia", type: "Canada PR", progress: 45, status: "Documents Pending" },
-                        { name: "Ahmed Hassan", type: "US B1/B2", progress: 90, status: "Interview Scheduled" },
-                        { name: "Sophie Martin", type: "Schengen Visa", progress: 30, status: "Under Review" },
-                      ].map((item, index) => (
-                        <div key={index} className="p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <p className="font-medium text-sm">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">{item.type}</p>
-                            </div>
-                            <span className="text-xs text-travel font-medium">{item.status}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-muted-foreground">Progress</span>
-                              <span>{item.progress}%</span>
-                            </div>
-                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-travel to-teal-400 rounded-full"
-                                style={{ width: `${item.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Today's Consultations */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Today's Consultations</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {[
-                        { name: "Jennifer Adams", time: "10:00 AM", type: "Visa Strategy", status: "Completed" },
-                        { name: "Kevin Park", time: "11:30 AM", type: "Document Review", status: "In Progress" },
-                        { name: "Rachel Green", time: "2:00 PM", type: "Academic Guidance", status: "Upcoming" },
-                        { name: "Tom Wilson", time: "4:00 PM", type: "Refusal Analysis", status: "Upcoming" },
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-travel-light flex items-center justify-center">
-                              <Calendar className="w-5 h-5 text-travel" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">{item.type}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium text-sm">{item.time}</p>
-                            <span className={`text-xs ${
-                              item.status === "Completed" ? "text-success" :
-                              item.status === "In Progress" ? "text-travel" : "text-muted-foreground"
-                            }`}>
-                              {item.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                        <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
               </div>
             )}
+
+            {/* Render active page content */}
+            {renderContent()}
           </motion.div>
         </main>
       </div>

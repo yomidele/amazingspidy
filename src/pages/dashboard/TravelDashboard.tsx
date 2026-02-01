@@ -20,11 +20,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import LiveReviews from "@/components/travel/LiveReviews";
 
 const TravelDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activePage, setActivePage] = useState("dashboard");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -114,6 +116,162 @@ const TravelDashboard = () => {
     },
   ];
 
+  const navItems = [
+    { icon: Plane, label: "Dashboard", page: "dashboard" },
+    { icon: FileCheck, label: "My Cases", page: "cases" },
+    { icon: Calendar, label: "Consultations", page: "consultations" },
+    { icon: GraduationCap, label: "Academic", page: "academic" },
+    { icon: MessageSquare, label: "Reviews", page: "reviews" },
+    { icon: Bell, label: "Notifications", page: "notifications" },
+  ];
+
+  const renderDashboard = () => (
+    <>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="card-hover">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Active Cases & Consultations */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Active Cases */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Active Cases</span>
+              <Button variant="ghost" size="sm">
+                View all <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {activeCases.map((caseItem) => (
+                <div key={caseItem.id} className="p-4 rounded-xl bg-muted/50 border border-border">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold">{caseItem.title}</h4>
+                      <p className="text-sm text-muted-foreground">{caseItem.type}</p>
+                    </div>
+                    <Badge variant="secondary" className="bg-travel-light text-travel border-0">
+                      {caseItem.status}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">{caseItem.progress}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-travel to-teal-400 rounded-full transition-all"
+                        style={{ width: `${caseItem.progress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Last updated: {caseItem.lastUpdate}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Consultations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Upcoming Consultations</span>
+              <Button variant="travel" size="sm">
+                Book New
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {upcomingConsultations.map((consultation) => (
+                <div key={consultation.id} className="p-4 rounded-xl bg-travel-light border border-travel/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-travel flex items-center justify-center">
+                      <Calendar className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">{consultation.title}</h4>
+                      <p className="text-sm text-muted-foreground">{consultation.type}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-1 text-travel">
+                      <Calendar className="w-4 h-4" />
+                      {consultation.date}
+                    </span>
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      {consultation.time}
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              {upcomingConsultations.length === 0 && (
+                <div className="text-center py-8">
+                  <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No upcoming consultations</p>
+                  <Button variant="travel" size="sm" className="mt-4">
+                    Book a Consultation
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Write Review CTA */}
+      <Card className="mt-6 bg-gradient-to-r from-travel/10 to-travel/5 border-travel/20">
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-travel flex items-center justify-center">
+                <Star className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Share Your Experience</h3>
+                <p className="text-sm text-muted-foreground">
+                  Help others by writing a review about our services
+                </p>
+              </div>
+            </div>
+            <Button variant="travel" onClick={() => setActivePage("reviews")}>
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Write a Review
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
@@ -153,30 +311,21 @@ const TravelDashboard = () => {
             </div>
 
             <nav className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start bg-sidebar-accent text-sidebar-accent-foreground">
-                <Plane className="w-5 h-5 mr-3" />
-                Dashboard
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <FileCheck className="w-5 h-5 mr-3" />
-                My Cases
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <Calendar className="w-5 h-5 mr-3" />
-                Consultations
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <GraduationCap className="w-5 h-5 mr-3" />
-                Academic
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <MessageSquare className="w-5 h-5 mr-3" />
-                Reviews
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <Bell className="w-5 h-5 mr-3" />
-                Notifications
-              </Button>
+              {navItems.map((item) => (
+                <Button
+                  key={item.label}
+                  variant="ghost"
+                  onClick={() => setActivePage(item.page)}
+                  className={`w-full justify-start ${
+                    activePage === item.page
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.label}
+                </Button>
+              ))}
             </nav>
           </div>
 
@@ -204,160 +353,37 @@ const TravelDashboard = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            key={activePage}
             className="max-w-6xl mx-auto"
           >
             {/* Welcome Section */}
             <div className="mb-8">
               <h1 className="font-heading text-2xl lg:text-3xl font-bold text-foreground mb-2">
-                Welcome back, {user?.user_metadata?.full_name?.split(" ")[0] || "Traveler"}!
+                {activePage === "dashboard" 
+                  ? `Welcome back, ${user?.user_metadata?.full_name?.split(" ")[0] || "Traveler"}!`
+                  : activePage === "reviews" 
+                  ? "Client Reviews"
+                  : activePage.charAt(0).toUpperCase() + activePage.slice(1)}
               </h1>
               <p className="text-muted-foreground">
-                Track your visa applications and academic consultations.
+                {activePage === "dashboard" 
+                  ? "Track your visa applications and academic consultations."
+                  : activePage === "reviews"
+                  ? "Read and write reviews about our services"
+                  : `Manage your ${activePage}`}
               </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={stat.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card className="card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
-                          <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Active Cases & Consultations */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Active Cases */}
+            {/* Render active page */}
+            {activePage === "dashboard" && renderDashboard()}
+            {activePage === "reviews" && <LiveReviews />}
+            {activePage !== "dashboard" && activePage !== "reviews" && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Active Cases</span>
-                    <Button variant="ghost" size="sm">
-                      View all <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {activeCases.map((caseItem) => (
-                      <div key={caseItem.id} className="p-4 rounded-xl bg-muted/50 border border-border">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h4 className="font-semibold">{caseItem.title}</h4>
-                            <p className="text-sm text-muted-foreground">{caseItem.type}</p>
-                          </div>
-                          <Badge variant="secondary" className="bg-travel-light text-travel border-0">
-                            {caseItem.status}
-                          </Badge>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Progress</span>
-                            <span className="font-medium">{caseItem.progress}%</span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-travel to-teal-400 rounded-full transition-all"
-                              style={{ width: `${caseItem.progress}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Last updated: {caseItem.lastUpdate}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <CardContent className="py-16 text-center">
+                  <p className="text-muted-foreground">This section is coming soon...</p>
                 </CardContent>
               </Card>
-
-              {/* Upcoming Consultations */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Upcoming Consultations</span>
-                    <Button variant="travel" size="sm">
-                      Book New
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {upcomingConsultations.map((consultation) => (
-                      <div key={consultation.id} className="p-4 rounded-xl bg-travel-light border border-travel/20">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-12 h-12 rounded-xl bg-travel flex items-center justify-center">
-                            <Calendar className="w-6 h-6 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold">{consultation.title}</h4>
-                            <p className="text-sm text-muted-foreground">{consultation.type}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="flex items-center gap-1 text-travel">
-                            <Calendar className="w-4 h-4" />
-                            {consultation.date}
-                          </span>
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="w-4 h-4" />
-                            {consultation.time}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-
-                    {upcomingConsultations.length === 0 && (
-                      <div className="text-center py-8">
-                        <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-muted-foreground">No upcoming consultations</p>
-                        <Button variant="travel" size="sm" className="mt-4">
-                          Book a Consultation
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Write Review CTA */}
-            <Card className="mt-6 bg-gradient-to-r from-travel/10 to-travel/5 border-travel/20">
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-travel flex items-center justify-center">
-                      <Star className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Share Your Experience</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Help others by writing a review about our services
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="travel">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Write a Review
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            )}
           </motion.div>
         </main>
       </div>
