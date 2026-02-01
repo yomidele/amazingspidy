@@ -30,6 +30,7 @@ import ContributionSetupPage from "@/components/admin/ContributionSetupPage";
 import MemberManagementPage from "@/components/admin/MemberManagementPage";
 import LoanManagementPage from "@/components/admin/LoanManagementPage";
 import PaymentRecordingPage from "@/components/admin/PaymentRecordingPage";
+import ContributionDashboardContent from "@/components/admin/ContributionDashboardContent";
 import LiveReviews from "@/components/travel/LiveReviews";
 
 const AdminDashboard = () => {
@@ -67,13 +68,6 @@ const AdminDashboard = () => {
     toast.success("Logged out successfully");
     navigate("/login/admin");
   };
-
-  const contributionStats = [
-    { title: "Total Members", value: "48", icon: Users, change: "+3", positive: true },
-    { title: "Monthly Contributions", value: "$24,000", icon: Wallet, change: "+$2,000", positive: true },
-    { title: "Outstanding Loans", value: "$8,500", icon: CreditCard, change: "-$1,200", positive: true },
-    { title: "This Month's Beneficiary", value: "John D.", icon: UserCheck, change: "Mar 2025", positive: true },
-  ];
 
   const travelStats = [
     { title: "Active Clients", value: "32", icon: Users, change: "+5", positive: true },
@@ -115,7 +109,7 @@ const AdminDashboard = () => {
           return <LoanManagementPage />;
         case "dashboard":
         default:
-          return renderContributionDashboard();
+          return <ContributionDashboardContent />;
       }
     } else {
       switch (activePage) {
@@ -127,82 +121,6 @@ const AdminDashboard = () => {
       }
     }
   };
-
-  const renderContributionDashboard = () => (
-    <div className="grid lg:grid-cols-2 gap-6">
-      {/* Recent Contributions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Contributions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { name: "Sarah Johnson", amount: "$500", date: "Today", status: "Paid" },
-              { name: "Michael Brown", amount: "$500", date: "Today", status: "Paid" },
-              { name: "Emily Davis", amount: "$500", date: "Yesterday", status: "Pending" },
-              { name: "James Wilson", amount: "$500", date: "Yesterday", status: "Paid" },
-            ].map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-contribution-light flex items-center justify-center">
-                    <span className="font-semibold text-contribution text-sm">
-                      {item.name.split(" ").map(n => n[0]).join("")}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.date}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-sm">{item.amount}</p>
-                  <span className={`text-xs ${item.status === "Paid" ? "text-success" : "text-warning"}`}>
-                    {item.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Outstanding Loans */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Outstanding Loans</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { name: "Robert Martinez", balance: "$2,500", monthly: "$200", status: "On Track" },
-              { name: "Amanda Lee", balance: "$1,800", monthly: "$150", status: "On Track" },
-              { name: "David Thompson", balance: "$3,200", monthly: "$250", status: "Overdue" },
-              { name: "Lisa Anderson", balance: "$1,000", monthly: "$100", status: "On Track" },
-            ].map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.monthly}/month</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-sm">{item.balance}</p>
-                  <span className={`text-xs ${item.status === "On Track" ? "text-success" : "text-destructive"}`}>
-                    {item.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 
   const renderTravelDashboard = () => (
     <div className="grid lg:grid-cols-2 gap-6">
@@ -424,10 +342,10 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Stats Grid - Only show on dashboard */}
-            {activePage === "dashboard" && (
+            {/* Stats Grid - Only show on travel dashboard */}
+            {activePage === "dashboard" && activeModule === "travel" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {(activeModule === "contribution" ? contributionStats : travelStats).map((stat, index) => (
+                {travelStats.map((stat, index) => (
                   <motion.div
                     key={stat.title}
                     initial={{ opacity: 0, y: 20 }}
@@ -437,12 +355,8 @@ const AdminDashboard = () => {
                     <Card className="card-hover">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                            activeModule === "contribution" ? "bg-contribution-light" : "bg-travel-light"
-                          }`}>
-                            <stat.icon className={`w-6 h-6 ${
-                              activeModule === "contribution" ? "text-contribution" : "text-travel"
-                            }`} />
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-travel-light">
+                            <stat.icon className="w-6 h-6 text-travel" />
                           </div>
                           <div className={`flex items-center gap-1 text-sm ${
                             stat.positive ? "text-success" : "text-destructive"
