@@ -70,6 +70,24 @@ const HeroSection = () => {
               </Button>
             </div>
 
+            {/* Admin Access Button */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-6"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/login/admin")}
+                className="text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Admin Portal
+              </Button>
+            </motion.div>
+
             {/* Stats */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
