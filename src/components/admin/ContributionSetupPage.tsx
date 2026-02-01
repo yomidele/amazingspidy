@@ -41,10 +41,17 @@ interface Member {
   email: string;
 }
 
+interface ContributionGroup {
+  id: string;
+  name: string;
+  contribution_amount: number;
+}
+
 interface MonthlyContribution {
   id: string;
   month: number;
   year: number;
+  group_id: string;
   beneficiary_user_id: string | null;
   beneficiary_account_number: string | null;
   beneficiary_bank_name: string | null;
@@ -65,6 +72,7 @@ interface Payment {
 const ContributionSetupPage = () => {
   const [contributions, setContributions] = useState<MonthlyContribution[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [groups, setGroups] = useState<ContributionGroup[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedContribution, setSelectedContribution] = useState<MonthlyContribution | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +98,23 @@ const ContributionSetupPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch contribution groups first
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("contribution_groups")
+        .select("id, name, contribution_amount")
+        .eq("is_active", true);
+
+      if (groupsError) throw groupsError;
+      setGroups(groupsData || []);
+
+      // Set default contribution amount from first group if available
+      if (groupsData && groupsData.length > 0) {
+        setNewContribution(prev => ({
+          ...prev,
+          contribution_amount: groupsData[0].contribution_amount,
+        }));
+      }
+
       // Fetch monthly contributions
       const { data: contribData, error: contribError } = await supabase
         .from("monthly_contributions")
@@ -131,6 +156,12 @@ const ContributionSetupPage = () => {
   };
 
   const handleCreateContribution = async () => {
+    // Ensure we have a group
+    if (groups.length === 0) {
+      toast.error("Please create a contribution group first in Member Management");
+      return;
+    }
+
     try {
       const { error } = await supabase.from("monthly_contributions").insert({
         month: newContribution.month,
@@ -141,7 +172,7 @@ const ContributionSetupPage = () => {
         total_expected: members.length * newContribution.contribution_amount,
         total_collected: 0,
         is_finalized: false,
-        group_id: null, // This would come from selected group in full implementation
+        group_id: groups[0].id, // Use the first active group
       });
 
       if (error) throw error;
@@ -343,10 +374,10 @@ const ContributionSetupPage = () => {
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>
-                        Collected: ${contrib.total_collected || 0}
+                        Collected: £{contrib.total_collected || 0}
                       </span>
                       <span>
-                        Expected: ${contrib.total_expected || 0}
+                        Expected: £{contrib.total_expected || 0}
                       </span>
                     </div>
                   </button>
@@ -407,7 +438,7 @@ const ContributionSetupPage = () => {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Expected</p>
-                          <p className="font-bold">${selectedContribution.total_expected || 0}</p>
+                          <p className="font-bold">£{selectedContribution.total_expected || 0}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -420,7 +451,7 @@ const ContributionSetupPage = () => {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Collected</p>
-                          <p className="font-bold text-success">${selectedContribution.total_collected || 0}</p>
+                          <p className="font-bold text-success">£{selectedContribution.total_collected || 0}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -434,7 +465,7 @@ const ContributionSetupPage = () => {
                         <div>
                           <p className="text-xs text-muted-foreground">Outstanding</p>
                           <p className="font-bold text-warning">
-                            ${(selectedContribution.total_expected || 0) - (selectedContribution.total_collected || 0)}
+                            £{(selectedContribution.total_expected || 0) - (selectedContribution.total_collected || 0)}
                           </p>
                         </div>
                       </div>
