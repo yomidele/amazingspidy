@@ -43,8 +43,9 @@ const ContributorDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loanBalance, setLoanBalance] = useState(0);
-  const [monthlyContribution, setMonthlyContribution] = useState(500);
+  const [monthlyContribution, setMonthlyContribution] = useState(0);
   const [totalContributed, setTotalContributed] = useState(0);
   const [isBeneficiary, setIsBeneficiary] = useState(false);
   const [beneficiaryMonth, setBeneficiaryMonth] = useState("");
@@ -80,7 +81,28 @@ const ContributorDashboard = () => {
   }, [navigate]);
 
   const fetchUserData = async (userId: string) => {
+    setLoading(true);
     try {
+      // Fetch group contribution amount FIRST to ensure it's always set
+      const { data: membershipData } = await supabase
+        .from("group_memberships")
+        .select("group_id")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .limit(1);
+
+      if (membershipData && membershipData.length > 0) {
+        const { data: groupData } = await supabase
+          .from("contribution_groups")
+          .select("contribution_amount")
+          .eq("id", membershipData[0].group_id)
+          .maybeSingle();
+
+        if (groupData) {
+          setMonthlyContribution(Number(groupData.contribution_amount));
+        }
+      }
+
       // Fetch loan balance
       const { data: loansData, error: loansError } = await supabase
         .from("loans")
@@ -126,27 +148,10 @@ const ContributorDashboard = () => {
         setIsBeneficiary(benef.month === currentMonth && benef.year === currentYear);
       }
 
-      // Get group contribution amount
-      const { data: membershipData } = await supabase
-        .from("group_memberships")
-        .select("group_id")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .limit(1);
-
-      if (membershipData && membershipData.length > 0) {
-        const { data: groupData } = await supabase
-          .from("contribution_groups")
-          .select("contribution_amount")
-          .eq("id", membershipData[0].group_id)
-          .maybeSingle();
-
-        if (groupData) {
-          setMonthlyContribution(groupData.contribution_amount);
-        }
-      }
     } catch (error) {
       console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
