@@ -110,17 +110,21 @@ const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
     }
 
     try {
-      // For public submissions, we create a temporary user id or use anonymous
-      const userId = user?.id || crypto.randomUUID();
-      
-      const { error } = await supabase.from("reviews").insert({
-        user_id: userId,
+      // For public submissions, user_id can be null
+      const reviewData: any = {
         title: newReview.title || (newReview.name ? `Review by ${newReview.name}` : null),
         review_text: newReview.review_text,
         rating: newReview.rating,
         service_type: newReview.service_type,
         is_approved: false, // Needs admin approval
-      });
+      };
+      
+      // Only add user_id if user is logged in
+      if (user?.id) {
+        reviewData.user_id = user.id;
+      }
+      
+      const { error } = await supabase.from("reviews").insert(reviewData);
 
       if (error) throw error;
 
