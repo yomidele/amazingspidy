@@ -11,6 +11,7 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import ContributorDashboard from "./pages/dashboard/ContributorDashboard";
 import TravelDashboard from "./pages/dashboard/TravelDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          
+          {/* Teemah Travels Page */}
+          <Route path="/teemah-travels" element={<TeemahTravelsPage />} />
           
           {/* Auth Routes */}
           <Route path="/login/contribution" element={<ContributionLogin />} />

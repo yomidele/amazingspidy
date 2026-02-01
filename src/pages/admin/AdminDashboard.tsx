@@ -318,7 +318,7 @@ const AdminDashboard = () => {
                 <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h2 className="font-semibold text-sidebar-primary">ServiPro</h2>
+                <h2 className="font-semibold text-sidebar-primary">AMANA MARKET</h2>
                 <p className="text-xs text-sidebar-foreground/60">Admin Portal</p>
               </div>
             </div>
@@ -335,7 +335,7 @@ const AdminDashboard = () => {
                   }`}
                 >
                   <Users className="w-4 h-4" />
-                  <span>Contrib</span>
+                  <span>Amana</span>
                 </button>
                 <button
                   onClick={() => { setActiveModule("travel"); setActivePage("dashboard"); }}
@@ -346,7 +346,7 @@ const AdminDashboard = () => {
                   }`}
                 >
                   <Plane className="w-4 h-4" />
-                  <span>Travel</span>
+                  <span>Teemah</span>
                 </button>
               </div>
             </div>
@@ -407,7 +407,7 @@ const AdminDashboard = () => {
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
                 <p className="text-muted-foreground">
-                  Manage your {activeModule === "contribution" ? "contribution system" : "travel & academic services"}
+                  Manage your {activeModule === "contribution" ? "Amana Market Contribution" : "Teemah Travels services"}
                 </p>
               </div>
               <div className="flex items-center gap-2">

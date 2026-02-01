@@ -100,13 +100,13 @@ const ServicesSection = () => {
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Whether you're building financial security or chasing global dreams,
-            we've got you covered.
+            AMANA MARKET has you covered.
           </p>
         </motion.div>
 
         {/* Service Cards Grid */}
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Contribution System */}
+          {/* Amana Market Contribution */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -120,7 +120,7 @@ const ServicesSection = () => {
                 </div>
                 <div>
                   <h3 className="font-heading text-2xl font-bold text-foreground">
-                    Contribution System
+                    Amana Market Contribution
                   </h3>
                   <p className="text-muted-foreground">
                     Community savings & loans
@@ -162,7 +162,7 @@ const ServicesSection = () => {
                 className="w-full group"
                 onClick={() => navigate("/login/contribution")}
               >
-                Join Contribution Group
+                Join Amana Contribution
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
@@ -182,7 +182,7 @@ const ServicesSection = () => {
                 </div>
                 <div>
                   <h3 className="font-heading text-2xl font-bold text-foreground">
-                    Travel & Academic
+                    Teemah Travels
                   </h3>
                   <p className="text-muted-foreground">
                     Visa & education consulting
@@ -222,9 +222,9 @@ const ServicesSection = () => {
                 variant="travel"
                 size="lg"
                 className="w-full group"
-                onClick={() => navigate("/login/travel")}
+                onClick={() => navigate("/teemah-travels")}
               >
-                Get Travel Consultation
+                Explore Teemah Travels
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>

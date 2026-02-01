@@ -63,16 +63,16 @@ const CTASection = forwardRef<HTMLElement>((_, ref) => {
               onClick={() => navigate("/login/contribution")}
               className="group"
             >
-              Start Contributing
+              Join Amana Contribution
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
               variant="travel"
               size="xl"
-              onClick={() => navigate("/login/travel")}
+              onClick={() => navigate("/teemah-travels")}
               className="group"
             >
-              Book Consultation
+              Explore Teemah Travels
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
