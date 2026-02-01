@@ -12,9 +12,12 @@ import {
   Menu,
   X,
   AlertTriangle,
+  CheckCircle,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ContributorTransactionList from "@/components/dashboard/ContributorTransactionList";
@@ -39,6 +42,12 @@ interface MonthlyContribution {
   total_expected: number | null;
 }
 
+interface BeneficiaryInfo {
+  name: string;
+  bankName: string | null;
+  accountNumber: string | null;
+}
+
 const ContributorDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
@@ -50,6 +59,9 @@ const ContributorDashboard = () => {
   const [isBeneficiary, setIsBeneficiary] = useState(false);
   const [beneficiaryMonth, setBeneficiaryMonth] = useState("");
   const [expectedPayout, setExpectedPayout] = useState(0);
+  const [hasCurrentMonthPaid, setHasCurrentMonthPaid] = useState(false);
+  const [currentMonthPeriod, setCurrentMonthPeriod] = useState("");
+  const [currentBeneficiary, setCurrentBeneficiary] = useState<BeneficiaryInfo | null>(null);
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -82,8 +94,12 @@ const ContributorDashboard = () => {
 
   const fetchUserData = async (userId: string) => {
     setLoading(true);
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    setCurrentMonthPeriod(`${monthNames[currentMonth - 1]} ${currentYear}`);
+
     try {
-      // Fetch group contribution amount FIRST to ensure it's always set
+      // Fetch group membership and contribution amount
       const { data: membershipData } = await supabase
         .from("group_memberships")
         .select("group_id")
@@ -91,11 +107,14 @@ const ContributorDashboard = () => {
         .eq("is_active", true)
         .limit(1);
 
+      let userGroupId: string | null = null;
+
       if (membershipData && membershipData.length > 0) {
+        userGroupId = membershipData[0].group_id;
         const { data: groupData } = await supabase
           .from("contribution_groups")
           .select("contribution_amount")
-          .eq("id", membershipData[0].group_id)
+          .eq("id", userGroupId)
           .maybeSingle();
 
         if (groupData) {
@@ -115,10 +134,10 @@ const ContributorDashboard = () => {
         setLoanBalance(totalLoanBalance);
       }
 
-      // Fetch contribution payments
+      // Fetch all contribution payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from("contribution_payments")
-        .select("amount, status, payment_date")
+        .select("amount, status, payment_date, monthly_contribution_id")
         .eq("user_id", userId)
         .eq("status", "paid")
         .order("payment_date", { ascending: false });
@@ -128,10 +147,46 @@ const ContributorDashboard = () => {
         setTotalContributed(total);
       }
 
-      // Check if user is beneficiary for current or upcoming month
-      const currentMonth = new Date().getMonth() + 1;
-      const currentYear = new Date().getFullYear();
+      // Check if user has paid for current month
+      if (userGroupId) {
+        const { data: currentMonthMc } = await supabase
+          .from("monthly_contributions")
+          .select("id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number")
+          .eq("group_id", userGroupId)
+          .eq("month", currentMonth)
+          .eq("year", currentYear)
+          .maybeSingle();
 
+        if (currentMonthMc) {
+          // Check if user has paid for this monthly contribution
+          const { data: paymentCheck } = await supabase
+            .from("contribution_payments")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("monthly_contribution_id", currentMonthMc.id)
+            .eq("status", "paid")
+            .limit(1);
+
+          setHasCurrentMonthPaid(paymentCheck && paymentCheck.length > 0);
+
+          // Get current beneficiary info
+          if (currentMonthMc.beneficiary_user_id) {
+            const { data: benefProfile } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("user_id", currentMonthMc.beneficiary_user_id)
+              .maybeSingle();
+
+            setCurrentBeneficiary({
+              name: benefProfile?.full_name || "Unknown",
+              bankName: currentMonthMc.beneficiary_bank_name,
+              accountNumber: currentMonthMc.beneficiary_account_number,
+            });
+          }
+        }
+      }
+
+      // Check if user is beneficiary for current or upcoming month
       const { data: beneficiaryData, error: beneficiaryError } = await supabase
         .from("monthly_contributions")
         .select("*")
@@ -169,14 +224,16 @@ const ContributorDashboard = () => {
       color: loanBalance > 0 ? "text-destructive" : "text-success",
       bgColor: loanBalance > 0 ? "bg-destructive/10" : "bg-success/10",
       showDanger: loanBalance > 0,
+      showPaid: false,
     },
     {
-      title: "Monthly Contribution",
+      title: `${currentMonthPeriod} Contribution`,
       value: `£${monthlyContribution.toLocaleString()}`,
       icon: Wallet,
       color: "text-contribution",
       bgColor: "bg-contribution-light",
-      showDanger: false,
+      showDanger: !hasCurrentMonthPaid && monthlyContribution > 0,
+      showPaid: hasCurrentMonthPaid,
     },
     {
       title: "Total Contributed",
@@ -185,6 +242,7 @@ const ContributorDashboard = () => {
       color: "text-success",
       bgColor: "bg-success/10",
       showDanger: false,
+      showPaid: false,
     },
     {
       title: "Next Payout",
@@ -193,6 +251,7 @@ const ContributorDashboard = () => {
       color: "text-primary",
       bgColor: "bg-primary/10",
       showDanger: false,
+      showPaid: false,
     },
   ];
 
@@ -299,7 +358,7 @@ const ContributorDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className={`card-hover ${stat.showDanger ? 'border-destructive/50 bg-destructive/5' : ''}`}>
+                  <Card className={`card-hover ${stat.showDanger ? 'border-destructive/50 bg-destructive/5' : ''} ${stat.showPaid ? 'border-success/50 bg-success/5' : ''}`}>
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
@@ -311,9 +370,15 @@ const ContributorDashboard = () => {
                             <span className="text-xs font-semibold">UNPAID</span>
                           </div>
                         )}
+                        {stat.showPaid && (
+                          <div className="flex items-center gap-1 text-success">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="text-xs font-semibold">PAID</span>
+                          </div>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                      <p className={`text-2xl font-bold ${stat.showDanger ? 'text-destructive' : 'text-foreground'}`}>{stat.value}</p>
+                      <p className={`text-2xl font-bold ${stat.showDanger ? 'text-destructive' : stat.showPaid ? 'text-success' : 'text-foreground'}`}>{stat.value}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -328,10 +393,60 @@ const ContributorDashboard = () => {
                 userName={user?.user_metadata?.full_name}
               />
 
+              {/* Current Month Beneficiary Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    {currentMonthPeriod} Beneficiary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {currentBeneficiary ? (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                        <p className="text-sm text-muted-foreground mb-1">This Month's Beneficiary</p>
+                        <p className="font-semibold text-lg">{currentBeneficiary.name}</p>
+                      </div>
+                      {currentBeneficiary.bankName && currentBeneficiary.accountNumber && (
+                        <div className="p-4 rounded-xl bg-contribution-light border border-contribution/20 space-y-2">
+                          <p className="text-sm text-muted-foreground">Payment Details</p>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Bank Name:</span>
+                            <span className="font-semibold">{currentBeneficiary.bankName}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Account Number:</span>
+                            <span className="font-mono font-semibold">{currentBeneficiary.accountNumber}</span>
+                          </div>
+                        </div>
+                      )}
+                      {hasCurrentMonthPaid && (
+                        <Badge className="w-full justify-center py-2 bg-success text-success-foreground">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          You have paid for {currentMonthPeriod}
+                        </Badge>
+                      )}
+                      {!hasCurrentMonthPaid && monthlyContribution > 0 && (
+                        <Badge variant="destructive" className="w-full justify-center py-2">
+                          <AlertTriangle className="w-4 h-4 mr-2" />
+                          Payment pending for {currentMonthPeriod}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-muted-foreground">No beneficiary set for this month yet.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Beneficiary Status */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Beneficiary Status</CardTitle>
+                  <CardTitle>Your Payout Schedule</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8">
