@@ -354,7 +354,7 @@ const PaymentRecordingPage = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Expected</p>
-                <p className="font-bold">${currentContribution?.total_expected || 0}</p>
+                <p className="font-bold">£{currentContribution?.total_expected || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -369,7 +369,7 @@ const PaymentRecordingPage = () => {
               <div>
                 <p className="text-xs text-muted-foreground">Collected</p>
                 <p className="font-bold text-success">
-                  ${currentContribution?.total_collected || 0}
+                  £{currentContribution?.total_collected || 0}
                 </p>
               </div>
             </div>
@@ -434,7 +434,7 @@ const PaymentRecordingPage = () => {
                       <TableCell className="font-medium">
                         {getMemberName(payment.user_id)}
                       </TableCell>
-                      <TableCell>${payment.amount}</TableCell>
+                      <TableCell>£{payment.amount}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {payment.payment_date
                           ? new Date(payment.payment_date).toLocaleDateString()
