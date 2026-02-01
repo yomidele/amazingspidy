@@ -18,10 +18,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface LoanData {
+  outstanding_balance: number;
+  monthly_repayment: number | null;
+  status: string | null;
+}
+
+interface ContributionPayment {
+  amount: number;
+  status: string | null;
+  payment_date: string | null;
+}
+
+interface MonthlyContribution {
+  id: string;
+  month: number;
+  year: number;
+  beneficiary_user_id: string | null;
+  total_expected: number | null;
+}
+
 const ContributorDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loanBalance, setLoanBalance] = useState(0);
+  const [monthlyContribution, setMonthlyContribution] = useState(500);
+  const [totalContributed, setTotalContributed] = useState(0);
+  const [isBeneficiary, setIsBeneficiary] = useState(false);
+  const [beneficiaryMonth, setBeneficiaryMonth] = useState("");
+  const [expectedPayout, setExpectedPayout] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -31,6 +64,7 @@ const ContributorDashboard = () => {
         return;
       }
       setUser(session.user);
+      fetchUserData(session.user.id);
     };
     checkAuth();
 
@@ -39,11 +73,95 @@ const ContributorDashboard = () => {
         navigate("/login/contribution");
       } else {
         setUser(session.user);
+        fetchUserData(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const fetchUserData = async (userId: string) => {
+    setLoading(true);
+    try {
+      // Fetch loan balance
+      const { data: loansData, error: loansError } = await supabase
+        .from("loans")
+        .select("outstanding_balance, monthly_repayment, status")
+        .eq("user_id", userId)
+        .eq("status", "active");
+
+      if (!loansError && loansData) {
+        const totalLoanBalance = loansData.reduce((sum, loan) => sum + (loan.outstanding_balance || 0), 0);
+        setLoanBalance(totalLoanBalance);
+      }
+
+      // Fetch contribution payments
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from("contribution_payments")
+        .select("amount, status, payment_date")
+        .eq("user_id", userId)
+        .eq("status", "paid")
+        .order("payment_date", { ascending: false });
+
+      if (!paymentsError && paymentsData) {
+        const total = paymentsData.reduce((sum, p) => sum + (p.amount || 0), 0);
+        setTotalContributed(total);
+
+        // Get recent activity
+        const activity = paymentsData.slice(0, 5).map((p) => ({
+          type: "contribution",
+          description: "Monthly contribution paid",
+          date: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : "Unknown",
+          amount: `$${p.amount.toFixed(2)}`,
+        }));
+        setRecentActivity(activity);
+      }
+
+      // Check if user is beneficiary for current or upcoming month
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+
+      const { data: beneficiaryData, error: beneficiaryError } = await supabase
+        .from("monthly_contributions")
+        .select("*")
+        .eq("beneficiary_user_id", userId)
+        .gte("year", currentYear)
+        .order("year", { ascending: true })
+        .order("month", { ascending: true })
+        .limit(1);
+
+      if (!beneficiaryError && beneficiaryData && beneficiaryData.length > 0) {
+        const benef = beneficiaryData[0];
+        setBeneficiaryMonth(`${monthNames[benef.month - 1]} ${benef.year}`);
+        setExpectedPayout(benef.total_expected || 0);
+        setIsBeneficiary(benef.month === currentMonth && benef.year === currentYear);
+      }
+
+      // Get group contribution amount
+      const { data: membershipData } = await supabase
+        .from("group_memberships")
+        .select("group_id")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .limit(1);
+
+      if (membershipData && membershipData.length > 0) {
+        const { data: groupData } = await supabase
+          .from("contribution_groups")
+          .select("contribution_amount")
+          .eq("id", membershipData[0].group_id)
+          .maybeSingle();
+
+        if (groupData) {
+          setMonthlyContribution(groupData.contribution_amount);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -54,38 +172,32 @@ const ContributorDashboard = () => {
   const stats = [
     {
       title: "Current Loan Balance",
-      value: "$0.00",
+      value: `$${loanBalance.toLocaleString()}`,
       icon: CreditCard,
-      color: "text-destructive",
-      bgColor: "bg-destructive/10",
+      color: loanBalance > 0 ? "text-destructive" : "text-success",
+      bgColor: loanBalance > 0 ? "bg-destructive/10" : "bg-success/10",
     },
     {
       title: "Monthly Contribution",
-      value: "$500.00",
+      value: `$${monthlyContribution.toLocaleString()}`,
       icon: Wallet,
       color: "text-contribution",
       bgColor: "bg-contribution-light",
     },
     {
       title: "Total Contributed",
-      value: "$3,000.00",
+      value: `$${totalContributed.toLocaleString()}`,
       icon: TrendingUp,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
       title: "Next Payout",
-      value: "March 2025",
+      value: beneficiaryMonth || "Not scheduled",
       icon: Calendar,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
-  ];
-
-  const recentActivity = [
-    { type: "contribution", description: "Monthly contribution paid", date: "Jan 15, 2025", amount: "$500.00" },
-    { type: "contribution", description: "Monthly contribution paid", date: "Dec 15, 2024", amount: "$500.00" },
-    { type: "payout", description: "Beneficiary payout received", date: "Nov 30, 2024", amount: "$6,000.00" },
   ];
 
   return (
@@ -258,18 +370,31 @@ const ContributorDashboard = () => {
                     <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                       <Calendar className="w-10 h-10 text-muted-foreground" />
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">Not Your Month Yet</h3>
-                    <p className="text-muted-foreground mb-4">
-                      You are scheduled to be the beneficiary in <strong>March 2025</strong>.
-                    </p>
-                    <div className="p-4 rounded-xl bg-contribution-light border border-contribution/20">
-                      <p className="text-sm text-contribution-foreground">
-                        Expected payout: <strong className="text-contribution">$6,000.00</strong>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        After loan deduction: $6,000.00
-                      </p>
-                    </div>
+                    {beneficiaryMonth ? (
+                      <>
+                        <h3 className="font-semibold text-lg mb-2">
+                          {isBeneficiary ? "You Are This Month's Beneficiary!" : "Scheduled Payout"}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          You are scheduled to be the beneficiary in <strong>{beneficiaryMonth}</strong>.
+                        </p>
+                        <div className="p-4 rounded-xl bg-contribution-light border border-contribution/20">
+                          <p className="text-sm text-contribution-foreground">
+                            Expected payout: <strong className="text-contribution">${expectedPayout.toLocaleString()}</strong>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            After loan deduction: ${Math.max(0, expectedPayout - loanBalance).toLocaleString()}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="font-semibold text-lg mb-2">No Scheduled Payout</h3>
+                        <p className="text-muted-foreground">
+                          You are not currently scheduled as a beneficiary. Contact your group admin for more information.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

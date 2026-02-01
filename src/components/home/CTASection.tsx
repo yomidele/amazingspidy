@@ -1,9 +1,10 @@
+import { forwardRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const CTASection = () => {
+const CTASection = forwardRef<HTMLElement>((_, ref) => {
   const navigate = useNavigate();
 
   const benefits = [
@@ -14,7 +15,7 @@ const CTASection = () => {
   ];
 
   return (
-    <section className="py-24 relative overflow-hidden">
+    <section ref={ref} className="py-24 relative overflow-hidden">
       <div
         className="absolute inset-0 z-0"
         style={{ background: "var(--gradient-hero)" }}
@@ -79,6 +80,8 @@ const CTASection = () => {
       </div>
     </section>
   );
-};
+});
+
+CTASection.displayName = "CTASection";
 
 export default CTASection;

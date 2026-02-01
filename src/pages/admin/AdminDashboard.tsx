@@ -20,12 +20,16 @@ import {
   DollarSign,
   UserCheck,
   Star,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ContributionSetupPage from "@/components/admin/ContributionSetupPage";
+import MemberManagementPage from "@/components/admin/MemberManagementPage";
+import LoanManagementPage from "@/components/admin/LoanManagementPage";
+import PaymentRecordingPage from "@/components/admin/PaymentRecordingPage";
 import LiveReviews from "@/components/travel/LiveReviews";
 
 const AdminDashboard = () => {
@@ -82,6 +86,7 @@ const AdminDashboard = () => {
     { icon: LayoutDashboard, label: "Dashboard", page: "dashboard" },
     { icon: Users, label: "Members", page: "members" },
     { icon: Wallet, label: "Contributions", page: "contributions" },
+    { icon: Receipt, label: "Payments", page: "payments" },
     { icon: CreditCard, label: "Loans", page: "loans" },
     { icon: Bell, label: "Notifications", page: "notifications" },
   ];
@@ -100,8 +105,14 @@ const AdminDashboard = () => {
   const renderContent = () => {
     if (activeModule === "contribution") {
       switch (activePage) {
+        case "members":
+          return <MemberManagementPage />;
         case "contributions":
           return <ContributionSetupPage />;
+        case "payments":
+          return <PaymentRecordingPage />;
+        case "loans":
+          return <LoanManagementPage />;
         case "dashboard":
         default:
           return renderContributionDashboard();
