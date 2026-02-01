@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,7 +113,7 @@ const ContributorDashboard = () => {
           type: "contribution",
           description: "Monthly contribution paid",
           date: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : "Unknown",
-          amount: `$${p.amount.toFixed(2)}`,
+          amount: `£${p.amount.toFixed(2)}`,
         }));
         setRecentActivity(activity);
       }
@@ -172,24 +173,27 @@ const ContributorDashboard = () => {
   const stats = [
     {
       title: "Current Loan Balance",
-      value: `$${loanBalance.toLocaleString()}`,
+      value: `£${loanBalance.toLocaleString()}`,
       icon: CreditCard,
       color: loanBalance > 0 ? "text-destructive" : "text-success",
       bgColor: loanBalance > 0 ? "bg-destructive/10" : "bg-success/10",
+      showDanger: loanBalance > 0,
     },
     {
       title: "Monthly Contribution",
-      value: `$${monthlyContribution.toLocaleString()}`,
+      value: `£${monthlyContribution.toLocaleString()}`,
       icon: Wallet,
       color: "text-contribution",
       bgColor: "bg-contribution-light",
+      showDanger: false,
     },
     {
       title: "Total Contributed",
-      value: `$${totalContributed.toLocaleString()}`,
+      value: `£${totalContributed.toLocaleString()}`,
       icon: TrendingUp,
       color: "text-success",
       bgColor: "bg-success/10",
+      showDanger: false,
     },
     {
       title: "Next Payout",
@@ -197,6 +201,7 @@ const ContributorDashboard = () => {
       icon: Calendar,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      showDanger: false,
     },
   ];
 
@@ -303,15 +308,21 @@ const ContributorDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className="card-hover">
+                  <Card className={`card-hover ${stat.showDanger ? 'border-destructive/50 bg-destructive/5' : ''}`}>
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
                           <stat.icon className={`w-6 h-6 ${stat.color}`} />
                         </div>
+                        {stat.showDanger && (
+                          <div className="flex items-center gap-1 text-destructive animate-pulse">
+                            <AlertTriangle className="w-5 h-5" />
+                            <span className="text-xs font-semibold">UNPAID</span>
+                          </div>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                      <p className={`text-2xl font-bold ${stat.showDanger ? 'text-destructive' : 'text-foreground'}`}>{stat.value}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -380,10 +391,10 @@ const ContributorDashboard = () => {
                         </p>
                         <div className="p-4 rounded-xl bg-contribution-light border border-contribution/20">
                           <p className="text-sm text-contribution-foreground">
-                            Expected payout: <strong className="text-contribution">${expectedPayout.toLocaleString()}</strong>
+                            Expected payout: <strong className="text-contribution">£{expectedPayout.toLocaleString()}</strong>
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            After loan deduction: ${Math.max(0, expectedPayout - loanBalance).toLocaleString()}
+                            After loan deduction: £{Math.max(0, expectedPayout - loanBalance).toLocaleString()}
                           </p>
                         </div>
                       </>
