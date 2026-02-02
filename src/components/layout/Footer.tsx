@@ -1,11 +1,14 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Users, Plane, Mail, Phone, MapPin } from "lucide-react";
+import { Shield, Users, Plane, Mail, Phone, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 
 const WHATSAPP_NUMBER = "447824812923";
 const CONTACT_EMAIL = "musashamsy@gmail.com";
 
 const Footer = forwardRef<HTMLElement>((_, ref) => {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <footer ref={ref} className="bg-sidebar text-sidebar-foreground pt-16 pb-8">
       <div className="container mx-auto px-4 lg:px-8">
@@ -38,6 +41,18 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
               >
                 <Mail className="w-5 h-5" />
               </a>
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="w-10 h-10 rounded-lg bg-sidebar-accent flex items-center justify-center hover:bg-travel transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "light" ? (
+                  <Moon className="w-5 h-5" />
+                ) : (
+                  <Sun className="w-5 h-5" />
+                )}
+              </button>
             </div>
           </div>
 
