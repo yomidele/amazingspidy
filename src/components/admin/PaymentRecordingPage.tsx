@@ -166,6 +166,11 @@ const PaymentRecordingPage = () => {
     try {
       // Check if payment already exists
       const existingPayment = payments.find((p) => p.user_id === newPayment.user_id);
+      const contribution = contributions.find((c) => c.id === selectedContribution);
+      const memberName = getMemberName(newPayment.user_id);
+      const periodName = contribution
+        ? `${monthNames[contribution.month - 1]} ${contribution.year}`
+        : "this month";
       
       if (existingPayment) {
         // Update existing payment
@@ -192,8 +197,18 @@ const PaymentRecordingPage = () => {
         if (error) throw error;
       }
 
+      // Send notification to the contributor
+      if (newPayment.status === "paid") {
+        await supabase.from("notifications").insert({
+          user_id: newPayment.user_id,
+          title: "Payment Confirmed ✓",
+          message: `Your contribution of £${newPayment.amount} for ${periodName} has been recorded. Thank you!`,
+          type: "payment",
+          link: "/dashboard/contributor",
+        });
+      }
+
       // Update total collected
-      const contribution = contributions.find((c) => c.id === selectedContribution);
       if (contribution && newPayment.status === "paid") {
         const totalPaid = payments
           .filter((p) => p.status === "paid" && p.user_id !== newPayment.user_id)
