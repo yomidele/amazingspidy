@@ -77,6 +77,34 @@ const ContributorDashboard = () => {
       }
       setUser(session.user);
       fetchUserData(session.user.id);
+      
+      // Set up realtime notification listener
+      const notificationChannel = supabase
+        .channel('contributor-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            const notification = payload.new as any;
+            // Show toast notification
+            toast.success(notification.title, {
+              description: notification.message,
+              duration: 8000,
+            });
+            // Refresh dashboard data
+            fetchUserData(session.user.id);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(notificationChannel);
+      };
     };
     checkAuth();
 
