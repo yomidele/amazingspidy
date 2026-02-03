@@ -21,6 +21,7 @@ import {
   UserCheck,
   Star,
   Receipt,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ import LoanManagementPage from "@/components/admin/LoanManagementPage";
 import PaymentRecordingPage from "@/components/admin/PaymentRecordingPage";
 import ContributionDashboardContent from "@/components/admin/ContributionDashboardContent";
 import LiveReviews from "@/components/travel/LiveReviews";
+import AdminTutorial from "@/components/admin/AdminTutorial";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -40,6 +42,7 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -329,6 +332,10 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setTutorialOpen(true)}>
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Tutorial
+                </Button>
                 <Button variant="outline" size="sm">
                   <Bell className="w-4 h-4 mr-2" />
                   Alerts (3)
@@ -387,6 +394,9 @@ const AdminDashboard = () => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Tutorial Dialog */}
+      <AdminTutorial open={tutorialOpen} onOpenChange={setTutorialOpen} />
     </div>
   );
 };
