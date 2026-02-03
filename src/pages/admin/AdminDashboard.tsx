@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Routes, Route, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -16,33 +16,37 @@ import {
   Menu,
   X,
   TrendingUp,
-  TrendingDown,
-  DollarSign,
-  UserCheck,
   Star,
   Receipt,
   HelpCircle,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { TutorialProvider, useTutorial } from "@/contexts/TutorialContext";
+import AdminTooltip, { tooltipContent } from "@/components/admin/AdminTooltip";
 import ContributionSetupPage from "@/components/admin/ContributionSetupPage";
 import MemberManagementPage from "@/components/admin/MemberManagementPage";
 import LoanManagementPage from "@/components/admin/LoanManagementPage";
 import PaymentRecordingPage from "@/components/admin/PaymentRecordingPage";
 import ContributionDashboardContent from "@/components/admin/ContributionDashboardContent";
+import AdminSettingsPage from "@/components/admin/AdminSettingsPage";
 import LiveReviews from "@/components/travel/LiveReviews";
 import AdminTutorial from "@/components/admin/AdminTutorial";
+import AdminUserManual from "@/components/admin/AdminUserManual";
 
-const AdminDashboard = () => {
+const AdminDashboardContent = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+
+  const { tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial } = useTutorial();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -66,6 +70,16 @@ const AdminDashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Auto-show tutorial for new admins
+  useEffect(() => {
+    if (tutorialEnabled && showTutorialOnFirstLoad && !hasSeenTutorial && user) {
+      const timer = setTimeout(() => {
+        setTutorialOpen(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial, user]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
@@ -80,21 +94,23 @@ const AdminDashboard = () => {
   ];
 
   const contributionNavItems = [
-    { icon: LayoutDashboard, label: "Dashboard", page: "dashboard" },
-    { icon: Users, label: "Members", page: "members" },
-    { icon: Wallet, label: "Contributions", page: "contributions" },
-    { icon: Receipt, label: "Payments", page: "payments" },
-    { icon: CreditCard, label: "Loans", page: "loans" },
-    { icon: Bell, label: "Notifications", page: "notifications" },
+    { icon: LayoutDashboard, label: "Dashboard", page: "dashboard", tooltip: tooltipContent.dashboardHome },
+    { icon: Users, label: "Members", page: "members", tooltip: tooltipContent.addContributor },
+    { icon: Wallet, label: "Contributions", page: "contributions", tooltip: tooltipContent.newMonth },
+    { icon: Receipt, label: "Payments", page: "payments", tooltip: tooltipContent.recordPayment },
+    { icon: CreditCard, label: "Loans", page: "loans", tooltip: tooltipContent.issueLoan },
+    { icon: Bell, label: "Notifications", page: "notifications", tooltip: tooltipContent.notifications },
+    { icon: Settings, label: "Settings", page: "settings", tooltip: tooltipContent.settings },
   ];
 
   const travelNavItems = [
-    { icon: LayoutDashboard, label: "Dashboard", page: "dashboard" },
-    { icon: Users, label: "Clients", page: "clients" },
-    { icon: FileCheck, label: "Cases", page: "cases" },
-    { icon: Calendar, label: "Consultations", page: "consultations" },
-    { icon: Star, label: "Reviews", page: "reviews" },
-    { icon: Bell, label: "Notifications", page: "notifications" },
+    { icon: LayoutDashboard, label: "Dashboard", page: "dashboard", tooltip: tooltipContent.dashboardHome },
+    { icon: Users, label: "Clients", page: "clients", tooltip: "Manage travel consultation clients" },
+    { icon: FileCheck, label: "Cases", page: "cases", tooltip: "Track visa and travel cases" },
+    { icon: Calendar, label: "Consultations", page: "consultations", tooltip: "Manage consultation appointments" },
+    { icon: Star, label: "Reviews", page: "reviews", tooltip: "View and moderate client reviews" },
+    { icon: Bell, label: "Notifications", page: "notifications", tooltip: tooltipContent.notifications },
+    { icon: Settings, label: "Settings", page: "settings", tooltip: tooltipContent.settings },
   ];
 
   const navItems = activeModule === "contribution" ? contributionNavItems : travelNavItems;
@@ -110,6 +126,13 @@ const AdminDashboard = () => {
           return <PaymentRecordingPage />;
         case "loans":
           return <LoanManagementPage />;
+        case "settings":
+          return (
+            <AdminSettingsPage
+              onOpenTutorial={() => setTutorialOpen(true)}
+              onOpenManual={() => setManualOpen(true)}
+            />
+          );
         case "dashboard":
         default:
           return <ContributionDashboardContent />;
@@ -118,6 +141,13 @@ const AdminDashboard = () => {
       switch (activePage) {
         case "reviews":
           return <LiveReviews />;
+        case "settings":
+          return (
+            <AdminSettingsPage
+              onOpenTutorial={() => setTutorialOpen(true)}
+              onOpenManual={() => setManualOpen(true)}
+            />
+          );
         case "dashboard":
         default:
           return renderTravelDashboard();
@@ -221,9 +251,11 @@ const AdminDashboard = () => {
             <span className="font-semibold">Admin</span>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleLogout}>
-          <LogOut className="w-5 h-5" />
-        </Button>
+        <AdminTooltip content={tooltipContent.logout}>
+          <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </AdminTooltip>
       </header>
 
       <div className="flex">
@@ -247,46 +279,51 @@ const AdminDashboard = () => {
             {/* Module Switcher */}
             <div className="mb-6 p-1 rounded-xl bg-sidebar-accent/50">
               <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={() => { setActiveModule("contribution"); setActivePage("dashboard"); }}
-                  className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
-                    activeModule === "contribution"
-                      ? "bg-contribution text-white"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>Amana</span>
-                </button>
-                <button
-                  onClick={() => { setActiveModule("travel"); setActivePage("dashboard"); }}
-                  className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
-                    activeModule === "travel"
-                      ? "bg-travel text-white"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
-                  }`}
-                >
-                  <Plane className="w-4 h-4" />
-                  <span>Teemah</span>
-                </button>
+                <AdminTooltip content={tooltipContent.switchToAmana}>
+                  <button
+                    onClick={() => { setActiveModule("contribution"); setActivePage("dashboard"); }}
+                    className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeModule === "contribution"
+                        ? "bg-contribution text-white"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Amana</span>
+                  </button>
+                </AdminTooltip>
+                <AdminTooltip content={tooltipContent.switchToTeemah}>
+                  <button
+                    onClick={() => { setActiveModule("travel"); setActivePage("dashboard"); }}
+                    className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeModule === "travel"
+                        ? "bg-travel text-white"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <Plane className="w-4 h-4" />
+                    <span>Teemah</span>
+                  </button>
+                </AdminTooltip>
               </div>
             </div>
 
             <nav className="space-y-1">
               {navItems.map((item) => (
-                <Button
-                  key={item.label}
-                  variant="ghost"
-                  onClick={() => setActivePage(item.page)}
-                  className={`w-full justify-start ${
-                    activePage === item.page
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  }`}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.label}
-                </Button>
+                <AdminTooltip key={item.label} content={item.tooltip} side="right">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setActivePage(item.page)}
+                    className={`w-full justify-start ${
+                      activePage === item.page
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5 mr-3" />
+                    {item.label}
+                  </Button>
+                </AdminTooltip>
               ))}
             </nav>
           </div>
@@ -303,10 +340,12 @@ const AdminDashboard = () => {
                 <p className="text-xs text-sidebar-foreground/60 truncate">{user?.email}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80" onClick={handleLogout}>
-              <LogOut className="w-5 h-5 mr-3" />
-              Sign Out
-            </Button>
+            <AdminTooltip content={tooltipContent.logout}>
+              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80" onClick={handleLogout}>
+                <LogOut className="w-5 h-5 mr-3" />
+                Sign Out
+              </Button>
+            </AdminTooltip>
           </div>
         </aside>
 
@@ -325,6 +364,7 @@ const AdminDashboard = () => {
                   {activePage === "dashboard" ? "Admin Dashboard" : 
                    activePage === "contributions" ? "Monthly Contributions" :
                    activePage === "reviews" ? "Client Reviews" :
+                   activePage === "settings" ? "Settings" :
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
                 <p className="text-muted-foreground">
@@ -332,20 +372,32 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setTutorialOpen(true)}>
-                  <HelpCircle className="w-4 h-4 mr-2" />
-                  Tutorial
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Bell className="w-4 h-4 mr-2" />
-                  Alerts (3)
-                </Button>
-                <Button
-                  variant={activeModule === "contribution" ? "contribution" : "travel"}
-                  size="sm"
-                >
-                  + Add {activeModule === "contribution" ? "Member" : "Client"}
-                </Button>
+                <AdminTooltip content={tooltipContent.restartTutorial}>
+                  <Button variant="outline" size="sm" onClick={() => setTutorialOpen(true)}>
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Tutorial
+                  </Button>
+                </AdminTooltip>
+                <AdminTooltip content={tooltipContent.openAdminManual}>
+                  <Button variant="outline" size="sm" onClick={() => setManualOpen(true)}>
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Manual
+                  </Button>
+                </AdminTooltip>
+                <AdminTooltip content={tooltipContent.notifications}>
+                  <Button variant="outline" size="sm">
+                    <Bell className="w-4 h-4 mr-2" />
+                    Alerts (3)
+                  </Button>
+                </AdminTooltip>
+                <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : "Add a new travel client"}>
+                  <Button
+                    variant={activeModule === "contribution" ? "contribution" : "travel"}
+                    size="sm"
+                  >
+                    + Add {activeModule === "contribution" ? "Member" : "Client"}
+                  </Button>
+                </AdminTooltip>
               </div>
             </div>
 
@@ -368,7 +420,7 @@ const AdminDashboard = () => {
                           <div className={`flex items-center gap-1 text-sm ${
                             stat.positive ? "text-success" : "text-destructive"
                           }`}>
-                            {stat.positive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                            <TrendingUp className="w-4 h-4" />
                             <span>{stat.change}</span>
                           </div>
                         </div>
@@ -397,7 +449,19 @@ const AdminDashboard = () => {
 
       {/* Tutorial Dialog */}
       <AdminTutorial open={tutorialOpen} onOpenChange={setTutorialOpen} />
+
+      {/* User Manual Dialog */}
+      <AdminUserManual open={manualOpen} onOpenChange={setManualOpen} />
     </div>
+  );
+};
+
+// Wrap with TutorialProvider
+const AdminDashboard = () => {
+  return (
+    <TutorialProvider>
+      <AdminDashboardContent />
+    </TutorialProvider>
   );
 };
 
