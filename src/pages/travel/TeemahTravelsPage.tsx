@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import LiveReviews from "@/components/travel/LiveReviews";
 import BookingDialog from "@/components/travel/BookingDialog";
+import SignupPopup from "@/components/shared/SignupPopup";
 
 const WHATSAPP_NUMBER = "447824812923";
 const CONTACT_EMAIL = "musashamsy@gmail.com";
@@ -571,6 +572,9 @@ const TeemahTravelsPage = () => {
         onOpenChange={setBookingDialogOpen}
         serviceName={selectedService}
       />
+
+      {/* Signup Popup - Teemah Travels only */}
+      <SignupPopup showBothOptions={false} />
     </div>
   );
 };

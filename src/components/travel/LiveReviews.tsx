@@ -249,6 +249,16 @@ const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
                   </div>
                 </div>
 
+                {/* Name field for all users - helps identify the reviewer */}
+                <div className="space-y-2">
+                  <Label>Your Name (Optional)</Label>
+                  <Input
+                    placeholder="How should we call you?"
+                    value={newReview.name}
+                    onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label>Review Title (Optional)</Label>
                   <Input
@@ -259,7 +269,7 @@ const LiveReviews = ({ showPublicForm = false }: LiveReviewsProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Your Review</Label>
+                  <Label>Your Review *</Label>
                   <Textarea
                     placeholder="Tell us about your experience with our services..."
                     rows={4}
