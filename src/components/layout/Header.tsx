@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown, Users, Plane, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ThemeToggle from "@/components/home/ThemeToggle";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomepage = location.pathname === "/";
 
   const services = [
     {
@@ -95,6 +98,9 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-4">
+            {/* Theme Toggle - only on homepage */}
+            {isHomepage && <ThemeToggle />}
+            
             <Button
               variant="ghost"
               size="sm"
@@ -165,6 +171,14 @@ const Header = () => {
                     </Link>
                   ))}
                 </div>
+
+                {/* Mobile Theme Toggle */}
+                {isHomepage && (
+                  <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Switch Theme</span>
+                    <ThemeToggle />
+                  </div>
+                )}
 
                 <div className="pt-4 space-y-2 border-t border-border/50">
                   <Button
