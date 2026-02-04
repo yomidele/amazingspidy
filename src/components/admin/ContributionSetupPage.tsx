@@ -41,6 +41,12 @@ interface Member {
   email: string;
 }
 
+interface GroupMembership {
+  user_id: string;
+  group_id: string;
+  is_active: boolean;
+}
+
 interface ContributionGroup {
   id: string;
   name: string;
@@ -72,6 +78,7 @@ interface Payment {
 const ContributionSetupPage = () => {
   const [contributions, setContributions] = useState<MonthlyContribution[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [groupMemberships, setGroupMemberships] = useState<GroupMembership[]>([]);
   const [groups, setGroups] = useState<ContributionGroup[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedContribution, setSelectedContribution] = useState<MonthlyContribution | null>(null);
@@ -80,10 +87,10 @@ const ContributionSetupPage = () => {
   const [newContribution, setNewContribution] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
+    group_id: "",
     beneficiary_user_id: "",
     beneficiary_account_number: "",
     beneficiary_bank_name: "",
-    contribution_amount: 500,
   });
 
   const monthNames = [
@@ -107,13 +114,22 @@ const ContributionSetupPage = () => {
       if (groupsError) throw groupsError;
       setGroups(groupsData || []);
 
-      // Set default contribution amount from first group if available
+      // Set default group if available
       if (groupsData && groupsData.length > 0) {
         setNewContribution(prev => ({
           ...prev,
-          contribution_amount: groupsData[0].contribution_amount,
+          group_id: groupsData[0].id,
         }));
       }
+
+      // Fetch group memberships
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from("group_memberships")
+        .select("user_id, group_id, is_active")
+        .eq("is_active", true);
+
+      if (membershipsError) throw membershipsError;
+      setGroupMemberships(membershipsData || []);
 
       // Fetch monthly contributions
       const { data: contribData, error: contribError } = await supabase
@@ -155,12 +171,40 @@ const ContributionSetupPage = () => {
     }
   };
 
+  // Get members belonging to a specific group
+  const getGroupMembers = (groupId: string) => {
+    const memberUserIds = groupMemberships
+      .filter(gm => gm.group_id === groupId && gm.is_active)
+      .map(gm => gm.user_id);
+    return members.filter(m => memberUserIds.includes(m.user_id));
+  };
+
+  // Get selected group info
+  const getSelectedGroup = () => {
+    return groups.find(g => g.id === newContribution.group_id);
+  };
+
+  // Get group name by id
+  const getGroupName = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    return group?.name || "Unknown Group";
+  };
+
   const handleCreateContribution = async () => {
-    // Ensure we have a group
-    if (groups.length === 0) {
-      toast.error("Please create a contribution group first in Member Management");
+    // Ensure we have a group selected
+    if (!newContribution.group_id) {
+      toast.error("Please select a contribution group");
       return;
     }
+
+    const selectedGroup = getSelectedGroup();
+    if (!selectedGroup) {
+      toast.error("Selected group not found");
+      return;
+    }
+
+    // Get members count for the selected group
+    const groupMembers = getGroupMembers(newContribution.group_id);
 
     try {
       const { error } = await supabase.from("monthly_contributions").insert({
@@ -169,21 +213,39 @@ const ContributionSetupPage = () => {
         beneficiary_user_id: newContribution.beneficiary_user_id || null,
         beneficiary_account_number: newContribution.beneficiary_account_number || null,
         beneficiary_bank_name: newContribution.beneficiary_bank_name || null,
-        total_expected: members.length * newContribution.contribution_amount,
+        total_expected: groupMembers.length * selectedGroup.contribution_amount,
         total_collected: 0,
         is_finalized: false,
-        group_id: groups[0].id, // Use the first active group
+        group_id: newContribution.group_id,
       });
 
       if (error) throw error;
       
       toast.success("Monthly contribution created successfully");
       setIsCreateDialogOpen(false);
+      // Reset form
+      setNewContribution({
+        month: new Date().getMonth() + 1,
+        year: new Date().getFullYear(),
+        group_id: groups[0]?.id || "",
+        beneficiary_user_id: "",
+        beneficiary_account_number: "",
+        beneficiary_bank_name: "",
+      });
       fetchData();
     } catch (error: any) {
       console.error("Error creating contribution:", error);
       toast.error(error.message || "Failed to create contribution");
     }
+  };
+
+  // Handle group change - reset beneficiary when group changes
+  const handleGroupChange = (groupId: string) => {
+    setNewContribution({
+      ...newContribution,
+      group_id: groupId,
+      beneficiary_user_id: "", // Reset beneficiary when group changes
+    });
   };
 
   const handleUpdatePaymentStatus = async (paymentId: string, status: string) => {
@@ -239,6 +301,31 @@ const ContributionSetupPage = () => {
               <DialogTitle>Create Monthly Contribution</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Group Selection */}
+              <div className="space-y-2">
+                <Label>Contribution Group</Label>
+                <Select
+                  value={newContribution.group_id}
+                  onValueChange={handleGroupChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name} (£{group.contribution_amount}/member)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {newContribution.group_id && (
+                  <p className="text-xs text-muted-foreground">
+                    {getGroupMembers(newContribution.group_id).length} members in this group
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Month</Label>
@@ -268,7 +355,7 @@ const ContributionSetupPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {[2024, 2025, 2026].map((year) => (
+                      {[2024, 2025, 2026, 2027].map((year) => (
                         <SelectItem key={year} value={String(year)}>
                           {year}
                         </SelectItem>
@@ -278,23 +365,30 @@ const ContributionSetupPage = () => {
                 </div>
               </div>
 
+              {/* Beneficiary - Only show members from selected group */}
               <div className="space-y-2">
-                <Label>Beneficiary</Label>
+                <Label>Beneficiary (from group members)</Label>
                 <Select
                   value={newContribution.beneficiary_user_id}
                   onValueChange={(v) => setNewContribution({ ...newContribution, beneficiary_user_id: v })}
+                  disabled={!newContribution.group_id}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select beneficiary" />
+                    <SelectValue placeholder={newContribution.group_id ? "Select beneficiary" : "Select a group first"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {members.map((member) => (
+                    {getGroupMembers(newContribution.group_id).map((member) => (
                       <SelectItem key={member.user_id} value={member.user_id}>
                         {member.full_name || member.email}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {newContribution.group_id && getGroupMembers(newContribution.group_id).length === 0 && (
+                  <p className="text-xs text-destructive">
+                    No members assigned to this group yet
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -315,16 +409,23 @@ const ContributionSetupPage = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Contribution Amount (per member)</Label>
-                <Input
-                  type="number"
-                  value={newContribution.contribution_amount}
-                  onChange={(e) => setNewContribution({ ...newContribution, contribution_amount: parseFloat(e.target.value) })}
-                />
-              </div>
+              {/* Show contribution amount from selected group */}
+              {getSelectedGroup() && (
+                <div className="p-3 rounded-lg bg-contribution-light border border-contribution/20">
+                  <p className="text-sm text-muted-foreground">Contribution Amount (per member)</p>
+                  <p className="font-bold text-contribution text-lg">£{getSelectedGroup()?.contribution_amount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total Expected: £{getGroupMembers(newContribution.group_id).length * (getSelectedGroup()?.contribution_amount || 0)}
+                  </p>
+                </div>
+              )}
 
-              <Button variant="contribution" className="w-full" onClick={handleCreateContribution}>
+              <Button 
+                variant="contribution" 
+                className="w-full" 
+                onClick={handleCreateContribution}
+                disabled={!newContribution.group_id}
+              >
                 Create Monthly Contribution
               </Button>
             </div>
@@ -372,6 +473,9 @@ const ContributionSetupPage = () => {
                         <Badge variant="outline">Open</Badge>
                       )}
                     </div>
+                    <p className="text-xs font-medium text-contribution mb-1">
+                      {getGroupName(contrib.group_id)}
+                    </p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>
                         Collected: £{contrib.total_collected || 0}
@@ -398,6 +502,12 @@ const ContributionSetupPage = () => {
           <CardContent>
             {selectedContribution ? (
               <div className="space-y-6">
+                {/* Group Info */}
+                <div className="p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-xs text-muted-foreground">Contribution Group</p>
+                  <p className="font-semibold text-contribution">{getGroupName(selectedContribution.group_id)}</p>
+                </div>
+
                 {/* Beneficiary Info */}
                 <div className="p-4 rounded-xl bg-contribution-light border border-contribution/20">
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
