@@ -115,7 +115,7 @@ const ServicesSection = () => {
           >
             <div className="bg-gradient-to-br from-contribution/10 via-contribution/5 to-transparent p-5 sm:p-8 lg:p-10 border border-contribution/20 rounded-3xl">
               <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-contribution to-amber-500 flex items-center justify-center shadow-contribution">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-contribution to-purple-400 flex items-center justify-center shadow-contribution">
                   <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                 </div>
                 <div>

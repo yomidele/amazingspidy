@@ -370,18 +370,22 @@ const AdminDashboardContent = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <AdminTooltip content={tooltipContent.restartTutorial}>
-                  <Button variant="outline" size="sm" onClick={() => setTutorialOpen(true)}>
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Tutorial
-                  </Button>
-                </AdminTooltip>
-                <AdminTooltip content={tooltipContent.openAdminManual}>
-                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/manual")}>
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Manual
-                  </Button>
-                </AdminTooltip>
+                {activeModule === "contribution" && (
+                  <>
+                    <AdminTooltip content={tooltipContent.restartTutorial}>
+                      <Button variant="outline" size="sm" onClick={() => setTutorialOpen(true)}>
+                        <HelpCircle className="w-4 h-4 mr-2" />
+                        Tutorial
+                      </Button>
+                    </AdminTooltip>
+                    <AdminTooltip content={tooltipContent.openAdminManual}>
+                      <Button variant="outline" size="sm" onClick={() => navigate("/admin/manual")}>
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Manual
+                      </Button>
+                    </AdminTooltip>
+                  </>
+                )}
                 <AdminTooltip content={tooltipContent.notifications}>
                   <Button variant="outline" size="sm">
                     <Bell className="w-4 h-4 mr-2" />
