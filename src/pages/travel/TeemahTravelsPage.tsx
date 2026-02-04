@@ -533,22 +533,22 @@ const TeemahTravelsPage = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-sm">
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-travel transition-colors"
+                className="flex items-center gap-2 hover:text-travel transition-colors whitespace-nowrap"
               >
-                <Phone className="w-4 h-4" />
-                +44 7824 812923
+                <Phone className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">+44 7824 812923</span>
               </a>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="flex items-center gap-2 hover:text-travel transition-colors"
+                className="flex items-center gap-2 hover:text-travel transition-colors whitespace-nowrap"
               >
-                <Mail className="w-4 h-4" />
-                {CONTACT_EMAIL}
+                <Mail className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">{CONTACT_EMAIL}</span>
               </a>
             </div>
 

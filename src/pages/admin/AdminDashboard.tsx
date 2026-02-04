@@ -348,58 +348,63 @@ const AdminDashboardContent = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8">
+        <main className="flex-1 min-w-0 p-4 lg:p-8 pt-20 lg:pt-8 overflow-x-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`${activeModule}-${activePage}`}
-            className="max-w-7xl mx-auto"
+            className="max-w-7xl mx-auto min-w-[320px]"
           >
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-              <div>
-                <h1 className="font-heading text-2xl lg:text-3xl font-bold text-foreground mb-1">
+            <div className="flex flex-col gap-4 mb-6 lg:mb-8">
+              <div className="min-w-0">
+                <h1 className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 truncate">
                   {activePage === "dashboard" ? "Admin Dashboard" : 
                    activePage === "contributions" ? "Monthly Contributions" :
                    activePage === "reviews" ? "Client Reviews" :
                    activePage === "settings" ? "Settings" :
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground truncate">
                   Manage your {activeModule === "contribution" ? "Amana Market Contribution" : "Teemah Travels services"}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {activeModule === "contribution" && (
-                  <>
-                    <AdminTooltip content={tooltipContent.restartTutorial}>
-                      <Button variant="outline" size="sm" onClick={() => setTutorialOpen(true)}>
-                        <HelpCircle className="w-4 h-4 mr-2" />
-                        Tutorial
-                      </Button>
-                    </AdminTooltip>
-                    <AdminTooltip content={tooltipContent.openAdminManual}>
-                      <Button variant="outline" size="sm" onClick={() => navigate("/admin/manual")}>
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Manual
-                      </Button>
-                    </AdminTooltip>
-                  </>
-                )}
-                <AdminTooltip content={tooltipContent.notifications}>
-                  <Button variant="outline" size="sm">
-                    <Bell className="w-4 h-4 mr-2" />
-                    Alerts (3)
-                  </Button>
-                </AdminTooltip>
-                <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : "Add a new travel client"}>
-                  <Button
-                    variant={activeModule === "contribution" ? "contribution" : "travel"}
-                    size="sm"
-                  >
-                    + Add {activeModule === "contribution" ? "Member" : "Client"}
-                  </Button>
-                </AdminTooltip>
+              
+              {/* Action buttons - horizontally scrollable on mobile */}
+              <div className="overflow-x-auto pb-2 -mb-2 scrollbar-thin">
+                <div className="flex items-center gap-2 min-w-max">
+                  {activeModule === "contribution" && (
+                    <>
+                      <AdminTooltip content={tooltipContent.restartTutorial}>
+                        <Button variant="outline" size="sm" className="whitespace-nowrap" onClick={() => setTutorialOpen(true)}>
+                          <HelpCircle className="w-4 h-4 mr-2" />
+                          Tutorial
+                        </Button>
+                      </AdminTooltip>
+                      <AdminTooltip content={tooltipContent.openAdminManual}>
+                        <Button variant="outline" size="sm" onClick={() => navigate("/admin/manual")} className="whitespace-nowrap">
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          Manual
+                        </Button>
+                      </AdminTooltip>
+                    </>
+                  )}
+                  <AdminTooltip content={tooltipContent.notifications}>
+                    <Button variant="outline" size="sm" className="whitespace-nowrap">
+                      <Bell className="w-4 h-4 mr-2" />
+                      Alerts (3)
+                    </Button>
+                  </AdminTooltip>
+                  <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : "Add a new travel client"}>
+                    <Button
+                      variant={activeModule === "contribution" ? "contribution" : "travel"}
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      + Add {activeModule === "contribution" ? "Member" : "Client"}
+                    </Button>
+                  </AdminTooltip>
+                </div>
               </div>
             </div>
 
