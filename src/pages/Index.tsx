@@ -3,6 +3,7 @@ import Footer from "@/components/layout/Footer";
 import HeroSection from "@/components/home/HeroSection";
 import ServicesSection from "@/components/home/ServicesSection";
 import CTASection from "@/components/home/CTASection";
+import SignupPopup from "@/components/shared/SignupPopup";
 
 const Index = () => {
   return (
@@ -14,6 +15,7 @@ const Index = () => {
         <CTASection />
       </main>
       <Footer />
+      <SignupPopup showBothOptions={true} />
     </div>
   );
 };
