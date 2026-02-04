@@ -421,7 +421,7 @@ const ContributorDashboard = () => {
                 userName={user?.user_metadata?.full_name}
               />
 
-              {/* Current Month Beneficiary Info */}
+            {/* Current Month Beneficiary Info - Only show for your group */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -433,10 +433,10 @@ const ContributorDashboard = () => {
                   {currentBeneficiary ? (
                     <div className="space-y-4">
                       <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                        <p className="text-sm text-muted-foreground mb-1">This Month's Beneficiary</p>
+                        <p className="text-sm text-muted-foreground mb-1">Your Group's Beneficiary This Month</p>
                         <p className="font-semibold text-lg">{currentBeneficiary.name}</p>
                       </div>
-                      {currentBeneficiary.bankName && currentBeneficiary.accountNumber && (
+                      {currentBeneficiary.bankName && currentBeneficiary.accountNumber ? (
                         <div className="p-4 rounded-xl bg-contribution-light border border-contribution/20 space-y-2">
                           <p className="text-sm text-muted-foreground">Payment Details</p>
                           <div className="flex justify-between items-center">
@@ -447,6 +447,10 @@ const ContributorDashboard = () => {
                             <span className="text-sm">Account Number:</span>
                             <span className="font-mono font-semibold">{currentBeneficiary.accountNumber}</span>
                           </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-muted/50 border border-border">
+                          <p className="text-sm text-muted-foreground">Bank details not yet provided</p>
                         </div>
                       )}
                       {hasCurrentMonthPaid && (
