@@ -35,7 +35,6 @@ import ContributionDashboardContent from "@/components/admin/ContributionDashboa
 import AdminSettingsPage from "@/components/admin/AdminSettingsPage";
 import LiveReviews from "@/components/travel/LiveReviews";
 import AdminTutorial from "@/components/admin/AdminTutorial";
-import AdminUserManual from "@/components/admin/AdminUserManual";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -44,7 +43,6 @@ const AdminDashboardContent = () => {
   const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
   const [tutorialOpen, setTutorialOpen] = useState(false);
-  const [manualOpen, setManualOpen] = useState(false);
 
   const { tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial } = useTutorial();
 
@@ -130,7 +128,7 @@ const AdminDashboardContent = () => {
           return (
             <AdminSettingsPage
               onOpenTutorial={() => setTutorialOpen(true)}
-              onOpenManual={() => setManualOpen(true)}
+              onOpenManual={() => navigate("/admin/manual")}
             />
           );
         case "dashboard":
@@ -145,7 +143,7 @@ const AdminDashboardContent = () => {
           return (
             <AdminSettingsPage
               onOpenTutorial={() => setTutorialOpen(true)}
-              onOpenManual={() => setManualOpen(true)}
+              onOpenManual={() => navigate("/admin/manual")}
             />
           );
         case "dashboard":
@@ -379,7 +377,7 @@ const AdminDashboardContent = () => {
                   </Button>
                 </AdminTooltip>
                 <AdminTooltip content={tooltipContent.openAdminManual}>
-                  <Button variant="outline" size="sm" onClick={() => setManualOpen(true)}>
+                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/manual")}>
                     <BookOpen className="w-4 h-4 mr-2" />
                     Manual
                   </Button>
@@ -449,9 +447,6 @@ const AdminDashboardContent = () => {
 
       {/* Tutorial Dialog */}
       <AdminTutorial open={tutorialOpen} onOpenChange={setTutorialOpen} />
-
-      {/* User Manual Dialog */}
-      <AdminUserManual open={manualOpen} onOpenChange={setManualOpen} />
     </div>
   );
 };

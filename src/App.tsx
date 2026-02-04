@@ -11,6 +11,7 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import ContributorDashboard from "./pages/dashboard/ContributorDashboard";
 import TravelDashboard from "./pages/dashboard/TravelDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminManualPage from "./pages/admin/AdminManualPage";
 import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           
           {/* Admin Dashboard */}
           <Route path="/admin/*" element={<AdminDashboard />} />
+          <Route path="/admin/manual" element={<AdminManualPage />} />
           
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
