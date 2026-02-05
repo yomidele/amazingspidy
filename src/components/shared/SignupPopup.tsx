@@ -11,7 +11,6 @@ interface SignupPopupProps {
 
 const SignupPopup = ({ showBothOptions = true }: SignupPopupProps) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [hasScrolled, setHasScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
@@ -39,25 +38,15 @@ const SignupPopup = ({ showBothOptions = true }: SignupPopupProps) => {
     const wasDismissed = sessionStorage.getItem("signup_popup_dismissed");
     if (wasDismissed) return;
 
-    let scrollTimeout: NodeJS.Timeout;
-
-    const handleScroll = () => {
-      if (!hasScrolled && window.scrollY > 100) {
-        setHasScrolled(true);
-        // Show popup 10 seconds after user starts scrolling
-        scrollTimeout = setTimeout(() => {
-          setIsVisible(true);
-        }, 10000);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
+    // Show popup 500ms after page loads
+    const showTimeout = setTimeout(() => {
+      setIsVisible(true);
+    }, 500);
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (scrollTimeout) clearTimeout(scrollTimeout);
+      clearTimeout(showTimeout);
     };
-  }, [hasScrolled, isLoggedIn]);
+  }, [isLoggedIn]);
 
   const handleDismiss = () => {
     setIsVisible(false);
