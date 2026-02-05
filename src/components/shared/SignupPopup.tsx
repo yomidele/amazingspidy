@@ -78,7 +78,7 @@ const SignupPopup = ({ showBothOptions = true }: SignupPopupProps) => {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-md"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md mx-4"
           >
             <div className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
               {/* Close button */}
