@@ -12,6 +12,9 @@ import {
   Check,
   X,
   ChevronDown,
+  ChevronRight,
+  CreditCard,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +35,13 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -69,6 +79,22 @@ interface GroupMembership {
   joined_at: string;
 }
 
+interface MonthlyContribution {
+  id: string;
+  month: number;
+  year: number;
+  group_id: string;
+}
+
+interface Payment {
+  id: string;
+  user_id: string;
+  monthly_contribution_id: string;
+  amount: number;
+  status: string | null;
+  payment_date: string | null;
+}
+
 const MemberManagementPage = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -80,6 +106,21 @@ const MemberManagementPage = () => {
   const [isAssignGroupOpen, setIsAssignGroupOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  
+  // Group detail sheet
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [isGroupDetailOpen, setIsGroupDetailOpen] = useState(false);
+  
+  // Payment recording from group detail
+  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [paymentMember, setPaymentMember] = useState<Member | null>(null);
+  const [monthlyContributions, setMonthlyContributions] = useState<MonthlyContribution[]>([]);
+  const [currentMonthPayments, setCurrentMonthPayments] = useState<Payment[]>([]);
+  const [newPayment, setNewPayment] = useState({
+    amount: 500,
+    status: "paid",
+    monthly_contribution_id: "",
+  });
 
   const [newMember, setNewMember] = useState({
     email: "",
@@ -95,6 +136,11 @@ const MemberManagementPage = () => {
   });
 
   const [selectedGroupId, setSelectedGroupId] = useState("");
+  
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   useEffect(() => {
     fetchData();
@@ -278,6 +324,127 @@ const MemberManagementPage = () => {
       });
   };
 
+  const getGroupMembers = (groupId: string) => {
+    const groupMemberships = memberships.filter((m) => m.group_id === groupId);
+    return groupMemberships.map((gm) => {
+      const member = members.find((m) => m.user_id === gm.user_id);
+      return { ...gm, member };
+    });
+  };
+
+  const handleOpenGroupDetail = async (group: Group) => {
+    setSelectedGroup(group);
+    setIsGroupDetailOpen(true);
+    
+    // Fetch monthly contributions for this group
+    try {
+      const { data: contribs } = await supabase
+        .from("monthly_contributions")
+        .select("*")
+        .eq("group_id", group.id)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false });
+      
+      setMonthlyContributions(contribs || []);
+      
+      // Fetch payments for current month if available
+      if (contribs && contribs.length > 0) {
+        const currentContrib = contribs[0];
+        setNewPayment(prev => ({ ...prev, monthly_contribution_id: currentContrib.id, amount: group.contribution_amount }));
+        
+        const { data: paymentsData } = await supabase
+          .from("contribution_payments")
+          .select("*")
+          .eq("monthly_contribution_id", currentContrib.id);
+        
+        setCurrentMonthPayments(paymentsData || []);
+      }
+    } catch (error) {
+      console.error("Error fetching group data:", error);
+    }
+  };
+
+  const handleOpenPaymentDialog = (member: Member) => {
+    setPaymentMember(member);
+    if (selectedGroup) {
+      setNewPayment(prev => ({ ...prev, amount: selectedGroup.contribution_amount }));
+    }
+    setIsRecordPaymentOpen(true);
+  };
+
+  const handleRecordPaymentFromGroup = async () => {
+    if (!paymentMember || !newPayment.monthly_contribution_id) {
+      toast.error("Please select a contribution period");
+      return;
+    }
+
+    try {
+      // Check if payment already exists
+      const existingPayment = currentMonthPayments.find((p) => p.user_id === paymentMember.user_id);
+      const contribution = monthlyContributions.find((c) => c.id === newPayment.monthly_contribution_id);
+      const periodName = contribution
+        ? `${monthNames[contribution.month - 1]} ${contribution.year}`
+        : "this month";
+      
+      if (existingPayment) {
+        // Update existing payment
+        const { error } = await supabase
+          .from("contribution_payments")
+          .update({
+            amount: newPayment.amount,
+            status: newPayment.status,
+            payment_date: new Date().toISOString(),
+          })
+          .eq("id", existingPayment.id);
+
+        if (error) throw error;
+      } else {
+        // Create new payment
+        const { error } = await supabase.from("contribution_payments").insert({
+          monthly_contribution_id: newPayment.monthly_contribution_id,
+          user_id: paymentMember.user_id,
+          amount: newPayment.amount,
+          status: newPayment.status,
+          payment_date: new Date().toISOString(),
+        });
+
+        if (error) throw error;
+      }
+
+      // Send notification to the contributor
+      if (newPayment.status === "paid") {
+        await supabase.from("notifications").insert({
+          user_id: paymentMember.user_id,
+          title: "Payment Confirmed ✓",
+          message: `Your contribution of £${newPayment.amount} for ${periodName} has been recorded. Thank you!`,
+          type: "payment",
+          link: "/dashboard/contributor",
+        });
+      }
+
+      toast.success("Payment recorded successfully");
+      setIsRecordPaymentOpen(false);
+      setPaymentMember(null);
+      
+      // Refresh payments
+      if (contribution) {
+        const { data: paymentsData } = await supabase
+          .from("contribution_payments")
+          .select("*")
+          .eq("monthly_contribution_id", contribution.id);
+        setCurrentMonthPayments(paymentsData || []);
+      }
+    } catch (error: any) {
+      console.error("Error recording payment:", error);
+      toast.error(error.message || "Failed to record payment");
+    }
+  };
+
+  const getMemberPaymentStatus = (userId: string) => {
+    const payment = currentMonthPayments.find((p) => p.user_id === userId);
+    return payment?.status || null;
+  };
+
   const filteredMembers = members.filter(
     (member) =>
       member.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -406,10 +573,16 @@ const MemberManagementPage = () => {
         {groups.map((group) => {
           const memberCount = memberships.filter((m) => m.group_id === group.id).length;
           return (
-            <Card key={group.id}>
+            <Card 
+              key={group.id} 
+              className="cursor-pointer hover:border-contribution hover:shadow-md transition-all"
+              onClick={() => handleOpenGroupDetail(group)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-sm">{group.name}</h4>
+                  <h4 className="font-semibold text-sm text-contribution hover:underline">
+                    {group.name}
+                  </h4>
                   <Badge variant={group.is_active ? "default" : "secondary"}>
                     {group.is_active ? "Active" : "Inactive"}
                   </Badge>
@@ -418,8 +591,12 @@ const MemberManagementPage = () => {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{memberCount} members</span>
                   <span className="font-semibold text-contribution">
-                    ${group.contribution_amount}/mo
+                    £{group.contribution_amount}/mo
                   </span>
+                </div>
+                <div className="flex items-center justify-end mt-2 text-xs text-muted-foreground">
+                  <span>Click to view details</span>
+                  <ChevronRight className="w-3 h-3 ml-1" />
                 </div>
               </CardContent>
             </Card>
@@ -607,6 +784,210 @@ const MemberManagementPage = () => {
             </Button>
             <Button variant="contribution" onClick={handleUpdateMember}>
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Detail Sheet */}
+      <Sheet open={isGroupDetailOpen} onOpenChange={setIsGroupDetailOpen}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-contribution" />
+              {selectedGroup?.name}
+            </SheetTitle>
+            <SheetDescription>
+              View group details, members, and record payments
+            </SheetDescription>
+          </SheetHeader>
+          
+          {selectedGroup && (
+            <div className="mt-6 space-y-6">
+              {/* Group Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-contribution">
+                      £{selectedGroup.contribution_amount}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Monthly Amount</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold">
+                      {getGroupMembers(selectedGroup.id).length}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Total Members</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {selectedGroup.description && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">{selectedGroup.description}</p>
+                </div>
+              )}
+
+              {/* Current Period */}
+              {monthlyContributions.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Current Period</Label>
+                  <Select 
+                    value={newPayment.monthly_contribution_id} 
+                    onValueChange={(v) => {
+                      setNewPayment(prev => ({ ...prev, monthly_contribution_id: v }));
+                      // Fetch payments for selected period
+                      supabase
+                        .from("contribution_payments")
+                        .select("*")
+                        .eq("monthly_contribution_id", v)
+                        .then(({ data }) => setCurrentMonthPayments(data || []));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthlyContributions.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {monthNames[c.month - 1]} {c.year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Members List */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">Group Members</h4>
+                  <Badge variant="outline">{getGroupMembers(selectedGroup.id).length} members</Badge>
+                </div>
+                
+                {getGroupMembers(selectedGroup.id).length === 0 ? (
+                  <div className="text-center py-6 border rounded-lg">
+                    <Users className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">No members in this group</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {getGroupMembers(selectedGroup.id).map((gm) => {
+                      const paymentStatus = getMemberPaymentStatus(gm.user_id);
+                      return (
+                        <Card 
+                          key={gm.id}
+                          className="cursor-pointer hover:border-contribution transition-colors"
+                          onClick={() => gm.member && handleOpenPaymentDialog(gm.member)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">
+                                  {gm.member?.full_name || gm.member?.email || "Unknown"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {gm.member?.email}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {paymentStatus && (
+                                  <Badge 
+                                    variant={paymentStatus === "paid" ? "default" : "outline"}
+                                    className={paymentStatus === "paid" ? "bg-green-500" : ""}
+                                  >
+                                    {paymentStatus === "paid" ? "PAID" : paymentStatus.toUpperCase()}
+                                  </Badge>
+                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (gm.member) handleOpenPaymentDialog(gm.member);
+                                  }}
+                                >
+                                  <CreditCard className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Record Payment Dialog (from Group Detail) */}
+      <Dialog open={isRecordPaymentOpen} onOpenChange={setIsRecordPaymentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm font-medium">{paymentMember?.full_name || paymentMember?.email}</p>
+              <p className="text-xs text-muted-foreground">{paymentMember?.email}</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Contribution Period</Label>
+              <Select
+                value={newPayment.monthly_contribution_id}
+                onValueChange={(v) => setNewPayment({ ...newPayment, monthly_contribution_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthlyContributions.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {monthNames[c.month - 1]} {c.year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Amount (£)</Label>
+              <Input
+                type="number"
+                value={newPayment.amount}
+                onChange={(e) => setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={newPayment.status}
+                onValueChange={(v) => setNewPayment({ ...newPayment, status: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRecordPaymentOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="contribution" onClick={handleRecordPaymentFromGroup}>
+              Record Payment
             </Button>
           </DialogFooter>
         </DialogContent>
