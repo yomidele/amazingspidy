@@ -931,7 +931,7 @@ const MemberManagementPage = () => {
                     <p className="text-sm text-muted-foreground">No members in this group</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                <div className="space-y-2">
                     {getGroupMembers(selectedGroup.id).map((gm) => {
                       const paymentStatus = getMemberPaymentStatus(gm.user_id);
                       return (
@@ -966,8 +966,21 @@ const MemberManagementPage = () => {
                                     e.stopPropagation();
                                     if (gm.member) handleOpenPaymentDialog(gm.member);
                                   }}
+                                  title="Record Payment"
                                 >
                                   <CreditCard className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveFromGroup(gm.id);
+                                  }}
+                                  title="Remove from Group"
+                                >
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
                             </div>
