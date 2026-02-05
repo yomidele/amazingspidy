@@ -35,6 +35,10 @@ import ContributionDashboardContent from "@/components/admin/ContributionDashboa
 import AdminSettingsPage from "@/components/admin/AdminSettingsPage";
 import LiveReviews from "@/components/travel/LiveReviews";
 import AdminTutorial from "@/components/admin/AdminTutorial";
+import TravelClientManagement from "@/components/admin/travel/TravelClientManagement";
+import TravelCaseManagement from "@/components/admin/travel/TravelCaseManagement";
+import TravelConsultationManagement from "@/components/admin/travel/TravelConsultationManagement";
+import TravelDashboardContent from "@/components/admin/travel/TravelDashboardContent";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -84,13 +88,6 @@ const AdminDashboardContent = () => {
     navigate("/login/admin");
   };
 
-  const travelStats = [
-    { title: "Active Clients", value: "32", icon: Users, change: "+5", positive: true },
-    { title: "Open Cases", value: "18", icon: FileCheck, change: "+2", positive: true },
-    { title: "Consultations Today", value: "4", icon: Calendar, change: "2 pending", positive: true },
-    { title: "Visa Approvals", value: "89%", icon: TrendingUp, change: "+4%", positive: true },
-  ];
-
   const contributionNavItems = [
     { icon: LayoutDashboard, label: "Dashboard", page: "dashboard", tooltip: tooltipContent.dashboardHome },
     { icon: Users, label: "Members", page: "members", tooltip: tooltipContent.addContributor },
@@ -102,13 +99,13 @@ const AdminDashboardContent = () => {
   ];
 
   const travelNavItems = [
-    { icon: LayoutDashboard, label: "Dashboard", page: "dashboard", tooltip: tooltipContent.dashboardHome },
-    { icon: Users, label: "Clients", page: "clients", tooltip: "Manage travel consultation clients" },
-    { icon: FileCheck, label: "Cases", page: "cases", tooltip: "Track visa and travel cases" },
-    { icon: Calendar, label: "Consultations", page: "consultations", tooltip: "Manage consultation appointments" },
-    { icon: Star, label: "Reviews", page: "reviews", tooltip: "View and moderate client reviews" },
-    { icon: Bell, label: "Notifications", page: "notifications", tooltip: tooltipContent.notifications },
-    { icon: Settings, label: "Settings", page: "settings", tooltip: tooltipContent.settings },
+    { icon: LayoutDashboard, label: "Dashboard", page: "travel-dashboard", tooltip: tooltipContent.dashboardHome },
+    { icon: Users, label: "Clients", page: "travel-clients", tooltip: "Manage travel consultation clients" },
+    { icon: FileCheck, label: "Cases", page: "travel-cases", tooltip: "Track visa and travel cases" },
+    { icon: Calendar, label: "Consultations", page: "travel-consultations", tooltip: "Manage consultation appointments" },
+    { icon: Star, label: "Reviews", page: "travel-reviews", tooltip: "View and moderate client reviews" },
+    { icon: Bell, label: "Notifications", page: "travel-notifications", tooltip: tooltipContent.notifications },
+    { icon: Settings, label: "Settings", page: "travel-settings", tooltip: tooltipContent.settings },
   ];
 
   const navItems = activeModule === "contribution" ? contributionNavItems : travelNavItems;
@@ -137,102 +134,27 @@ const AdminDashboardContent = () => {
       }
     } else {
       switch (activePage) {
-        case "reviews":
+        case "travel-clients":
+          return <TravelClientManagement />;
+        case "travel-cases":
+          return <TravelCaseManagement />;
+        case "travel-consultations":
+          return <TravelConsultationManagement />;
+        case "travel-reviews":
           return <LiveReviews />;
-        case "settings":
+        case "travel-settings":
           return (
             <AdminSettingsPage
               onOpenTutorial={() => setTutorialOpen(true)}
               onOpenManual={() => navigate("/admin/manual")}
             />
           );
-        case "dashboard":
+        case "travel-dashboard":
         default:
-          return renderTravelDashboard();
+          return <TravelDashboardContent />;
       }
     }
   };
-
-  const renderTravelDashboard = () => (
-    <div className="grid lg:grid-cols-2 gap-6">
-      {/* Active Visa Cases */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Visa Cases</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { name: "Chen Wei", type: "UK Student Visa", progress: 75, status: "In Progress" },
-              { name: "Maria Garcia", type: "Canada PR", progress: 45, status: "Documents Pending" },
-              { name: "Ahmed Hassan", type: "US B1/B2", progress: 90, status: "Interview Scheduled" },
-              { name: "Sophie Martin", type: "Schengen Visa", progress: 30, status: "Under Review" },
-            ].map((item, index) => (
-              <div key={index} className="p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.type}</p>
-                  </div>
-                  <span className="text-xs text-travel font-medium">{item.status}</span>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span>{item.progress}%</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-travel to-teal-400 rounded-full"
-                      style={{ width: `${item.progress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Today's Consultations */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Today's Consultations</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { name: "Jennifer Adams", time: "10:00 AM", type: "Visa Strategy", status: "Completed" },
-              { name: "Kevin Park", time: "11:30 AM", type: "Document Review", status: "In Progress" },
-              { name: "Rachel Green", time: "2:00 PM", type: "Academic Guidance", status: "Upcoming" },
-              { name: "Tom Wilson", time: "4:00 PM", type: "Refusal Analysis", status: "Upcoming" },
-            ].map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-travel-light flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-travel" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.type}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-sm">{item.time}</p>
-                  <span className={`text-xs ${
-                    item.status === "Completed" ? "text-success" :
-                    item.status === "In Progress" ? "text-travel" : "text-muted-foreground"
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -292,7 +214,7 @@ const AdminDashboardContent = () => {
                 </AdminTooltip>
                 <AdminTooltip content={tooltipContent.switchToTeemah}>
                   <button
-                    onClick={() => { setActiveModule("travel"); setActivePage("dashboard"); }}
+                    onClick={() => { setActiveModule("travel"); setActivePage("travel-dashboard"); }}
                     className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
                       activeModule === "travel"
                         ? "bg-travel text-white"
@@ -407,38 +329,6 @@ const AdminDashboardContent = () => {
                 </div>
               </div>
             </div>
-
-            {/* Stats Grid - Only show on travel dashboard */}
-            {activePage === "dashboard" && activeModule === "travel" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {travelStats.map((stat, index) => (
-                  <motion.div
-                    key={stat.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card className="card-hover">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-travel-light">
-                            <stat.icon className="w-6 h-6 text-travel" />
-                          </div>
-                          <div className={`flex items-center gap-1 text-sm ${
-                            stat.positive ? "text-success" : "text-destructive"
-                          }`}>
-                            <TrendingUp className="w-4 h-4" />
-                            <span>{stat.change}</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                        <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            )}
 
             {/* Render active page content */}
             {renderContent()}

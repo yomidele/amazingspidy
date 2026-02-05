@@ -14,19 +14,55 @@ import {
   ChevronRight,
   Star,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import LiveReviews from "@/components/travel/LiveReviews";
+import { format } from "date-fns";
+
+interface UserCase {
+  id: string;
+  title: string;
+  case_type: string;
+  status: string | null;
+  progress: number | null;
+  updated_at: string;
+}
+
+interface UserConsultation {
+  id: string;
+  title: string;
+  scheduled_date: string;
+  consultation_type: string | null;
+  status: string | null;
+}
+
+interface UserStats {
+  activeCases: number;
+  consultations: number;
+  documents: number;
+  reviews: number;
+}
 
 const TravelDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
+  const [loading, setLoading] = useState(true);
+  const [cases, setCases] = useState<UserCase[]>([]);
+  const [consultations, setConsultations] = useState<UserConsultation[]>([]);
+  const [stats, setStats] = useState<UserStats>({
+    activeCases: 0,
+    consultations: 0,
+    documents: 0,
+    reviews: 0,
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -36,6 +72,7 @@ const TravelDashboard = () => {
         return;
       }
       setUser(session.user);
+      fetchUserData(session.user.id);
     };
     checkAuth();
 
@@ -44,11 +81,74 @@ const TravelDashboard = () => {
         navigate("/login/travel");
       } else {
         setUser(session.user);
+        fetchUserData(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const fetchUserData = async (userId: string) => {
+    setLoading(true);
+    try {
+      // Fetch user's cases
+      const { data: casesData, error: casesError } = await supabase
+        .from("consultation_cases")
+        .select("id, title, case_type, status, progress, updated_at")
+        .eq("user_id", userId)
+        .not("status", "eq", "closed")
+        .order("updated_at", { ascending: false });
+
+      if (casesError) throw casesError;
+      setCases(casesData || []);
+
+      // Fetch upcoming consultations
+      const { data: consultationsData, error: consultationsError } = await supabase
+        .from("consultations")
+        .select("id, title, scheduled_date, consultation_type, status")
+        .eq("user_id", userId)
+        .gte("scheduled_date", new Date().toISOString())
+        .order("scheduled_date", { ascending: true })
+        .limit(5);
+
+      if (consultationsError) throw consultationsError;
+      setConsultations(consultationsData || []);
+
+      // Fetch stats
+      const { count: totalCases } = await supabase
+        .from("consultation_cases")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .not("status", "eq", "closed");
+
+      const { count: totalConsultations } = await supabase
+        .from("consultations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+      const { count: totalDocuments } = await supabase
+        .from("case_documents")
+        .select("*, consultation_cases!inner(user_id)", { count: "exact", head: true })
+        .eq("consultation_cases.user_id", userId);
+
+      const { count: totalReviews } = await supabase
+        .from("reviews")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+      setStats({
+        activeCases: totalCases || 0,
+        consultations: totalConsultations || 0,
+        documents: totalDocuments || 0,
+        reviews: totalReviews || 0,
+      });
+
+    } catch (error: any) {
+      console.error("Failed to fetch user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -56,63 +156,48 @@ const TravelDashboard = () => {
     navigate("/login/travel");
   };
 
-  const stats = [
+  const getStatusLabel = (status: string | null) => {
+    const statusMap: Record<string, string> = {
+      open: "Open",
+      in_progress: "In Progress",
+      documents_pending: "Documents Pending",
+      under_review: "Under Review",
+      interview_scheduled: "Interview Scheduled",
+      approved: "Approved",
+      rejected: "Rejected",
+      closed: "Closed",
+    };
+    return statusMap[status || ""] || status || "Unknown";
+  };
+
+  const statsDisplay = [
     {
       title: "Active Cases",
-      value: "2",
+      value: stats.activeCases.toString(),
       icon: FileCheck,
       color: "text-travel",
       bgColor: "bg-travel-light",
     },
     {
       title: "Consultations",
-      value: "5",
+      value: stats.consultations.toString(),
       icon: Calendar,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       title: "Documents",
-      value: "8",
+      value: stats.documents.toString(),
       icon: GraduationCap,
       color: "text-contribution",
       bgColor: "bg-contribution-light",
     },
     {
       title: "Reviews Posted",
-      value: "1",
+      value: stats.reviews.toString(),
       icon: Star,
       color: "text-warning",
       bgColor: "bg-warning/10",
-    },
-  ];
-
-  const activeCases = [
-    {
-      id: 1,
-      title: "UK Student Visa",
-      type: "Visa Application",
-      status: "In Progress",
-      progress: 65,
-      lastUpdate: "Jan 20, 2025",
-    },
-    {
-      id: 2,
-      title: "Dissertation Review",
-      type: "Academic Support",
-      status: "Under Review",
-      progress: 40,
-      lastUpdate: "Jan 18, 2025",
-    },
-  ];
-
-  const upcomingConsultations = [
-    {
-      id: 1,
-      title: "Visa Strategy Session",
-      date: "Feb 5, 2025",
-      time: "10:00 AM",
-      type: "Video Call",
     },
   ];
 
@@ -125,11 +210,15 @@ const TravelDashboard = () => {
     { icon: Bell, label: "Notifications", page: "notifications" },
   ];
 
-  const renderDashboard = () => (
+  const renderDashboard = () => loading ? (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-8 h-8 animate-spin text-travel" />
+    </div>
+  ) : (
     <>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat, index) => (
+        {statsDisplay.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
@@ -158,42 +247,45 @@ const TravelDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Active Cases</span>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => setActivePage("cases")}>
                 View all <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {activeCases.map((caseItem) => (
-                <div key={caseItem.id} className="p-4 rounded-xl bg-muted/50 border border-border">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-semibold">{caseItem.title}</h4>
-                      <p className="text-sm text-muted-foreground">{caseItem.type}</p>
+            {cases.length === 0 ? (
+              <div className="text-center py-8">
+                <FileCheck className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No active cases</p>
+                <p className="text-sm text-muted-foreground">Your cases will appear here when created</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cases.slice(0, 3).map((caseItem) => (
+                  <div key={caseItem.id} className="p-4 rounded-xl bg-muted/50 border border-border">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold">{caseItem.title}</h4>
+                        <p className="text-sm text-muted-foreground">{caseItem.case_type}</p>
+                      </div>
+                      <Badge variant="secondary" className="bg-travel-light text-travel border-0">
+                        {getStatusLabel(caseItem.status)}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="bg-travel-light text-travel border-0">
-                      {caseItem.status}
-                    </Badge>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium">{caseItem.progress || 0}%</span>
+                      </div>
+                      <Progress value={caseItem.progress || 0} className="h-2" />
+                      <p className="text-xs text-muted-foreground">
+                        Last updated: {format(new Date(caseItem.updated_at), "MMM d, yyyy")}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">{caseItem.progress}%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-travel to-teal-400 rounded-full transition-all"
-                        style={{ width: `${caseItem.progress}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Last updated: {caseItem.lastUpdate}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -202,47 +294,42 @@ const TravelDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Upcoming Consultations</span>
-              <Button variant="travel" size="sm">
-                Book New
-              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {upcomingConsultations.map((consultation) => (
-                <div key={consultation.id} className="p-4 rounded-xl bg-travel-light border border-travel/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-travel flex items-center justify-center">
-                      <Calendar className="w-6 h-6 text-white" />
+            {consultations.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No upcoming consultations</p>
+                <p className="text-sm text-muted-foreground">Your scheduled consultations will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {consultations.map((consultation) => (
+                  <div key={consultation.id} className="p-4 rounded-xl bg-travel-light border border-travel/20">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-xl bg-travel flex items-center justify-center">
+                        <Calendar className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">{consultation.title}</h4>
+                        <p className="text-sm text-muted-foreground">{consultation.consultation_type || "Consultation"}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold">{consultation.title}</h4>
-                      <p className="text-sm text-muted-foreground">{consultation.type}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-1 text-travel">
+                        <Calendar className="w-4 h-4" />
+                        {format(new Date(consultation.scheduled_date), "MMM d, yyyy")}
+                      </span>
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        {format(new Date(consultation.scheduled_date), "h:mm a")}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="flex items-center gap-1 text-travel">
-                      <Calendar className="w-4 h-4" />
-                      {consultation.date}
-                    </span>
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      {consultation.time}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {upcomingConsultations.length === 0 && (
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No upcoming consultations</p>
-                  <Button variant="travel" size="sm" className="mt-4">
-                    Book a Consultation
-                  </Button>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -271,6 +358,115 @@ const TravelDashboard = () => {
       </Card>
     </>
   );
+
+  const renderCases = () => loading ? (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-8 h-8 animate-spin text-travel" />
+    </div>
+  ) : (
+    <div className="space-y-4">
+      {cases.length === 0 ? (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <FileCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No cases found</p>
+            <p className="text-sm text-muted-foreground">Your visa and consultation cases will appear here</p>
+          </CardContent>
+        </Card>
+      ) : (
+        cases.map((caseItem) => (
+          <Card key={caseItem.id}>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{caseItem.title}</h3>
+                  <p className="text-muted-foreground">{caseItem.case_type}</p>
+                </div>
+                <Badge variant="secondary" className="bg-travel-light text-travel border-0">
+                  {getStatusLabel(caseItem.status)}
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Progress</span>
+                  <span className="font-medium">{caseItem.progress || 0}%</span>
+                </div>
+                <Progress value={caseItem.progress || 0} className="h-2" />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Last updated: {format(new Date(caseItem.updated_at), "MMMM d, yyyy")}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+
+  const renderConsultations = () => loading ? (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-8 h-8 animate-spin text-travel" />
+    </div>
+  ) : (
+    <div className="space-y-4">
+      {consultations.length === 0 ? (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No upcoming consultations</p>
+            <p className="text-sm text-muted-foreground">Your scheduled consultations will appear here</p>
+          </CardContent>
+        </Card>
+      ) : (
+        consultations.map((consultation) => (
+          <Card key={consultation.id}>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-travel flex items-center justify-center">
+                    <Calendar className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">{consultation.title}</h3>
+                    <p className="text-muted-foreground">{consultation.consultation_type || "Consultation"}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-travel">
+                    {format(new Date(consultation.scheduled_date), "MMM d, yyyy")}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {format(new Date(consultation.scheduled_date), "h:mm a")}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+
+  const renderContent = () => {
+    switch (activePage) {
+      case "dashboard":
+        return renderDashboard();
+      case "cases":
+        return renderCases();
+      case "consultations":
+        return renderConsultations();
+      case "reviews":
+        return <LiveReviews />;
+      default:
+        return (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <p className="text-muted-foreground">This section is coming soon...</p>
+            </CardContent>
+          </Card>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -363,6 +559,10 @@ const TravelDashboard = () => {
                   ? `Welcome back, ${user?.user_metadata?.full_name?.split(" ")[0] || "Traveler"}!`
                   : activePage === "reviews" 
                   ? "Client Reviews"
+                  : activePage === "cases"
+                  ? "My Cases"
+                  : activePage === "consultations"
+                  ? "My Consultations"
                   : activePage.charAt(0).toUpperCase() + activePage.slice(1)}
               </h1>
               <p className="text-muted-foreground">
@@ -370,20 +570,16 @@ const TravelDashboard = () => {
                   ? "Track your visa applications and academic consultations."
                   : activePage === "reviews"
                   ? "Read and write reviews about our services"
+                  : activePage === "cases"
+                  ? "Track all your visa and consultation cases"
+                  : activePage === "consultations"
+                  ? "View your scheduled consultations"
                   : `Manage your ${activePage}`}
               </p>
             </div>
 
             {/* Render active page */}
-            {activePage === "dashboard" && renderDashboard()}
-            {activePage === "reviews" && <LiveReviews />}
-            {activePage !== "dashboard" && activePage !== "reviews" && (
-              <Card>
-                <CardContent className="py-16 text-center">
-                  <p className="text-muted-foreground">This section is coming soon...</p>
-                </CardContent>
-              </Card>
-            )}
+            {renderContent()}
           </motion.div>
         </main>
       </div>
