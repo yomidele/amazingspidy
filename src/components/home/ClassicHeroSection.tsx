@@ -48,9 +48,13 @@ const ClassicHeroSection = () => {
         }} transition={{
           duration: 0.5,
           delay: 0.2
-        }} className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 sm:mb-6 leading-tight">
-            Building Financial Security.{" "}
-            <span className="gradient-text-travel text-center">Enabling Global Dreams.</span>
+        }} className="font-heading text-foreground mb-4 sm:mb-6 leading-tight text-center">
+            <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold">
+              Building Financial Security.
+            </span>
+            <span className="block gradient-text-travel text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mt-2">
+              Enabling Global Dreams.
+            </span>
           </motion.h1>
 
           {/* Subheadline */}
