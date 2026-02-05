@@ -125,16 +125,20 @@ const Header = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          <div className="lg:hidden flex items-center gap-2">
+            {/* Theme Toggle on mobile - next to menu */}
+            {isHomepage && <ThemeToggle />}
+            <button
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -173,13 +177,6 @@ const Header = () => {
                 </div>
 
                 {/* Mobile Theme Toggle */}
-                {isHomepage && (
-                  <div className="pt-4 border-t border-border/50 flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Switch Theme</span>
-                    <ThemeToggle />
-                  </div>
-                )}
-
                 <div className="pt-4 space-y-2 border-t border-border/50">
                   <Button
                     variant="outline"

@@ -28,8 +28,8 @@ export const HomepageThemeProvider = ({ children }: { children: ReactNode }) => 
     // Show tutorial if never seen before
     const tutorialSeen = localStorage.getItem(TUTORIAL_STORAGE_KEY);
     if (!tutorialSeen) {
-      // Delay showing tutorial to let page load
-      const timer = setTimeout(() => setShowTutorial(true), 1500);
+        // Show tutorial immediately after a brief delay for page to render
+        const timer = setTimeout(() => setShowTutorial(true), 500);
       return () => clearTimeout(timer);
     }
   }, []);
