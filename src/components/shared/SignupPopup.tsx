@@ -34,10 +34,6 @@ const SignupPopup = ({ showBothOptions = true }: SignupPopupProps) => {
     // Don't show popup if user is logged in
     if (isLoggedIn) return;
 
-    // Check if popup was already dismissed in this session
-    const wasDismissed = sessionStorage.getItem("signup_popup_dismissed");
-    if (wasDismissed) return;
-
     // Show popup 500ms after page loads
     const showTimeout = setTimeout(() => {
       setIsVisible(true);
@@ -50,7 +46,6 @@ const SignupPopup = ({ showBothOptions = true }: SignupPopupProps) => {
 
   const handleDismiss = () => {
     setIsVisible(false);
-    sessionStorage.setItem("signup_popup_dismissed", "true");
   };
 
   const handleSignup = (path: string) => {
