@@ -78,70 +78,70 @@ const SignupPopup = ({ showBothOptions = true }: SignupPopupProps) => {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md mx-4"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
+            <div className="bg-card rounded-xl shadow-2xl border border-border overflow-hidden w-full max-w-[320px]">
               {/* Close button */}
               <button
                 onClick={handleDismiss}
-                className="absolute top-4 right-4 p-1 rounded-full hover:bg-muted transition-colors"
+                className="absolute top-3 right-3 p-1 rounded-full hover:bg-muted transition-colors"
               >
-                <X className="w-5 h-5 text-muted-foreground" />
+                <X className="w-4 h-4 text-muted-foreground" />
               </button>
 
               {/* Header */}
-              <div className="p-6 pb-4 text-center">
-                <h3 className="font-heading text-xl font-bold text-foreground mb-2">
+              <div className="p-4 pb-3 text-center">
+                <h3 className="font-heading text-lg font-bold text-foreground mb-1">
                   Join Our Community
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  Sign up to access exclusive features and services
+                <p className="text-xs text-muted-foreground">
+                  Sign up to access exclusive features
                 </p>
               </div>
 
               {/* Options */}
-              <div className="px-6 pb-6 space-y-3">
+              <div className="px-4 pb-4 space-y-2">
                 {showBothOptions ? (
                   <>
                     {/* Amana Contribution Option */}
                     <button
                       onClick={() => handleSignup("/login/contribution")}
-                      className="w-full p-4 rounded-xl border border-contribution/30 bg-contribution/5 hover:bg-contribution/10 transition-colors group"
+                      className="w-full p-3 rounded-lg border border-contribution/30 bg-contribution/5 hover:bg-contribution/10 transition-colors group"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-contribution to-purple-400 flex items-center justify-center shrink-0">
-                          <Users className="w-6 h-6 text-white" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-contribution to-purple-400 flex items-center justify-center shrink-0">
+                          <Users className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1 text-left">
-                          <p className="font-semibold text-foreground">
+                          <p className="font-semibold text-sm text-foreground">
                             Amana Market Contribution
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Join a savings group & access loans
                           </p>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-contribution group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-4 h-4 text-contribution group-hover:translate-x-1 transition-transform" />
                       </div>
                     </button>
 
                     {/* Teemah Travels Option */}
                     <button
                       onClick={() => handleSignup("/login/travel")}
-                      className="w-full p-4 rounded-xl border border-travel/30 bg-travel/5 hover:bg-travel/10 transition-colors group"
+                      className="w-full p-3 rounded-lg border border-travel/30 bg-travel/5 hover:bg-travel/10 transition-colors group"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-travel to-teal-400 flex items-center justify-center shrink-0">
-                          <Plane className="w-6 h-6 text-white" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-travel to-teal-400 flex items-center justify-center shrink-0">
+                          <Plane className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1 text-left">
-                          <p className="font-semibold text-foreground">
+                          <p className="font-semibold text-sm text-foreground">
                             Teemah Travels
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Visa assistance & travel consultation
                           </p>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-travel group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-4 h-4 text-travel group-hover:translate-x-1 transition-transform" />
                       </div>
                     </button>
                   </>
