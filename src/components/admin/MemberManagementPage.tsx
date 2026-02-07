@@ -106,6 +106,12 @@ const MemberManagementPage = () => {
   const [isAssignGroupOpen, setIsAssignGroupOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [isCreatingMember, setIsCreatingMember] = useState(false);
+  
+  // Delete member
+  const [deletingMember, setDeletingMember] = useState<Member | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Group detail sheet
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -201,28 +207,61 @@ const MemberManagementPage = () => {
   };
 
   const handleCreateMember = async () => {
+    if (isCreatingMember) return;
+    setIsCreatingMember(true);
+    
     try {
-      // Create user via signup
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newMember.email,
-        password: newMember.password,
-        options: {
-          data: {
-            full_name: newMember.full_name,
-            role: "contributor",
-          },
+      // Use edge function to create user without sending email
+      const { data, error } = await supabase.functions.invoke("create-member", {
+        body: {
+          email: newMember.email,
+          password: newMember.password,
+          fullName: newMember.full_name,
+          phone: newMember.phone,
         },
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      toast.success("Member created successfully. They will receive a confirmation email.");
+      toast.success("Member created successfully! Share the login credentials via WhatsApp.");
       setIsAddMemberOpen(false);
       setNewMember({ email: "", full_name: "", phone: "", password: "" });
       fetchData();
     } catch (error: any) {
       console.error("Error creating member:", error);
       toast.error(error.message || "Failed to create member");
+    } finally {
+      setIsCreatingMember(false);
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    if (!deletingMember || isDeleting) return;
+    setIsDeleting(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const { data, error } = await supabase.functions.invoke("delete-member", {
+        body: { userId: deletingMember.user_id },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Member has been completely deleted from the system");
+      setIsDeleteConfirmOpen(false);
+      setDeletingMember(null);
+      fetchData();
+    } catch (error: any) {
+      console.error("Error deleting member:", error);
+      toast.error(error.message || "Failed to delete member");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -604,8 +643,12 @@ const MemberManagementPage = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="contribution" onClick={handleCreateMember}>
-                  Add Member
+                <Button 
+                  variant="contribution" 
+                  onClick={handleCreateMember}
+                  disabled={isCreatingMember || !newMember.email || !newMember.password || !newMember.full_name}
+                >
+                  {isCreatingMember ? "Creating..." : "Add Member"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -745,6 +788,17 @@ const MemberManagementPage = () => {
                               onClick={() => setEditingMember(member)}
                             >
                               <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                setDeletingMember(member);
+                                setIsDeleteConfirmOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -1125,6 +1179,53 @@ const MemberManagementPage = () => {
               disabled={selectedMembersToAdd.length === 0}
             >
               Add {selectedMembersToAdd.length > 0 ? `(${selectedMembersToAdd.length})` : ""} Members
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Member Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Member</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to permanently delete{" "}
+              <strong>{deletingMember?.full_name || deletingMember?.email}</strong>?
+            </p>
+            <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <p className="text-sm text-destructive font-medium">
+                This action cannot be undone. The following will be deleted:
+              </p>
+              <ul className="text-xs text-muted-foreground mt-2 list-disc list-inside space-y-1">
+                <li>User account and login credentials</li>
+                <li>All payment records</li>
+                <li>All loan records and repayments</li>
+                <li>Group memberships</li>
+                <li>Notifications</li>
+                <li>Profile data</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteConfirmOpen(false);
+                setDeletingMember(null);
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteMember}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>
