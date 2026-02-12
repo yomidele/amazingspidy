@@ -15,6 +15,7 @@ import {
   ChevronRight,
   CreditCard,
   Eye,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +78,8 @@ interface GroupMembership {
   group_id: string;
   is_active: boolean;
   joined_at: string;
+  join_month: number | null;
+  join_year: number | null;
 }
 
 interface MonthlyContribution {
@@ -95,6 +98,11 @@ interface Payment {
   payment_date: string | null;
 }
 
+const monthNames = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
 const MemberManagementPage = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -106,6 +114,9 @@ const MemberManagementPage = () => {
   const [isAssignGroupOpen, setIsAssignGroupOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [editingMemberMembership, setEditingMemberMembership] = useState<GroupMembership | null>(null);
+  const [editJoinMonth, setEditJoinMonth] = useState<number>(new Date().getMonth() + 1);
+  const [editJoinYear, setEditJoinYear] = useState<number>(new Date().getFullYear());
   const [isCreatingMember, setIsCreatingMember] = useState(false);
   
   // Delete member
@@ -116,6 +127,18 @@ const MemberManagementPage = () => {
   // Group detail sheet
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [isGroupDetailOpen, setIsGroupDetailOpen] = useState(false);
+  
+  // Edit group
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
+  const [editGroupName, setEditGroupName] = useState("");
+  const [editGroupDescription, setEditGroupDescription] = useState("");
+  const [editGroupAmount, setEditGroupAmount] = useState(500);
+  
+  // Delete group
+  const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
+  const [isDeleteGroupOpen, setIsDeleteGroupOpen] = useState(false);
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
   
   // Payment recording from group detail
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
@@ -147,11 +170,6 @@ const MemberManagementPage = () => {
   });
 
   const [selectedGroupId, setSelectedGroupId] = useState("");
-  
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
 
   useEffect(() => {
     fetchData();
@@ -160,7 +178,6 @@ const MemberManagementPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch members (contributors)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -182,7 +199,6 @@ const MemberManagementPage = () => {
         setMembers([]);
       }
 
-      // Fetch groups
       const { data: groupsData, error: groupsError } = await supabase
         .from("contribution_groups")
         .select("*")
@@ -191,7 +207,6 @@ const MemberManagementPage = () => {
       if (groupsError) throw groupsError;
       setGroups(groupsData || []);
 
-      // Fetch memberships
       const { data: membershipsData, error: membershipsError } = await supabase
         .from("group_memberships")
         .select("*");
@@ -206,12 +221,13 @@ const MemberManagementPage = () => {
     }
   };
 
+  // ==================== MEMBER CRUD ====================
+
   const handleCreateMember = async () => {
     if (isCreatingMember) return;
     setIsCreatingMember(true);
     
     try {
-      // Use edge function to create user without sending email
       const { data, error } = await supabase.functions.invoke("create-member", {
         body: {
           email: newMember.email,
@@ -227,7 +243,7 @@ const MemberManagementPage = () => {
       toast.success("Member created successfully! Share the login credentials via WhatsApp.");
       setIsAddMemberOpen(false);
       setNewMember({ email: "", full_name: "", phone: "", password: "" });
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error("Error creating member:", error);
       toast.error(error.message || "Failed to create member");
@@ -256,7 +272,7 @@ const MemberManagementPage = () => {
       toast.success("Member has been completely deleted from the system");
       setIsDeleteConfirmOpen(false);
       setDeletingMember(null);
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error("Error deleting member:", error);
       toast.error(error.message || "Failed to delete member");
@@ -265,10 +281,20 @@ const MemberManagementPage = () => {
     }
   };
 
+  const openEditMember = (member: Member) => {
+    setEditingMember({ ...member });
+    // Find this member's membership to get join date
+    const membership = memberships.find((m) => m.user_id === member.user_id);
+    setEditingMemberMembership(membership || null);
+    setEditJoinMonth(membership?.join_month || new Date().getMonth() + 1);
+    setEditJoinYear(membership?.join_year || new Date().getFullYear());
+  };
+
   const handleUpdateMember = async () => {
     if (!editingMember) return;
 
     try {
+      // Update profile
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -279,14 +305,148 @@ const MemberManagementPage = () => {
 
       if (error) throw error;
 
+      // Update join date on membership if exists
+      if (editingMemberMembership) {
+        const { error: membershipError } = await supabase
+          .from("group_memberships")
+          .update({
+            join_month: editJoinMonth,
+            join_year: editJoinYear,
+          })
+          .eq("id", editingMemberMembership.id);
+
+        if (membershipError) throw membershipError;
+
+        // Generate contribution records from join date
+        await generateContributionRecords(
+          editingMember.user_id,
+          editingMemberMembership.group_id,
+          editJoinMonth,
+          editJoinYear
+        );
+      }
+
       toast.success("Member updated successfully");
       setEditingMember(null);
-      fetchData();
+      setEditingMemberMembership(null);
+      await fetchData();
     } catch (error: any) {
       console.error("Error updating member:", error);
       toast.error("Failed to update member");
     }
   };
+
+  // ==================== CONTRIBUTION START-DATE LOGIC ====================
+
+  const generateContributionRecords = async (
+    userId: string,
+    groupId: string,
+    joinMonth: number,
+    joinYear: number
+  ) => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    // Get group's contribution amount
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) return;
+
+    // Get all monthly contributions for this group
+    const { data: existingContribs } = await supabase
+      .from("monthly_contributions")
+      .select("*")
+      .eq("group_id", groupId);
+
+    // Get all existing payments for this user
+    const { data: existingPayments } = await supabase
+      .from("contribution_payments")
+      .select("*")
+      .eq("user_id", userId);
+
+    const existingContribMap = new Map(
+      (existingContribs || []).map((c) => [`${c.year}-${c.month}`, c])
+    );
+    const existingPaymentMap = new Map(
+      (existingPayments || []).map((p) => [p.monthly_contribution_id, p])
+    );
+
+    // Delete payments before join date
+    for (const payment of existingPayments || []) {
+      const contrib = existingContribs?.find((c) => c.id === payment.monthly_contribution_id);
+      if (contrib) {
+        if (
+          contrib.year < joinYear ||
+          (contrib.year === joinYear && contrib.month < joinMonth)
+        ) {
+          await supabase.from("contribution_payments").delete().eq("id", payment.id);
+        }
+      }
+    }
+
+    // Iterate from join month/year to current month/year
+    let m = joinMonth;
+    let y = joinYear;
+
+    while (y < currentYear || (y === currentYear && m <= currentMonth)) {
+      const key = `${y}-${m}`;
+      let monthlyContrib = existingContribMap.get(key);
+
+      // Create monthly_contribution if doesn't exist
+      if (!monthlyContrib) {
+        const memberCount = memberships.filter((ms) => ms.group_id === groupId).length;
+        const { data: newContrib, error } = await supabase
+          .from("monthly_contributions")
+          .insert({
+            month: m,
+            year: y,
+            group_id: groupId,
+            total_expected: memberCount * group.contribution_amount,
+            total_collected: 0,
+            is_finalized: false,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error creating monthly contribution:", error);
+        } else {
+          monthlyContrib = newContrib;
+        }
+      }
+
+      if (monthlyContrib) {
+        const existingPayment = existingPaymentMap.get(monthlyContrib.id);
+        const isCurrentMonth = m === currentMonth && y === currentYear;
+
+        if (!existingPayment) {
+          // Create payment record: past months = paid, current month = pending
+          await supabase.from("contribution_payments").insert({
+            monthly_contribution_id: monthlyContrib.id,
+            user_id: userId,
+            amount: group.contribution_amount,
+            status: isCurrentMonth ? "pending" : "paid",
+            payment_date: isCurrentMonth ? null : new Date(y, m - 1, 15).toISOString(),
+          });
+        } else if (!isCurrentMonth && existingPayment.status !== "paid") {
+          // Past months should be paid
+          await supabase
+            .from("contribution_payments")
+            .update({ status: "paid", payment_date: new Date(y, m - 1, 15).toISOString() })
+            .eq("id", existingPayment.id);
+        }
+      }
+
+      // Advance to next month
+      m++;
+      if (m > 12) {
+        m = 1;
+        y++;
+      }
+    }
+  };
+
+  // ==================== GROUP CRUD ====================
 
   const handleCreateGroup = async () => {
     try {
@@ -302,18 +462,100 @@ const MemberManagementPage = () => {
       toast.success("Group created successfully");
       setIsAddGroupOpen(false);
       setNewGroup({ name: "", description: "", contribution_amount: 500 });
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error("Error creating group:", error);
       toast.error(error.message || "Failed to create group");
     }
   };
 
+  const openEditGroup = (group: Group, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingGroup(group);
+    setEditGroupName(group.name);
+    setEditGroupDescription(group.description || "");
+    setEditGroupAmount(group.contribution_amount);
+    setIsEditGroupOpen(true);
+  };
+
+  const handleUpdateGroup = async () => {
+    if (!editingGroup) return;
+
+    try {
+      const { error } = await supabase
+        .from("contribution_groups")
+        .update({
+          name: editGroupName,
+          description: editGroupDescription,
+          contribution_amount: editGroupAmount,
+        })
+        .eq("id", editingGroup.id);
+
+      if (error) throw error;
+
+      toast.success("Group updated successfully");
+      setIsEditGroupOpen(false);
+      setEditingGroup(null);
+      // Update selectedGroup if it's the same one
+      if (selectedGroup?.id === editingGroup.id) {
+        setSelectedGroup({ ...editingGroup, name: editGroupName, description: editGroupDescription, contribution_amount: editGroupAmount });
+      }
+      await fetchData();
+    } catch (error: any) {
+      console.error("Error updating group:", error);
+      toast.error("Failed to update group");
+    }
+  };
+
+  const openDeleteGroup = (group: Group, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingGroup(group);
+    setIsDeleteGroupOpen(true);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!deletingGroup || isDeletingGroup) return;
+    setIsDeletingGroup(true);
+
+    try {
+      // Remove all memberships for this group first
+      await supabase.from("group_memberships").delete().eq("group_id", deletingGroup.id);
+      
+      // Delete all monthly contributions and their payments
+      const { data: contribs } = await supabase
+        .from("monthly_contributions")
+        .select("id")
+        .eq("group_id", deletingGroup.id);
+      
+      if (contribs && contribs.length > 0) {
+        const contribIds = contribs.map((c) => c.id);
+        await supabase.from("contribution_payments").delete().in("monthly_contribution_id", contribIds);
+        await supabase.from("monthly_contributions").delete().eq("group_id", deletingGroup.id);
+      }
+
+      // Delete the group
+      const { error } = await supabase.from("contribution_groups").delete().eq("id", deletingGroup.id);
+      if (error) throw error;
+
+      toast.success("Group deleted successfully");
+      setIsDeleteGroupOpen(false);
+      setDeletingGroup(null);
+      setIsGroupDetailOpen(false);
+      await fetchData();
+    } catch (error: any) {
+      console.error("Error deleting group:", error);
+      toast.error("Failed to delete group");
+    } finally {
+      setIsDeletingGroup(false);
+    }
+  };
+
+  // ==================== GROUP MEMBERSHIP ====================
+
   const handleAssignToGroup = async () => {
     if (!selectedMember || !selectedGroupId) return;
 
     try {
-      // Check if already a member
       const existing = memberships.find(
         (m) => m.user_id === selectedMember.user_id && m.group_id === selectedGroupId
       );
@@ -335,7 +577,7 @@ const MemberManagementPage = () => {
       setIsAssignGroupOpen(false);
       setSelectedMember(null);
       setSelectedGroupId("");
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error("Error assigning member:", error);
       toast.error("Failed to assign member to group");
@@ -352,7 +594,7 @@ const MemberManagementPage = () => {
       if (error) throw error;
 
       toast.success("Member removed from group");
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member from group");
@@ -361,11 +603,10 @@ const MemberManagementPage = () => {
 
   const getMemberGroups = (userId: string) => {
     const userMemberships = memberships.filter((m) => m.user_id === userId);
-    return userMemberships
-      .map((m) => {
-        const group = groups.find((g) => g.id === m.group_id);
-        return { ...m, groupName: group?.name || "Unknown" };
-      });
+    return userMemberships.map((m) => {
+      const group = groups.find((g) => g.id === m.group_id);
+      return { ...m, groupName: group?.name || "Unknown" };
+    });
   };
 
   const getGroupMembers = (groupId: string) => {
@@ -376,11 +617,12 @@ const MemberManagementPage = () => {
     });
   };
 
+  // ==================== GROUP DETAIL SHEET ====================
+
   const handleOpenGroupDetail = async (group: Group) => {
     setSelectedGroup(group);
     setIsGroupDetailOpen(true);
     
-    // Fetch monthly contributions for this group
     try {
       const { data: contribs } = await supabase
         .from("monthly_contributions")
@@ -391,7 +633,6 @@ const MemberManagementPage = () => {
       
       setMonthlyContributions(contribs || []);
       
-      // Fetch payments for current month if available
       if (contribs && contribs.length > 0) {
         const currentContrib = contribs[0];
         setNewPayment(prev => ({ ...prev, monthly_contribution_id: currentContrib.id, amount: group.contribution_amount }));
@@ -423,7 +664,6 @@ const MemberManagementPage = () => {
     }
 
     try {
-      // Check if payment already exists
       const existingPayment = currentMonthPayments.find((p) => p.user_id === paymentMember.user_id);
       const contribution = monthlyContributions.find((c) => c.id === newPayment.monthly_contribution_id);
       const periodName = contribution
@@ -431,7 +671,6 @@ const MemberManagementPage = () => {
         : "this month";
       
       if (existingPayment) {
-        // Update existing payment
         const { error } = await supabase
           .from("contribution_payments")
           .update({
@@ -443,7 +682,6 @@ const MemberManagementPage = () => {
 
         if (error) throw error;
       } else {
-        // Create new payment
         const { error } = await supabase.from("contribution_payments").insert({
           monthly_contribution_id: newPayment.monthly_contribution_id,
           user_id: paymentMember.user_id,
@@ -455,7 +693,6 @@ const MemberManagementPage = () => {
         if (error) throw error;
       }
 
-      // Send notification to the contributor
       if (newPayment.status === "paid") {
         await supabase.from("notifications").insert({
           user_id: paymentMember.user_id,
@@ -470,7 +707,6 @@ const MemberManagementPage = () => {
       setIsRecordPaymentOpen(false);
       setPaymentMember(null);
       
-      // Refresh payments
       if (contribution) {
         const { data: paymentsData } = await supabase
           .from("contribution_payments")
@@ -489,7 +725,6 @@ const MemberManagementPage = () => {
     return payment?.status || null;
   };
 
-  // Fetch members not assigned to any group
   const fetchUnassignedMembers = () => {
     const assignedUserIds = memberships.map((m) => m.user_id);
     const unassigned = members.filter((m) => !assignedUserIds.includes(m.user_id));
@@ -514,7 +749,7 @@ const MemberManagementPage = () => {
       toast.success(`${selectedMembersToAdd.length} member(s) added to group`);
       setIsAddMemberToGroupOpen(false);
       setSelectedMembersToAdd([]);
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error("Error adding members:", error);
       toast.error("Failed to add members to group");
@@ -577,7 +812,7 @@ const MemberManagementPage = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Monthly Contribution Amount</Label>
+                  <Label>Monthly Contribution Amount (£)</Label>
                   <Input
                     type="number"
                     value={newGroup.contribution_amount}
@@ -671,9 +906,24 @@ const MemberManagementPage = () => {
                   <h4 className="font-semibold text-sm text-contribution hover:underline">
                     {group.name}
                   </h4>
-                  <Badge variant={group.is_active ? "default" : "secondary"}>
-                    {group.is_active ? "Active" : "Inactive"}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => openEditGroup(group, e)}
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      onClick={(e) => openDeleteGroup(group, e)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">{group.description}</p>
                 <div className="flex items-center justify-between text-sm">
@@ -735,13 +985,14 @@ const MemberManagementPage = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Groups</TableHead>
-                    <TableHead>Joined</TableHead>
+                    <TableHead>Join Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredMembers.map((member) => {
                     const memberGroups = getMemberGroups(member.user_id);
+                    const membership = memberships.find((m) => m.user_id === member.user_id);
                     return (
                       <TableRow key={member.id}>
                         <TableCell className="font-medium">
@@ -768,7 +1019,10 @@ const MemberManagementPage = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {new Date(member.created_at).toLocaleDateString()}
+                          {membership?.join_month && membership?.join_year
+                            ? `${monthNames[membership.join_month - 1]} ${membership.join_year}`
+                            : new Date(member.created_at).toLocaleDateString()
+                          }
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -785,7 +1039,7 @@ const MemberManagementPage = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setEditingMember(member)}
+                              onClick={() => openEditMember(member)}
                             >
                               <Edit2 className="w-4 h-4" />
                             </Button>
@@ -830,7 +1084,7 @@ const MemberManagementPage = () => {
               <SelectContent>
                 {groups.map((group) => (
                   <SelectItem key={group.id} value={group.id}>
-                    {group.name} (${group.contribution_amount}/mo)
+                    {group.name} (£{group.contribution_amount}/mo)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -847,8 +1101,8 @@ const MemberManagementPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Member Dialog */}
-      <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
+      {/* Edit Member Dialog - with join date */}
+      <Dialog open={!!editingMember} onOpenChange={() => { setEditingMember(null); setEditingMemberMembership(null); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Member</DialogTitle>
@@ -876,13 +1130,137 @@ const MemberManagementPage = () => {
                 }
               />
             </div>
+            {editingMemberMembership && (
+              <>
+                <div className="border-t pt-4">
+                  <Label className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-4 h-4" />
+                    Contribution Start Date
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Setting this will auto-generate contribution records from this date. Past months will be marked as PAID, current month as UNPAID.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Month</Label>
+                      <Select
+                        value={String(editJoinMonth)}
+                        onValueChange={(v) => setEditJoinMonth(parseInt(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {monthNames.map((name, index) => (
+                            <SelectItem key={index} value={String(index + 1)}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Year</Label>
+                      <Select
+                        value={String(editJoinYear)}
+                        onValueChange={(v) => setEditJoinYear(parseInt(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[2024, 2025, 2026, 2027].map((year) => (
+                            <SelectItem key={year} value={String(year)}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingMember(null)}>
+            <Button variant="outline" onClick={() => { setEditingMember(null); setEditingMemberMembership(null); }}>
               Cancel
             </Button>
             <Button variant="contribution" onClick={handleUpdateMember}>
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Group Dialog */}
+      <Dialog open={isEditGroupOpen} onOpenChange={setIsEditGroupOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Group Name</Label>
+              <Input
+                value={editGroupName}
+                onChange={(e) => setEditGroupName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Input
+                value={editGroupDescription}
+                onChange={(e) => setEditGroupDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Monthly Contribution Amount (£)</Label>
+              <Input
+                type="number"
+                value={editGroupAmount}
+                onChange={(e) => setEditGroupAmount(parseFloat(e.target.value))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditGroupOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="contribution" onClick={handleUpdateGroup}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Group Confirmation */}
+      <Dialog open={isDeleteGroupOpen} onOpenChange={setIsDeleteGroupOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Group</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <strong>{deletingGroup?.name}</strong>?
+            </p>
+            <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <p className="text-sm text-destructive font-medium">
+                This will also delete:
+              </p>
+              <ul className="text-xs text-muted-foreground mt-2 list-disc list-inside space-y-1">
+                <li>All group memberships</li>
+                <li>All monthly contribution periods for this group</li>
+                <li>All payment records tied to this group</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteGroupOpen(false)} disabled={isDeletingGroup}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteGroup} disabled={isDeletingGroup}>
+              {isDeletingGroup ? "Deleting..." : "Delete Group"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -937,7 +1315,6 @@ const MemberManagementPage = () => {
                     value={newPayment.monthly_contribution_id} 
                     onValueChange={(v) => {
                       setNewPayment(prev => ({ ...prev, monthly_contribution_id: v }));
-                      // Fetch payments for selected period
                       supabase
                         .from("contribution_payments")
                         .select("*")
@@ -966,7 +1343,6 @@ const MemberManagementPage = () => {
                   <Badge variant="outline">{getGroupMembers(selectedGroup.id).length} members</Badge>
                 </div>
                 
-                {/* Add Members Button */}
                 <Button 
                   variant="outline" 
                   className="w-full"
@@ -1002,6 +1378,9 @@ const MemberManagementPage = () => {
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {gm.member?.email}
+                                  {gm.join_month && gm.join_year && (
+                                    <> • Joined: {monthNames[gm.join_month - 1]} {gm.join_year}</>
+                                  )}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
