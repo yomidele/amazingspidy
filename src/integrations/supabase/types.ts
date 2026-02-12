@@ -214,6 +214,8 @@ export type Database = {
           group_id: string
           id: string
           is_active: boolean | null
+          join_month: number | null
+          join_year: number | null
           joined_at: string
           user_id: string
         }
@@ -221,6 +223,8 @@ export type Database = {
           group_id: string
           id?: string
           is_active?: boolean | null
+          join_month?: number | null
+          join_year?: number | null
           joined_at?: string
           user_id: string
         }
@@ -228,6 +232,8 @@ export type Database = {
           group_id?: string
           id?: string
           is_active?: boolean | null
+          join_month?: number | null
+          join_year?: number | null
           joined_at?: string
           user_id?: string
         }
