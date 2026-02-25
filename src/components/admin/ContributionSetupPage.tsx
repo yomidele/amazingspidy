@@ -11,6 +11,7 @@ import {
   Search,
   UserCheck,
   CreditCard,
+  Edit2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +63,9 @@ interface MonthlyContribution {
   beneficiary_user_id: string | null;
   beneficiary_account_number: string | null;
   beneficiary_bank_name: string | null;
+  beneficiary_account_name: string | null;
+  beneficiary_sort_code: string | null; // new field
+  per_member_amount: number | null;
   total_expected: number | null;
   total_collected: number | null;
   is_finalized: boolean;
@@ -84,6 +89,8 @@ const ContributionSetupPage = () => {
   const [selectedContribution, setSelectedContribution] = useState<MonthlyContribution | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDetailsOpen, setIsEditDetailsOpen] = useState(false);
+  const [editDetails, setEditDetails] = useState<Partial<MonthlyContribution>>({});
   const [newContribution, setNewContribution] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
@@ -91,6 +98,9 @@ const ContributionSetupPage = () => {
     beneficiary_user_id: "",
     beneficiary_account_number: "",
     beneficiary_bank_name: "",
+    beneficiary_account_name: "",
+    beneficiary_sort_code: "",
+    per_member_amount: 0,
   });
 
   const monthNames = [
@@ -119,6 +129,7 @@ const ContributionSetupPage = () => {
         setNewContribution(prev => ({
           ...prev,
           group_id: groupsData[0].id,
+          per_member_amount: groupsData[0].contribution_amount,
         }));
       }
 
@@ -139,7 +150,8 @@ const ContributionSetupPage = () => {
         .order("month", { ascending: false });
 
       if (contribError) throw contribError;
-      setContributions(contribData || []);
+      const list = contribData || [];
+      setContributions(list);
 
       // Fetch members (profiles with contributor role)
       const { data: profilesData, error: profilesError } = await supabase
@@ -148,6 +160,8 @@ const ContributionSetupPage = () => {
 
       if (profilesError) throw profilesError;
       setMembers(profilesData || []);
+
+      return list; // return for callers who need fresh data
 
     } catch (error: any) {
       console.error("Error fetching data:", error);
@@ -196,6 +210,14 @@ const ContributionSetupPage = () => {
       toast.error("Please select a contribution group");
       return;
     }
+    // validate sort code, if provided
+    if (
+      newContribution.beneficiary_sort_code &&
+      !/^[0-9]+$/.test(newContribution.beneficiary_sort_code)
+    ) {
+      toast.error("Sort code must contain only numbers");
+      return;
+    }
 
     const selectedGroup = getSelectedGroup();
     if (!selectedGroup) {
@@ -207,13 +229,17 @@ const ContributionSetupPage = () => {
     const groupMembers = getGroupMembers(newContribution.group_id);
 
     try {
+      const perMember = newContribution.per_member_amount || selectedGroup.contribution_amount;
       const { error } = await supabase.from("monthly_contributions").insert({
         month: newContribution.month,
         year: newContribution.year,
         beneficiary_user_id: newContribution.beneficiary_user_id || null,
         beneficiary_account_number: newContribution.beneficiary_account_number || null,
         beneficiary_bank_name: newContribution.beneficiary_bank_name || null,
-        total_expected: groupMembers.length * selectedGroup.contribution_amount,
+        beneficiary_account_name: newContribution.beneficiary_account_name || null,
+        beneficiary_sort_code: newContribution.beneficiary_sort_code || null,
+        per_member_amount: perMember,
+        total_expected: groupMembers.length * perMember,
         total_collected: 0,
         is_finalized: false,
         group_id: newContribution.group_id,
@@ -231,6 +257,9 @@ const ContributionSetupPage = () => {
         beneficiary_user_id: "",
         beneficiary_account_number: "",
         beneficiary_bank_name: "",
+        beneficiary_account_name: "",
+        beneficiary_sort_code: "",
+        per_member_amount: 0,
       });
       fetchData();
     } catch (error: any) {
@@ -241,10 +270,12 @@ const ContributionSetupPage = () => {
 
   // Handle group change - reset beneficiary when group changes
   const handleGroupChange = (groupId: string) => {
+    const group = groups.find((g) => g.id === groupId);
     setNewContribution({
       ...newContribution,
       group_id: groupId,
       beneficiary_user_id: "", // Reset beneficiary when group changes
+      per_member_amount: group?.contribution_amount || 0,
     });
   };
 
@@ -392,6 +423,14 @@ const ContributionSetupPage = () => {
               </div>
 
               <div className="space-y-2">
+                <Label>Beneficiary Account Name</Label>
+                <Input
+                  placeholder="Enter account name"
+                  value={newContribution.beneficiary_account_name}
+                  onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Beneficiary Bank Name</Label>
                 <Input
                   placeholder="Enter bank name"
@@ -399,13 +438,24 @@ const ContributionSetupPage = () => {
                   onChange={(e) => setNewContribution({ ...newContribution, beneficiary_bank_name: e.target.value })}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label>Beneficiary Account Number</Label>
                 <Input
                   placeholder="Enter account number"
                   value={newContribution.beneficiary_account_number}
                   onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_number: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Sort Code</Label>
+                <Input
+                  placeholder="e.g. 123456"
+                  value={newContribution.beneficiary_sort_code}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setNewContribution({ ...newContribution, beneficiary_sort_code: digits });
+                  }}
+                  maxLength={6}
                 />
               </div>
 
@@ -419,6 +469,191 @@ const ContributionSetupPage = () => {
                   </p>
                 </div>
               )}
+
+              {/* Edit Details Dialog */}
+              <Dialog open={isEditDetailsOpen} onOpenChange={setIsEditDetailsOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Contribution Details</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Per Member Amount</Label>
+                      <Input
+                        type="number"
+                        value={editDetails.per_member_amount || 0}
+                        onChange={(e) =>
+                          setEditDetails({
+                            ...editDetails,
+                            per_member_amount: parseFloat(e.target.value),
+                            total_expected:
+                              parseFloat(e.target.value) *
+                              (getGroupMembers(selectedContribution?.group_id || "").length || 0),
+                          })
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total Expected: £{
+                          (getGroupMembers(selectedContribution?.group_id || "").length || 0) *
+                          (editDetails.per_member_amount || 0)
+                        }
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Beneficiary (from group members)</Label>
+                      <Select
+                        value={editDetails.beneficiary_user_id || ""}
+                        onValueChange={(v) =>
+                          setEditDetails({ ...editDetails, beneficiary_user_id: v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select beneficiary" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(() => {
+                            const groupMems = getGroupMembers(
+                              selectedContribution?.group_id || ""
+                            );
+                            // if editing an existing beneficiary who may no longer be in the group, include them
+                            if (
+                              editDetails.beneficiary_user_id &&
+                              !groupMems.find(
+                                (m) => m.user_id === editDetails.beneficiary_user_id
+                              )
+                            ) {
+                              const extra = members.find(
+                                (m) => m.user_id === editDetails.beneficiary_user_id
+                              );
+                              if (extra) {
+                                groupMems.push(extra);
+                              }
+                            }
+                            return groupMems.map((member) => (
+                              <SelectItem
+                                key={member.user_id}
+                                value={member.user_id}
+                              >
+                                {member.full_name || member.email}
+                              </SelectItem>
+                            ));
+                          })()}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Beneficiary Account Name</Label>
+                      <Input
+                        value={editDetails.beneficiary_account_name || ""}
+                        onChange={(e) =>
+                          setEditDetails({
+                            ...editDetails,
+                            beneficiary_account_name: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Beneficiary Bank Name</Label>
+                      <Input
+                        value={editDetails.beneficiary_bank_name || ""}
+                        onChange={(e) =>
+                          setEditDetails({
+                            ...editDetails,
+                            beneficiary_bank_name: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Beneficiary Account Number</Label>
+                      <Input
+                        value={editDetails.beneficiary_account_number || ""}
+                        onChange={(e) =>
+                          setEditDetails({
+                            ...editDetails,
+                            beneficiary_account_number: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Sort Code</Label>
+                      <Input
+                        value={editDetails.beneficiary_sort_code || ""}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "");
+                          setEditDetails({
+                            ...editDetails,
+                            beneficiary_sort_code: digits,
+                          });
+                        }}
+                        maxLength={6}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditDetailsOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="contribution"
+                      onClick={async () => {
+                        if (!selectedContribution) return;
+                        // validate sort code on edit
+                        if (
+                          editDetails.beneficiary_sort_code &&
+                          !/^[0-9]+$/.test(editDetails.beneficiary_sort_code)
+                        ) {
+                          toast.error("Sort code must contain only numbers");
+                          return;
+                        }
+                        try {
+                          const { error } = await supabase
+                            .from("monthly_contributions")
+                            .update({
+                              total_expected: editDetails.total_expected,
+                              beneficiary_user_id:
+                                editDetails.beneficiary_user_id || null,
+                              beneficiary_bank_name:
+                                editDetails.beneficiary_bank_name || null,
+                              beneficiary_account_number:
+                                editDetails.beneficiary_account_number || null,
+                              beneficiary_account_name:
+                                editDetails.beneficiary_account_name || null,
+                              beneficiary_sort_code:
+                                editDetails.beneficiary_sort_code || null,
+                            })
+                            .eq("id", selectedContribution.id);
+                          if (error) throw error;
+                          toast.success("Details updated");
+                          setIsEditDetailsOpen(false);
+                          // update local selected object immediately
+                          setSelectedContribution((prev) =>
+                            prev
+                              ? { ...prev, ...editDetails as any }
+                              : prev
+                          );
+                          // refresh list and re-select updated entry to avoid stale data
+                          const refreshed = await fetchData();
+                          if (selectedContribution) {
+                            const updated = refreshed.find(c => c.id === selectedContribution.id);
+                            if (updated) setSelectedContribution(updated);
+                          }
+                        } catch (error: any) {
+                          console.error("Error updating details:", error);
+                          toast.error("Failed to update contribution");
+                        }
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               <Button 
                 variant="contribution" 
@@ -493,11 +728,23 @@ const ContributionSetupPage = () => {
 
         {/* Selected Contribution Details */}
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex justify-between items-center">
             <CardTitle className="text-lg flex items-center gap-2">
               <UserCheck className="w-5 h-5" />
               Contribution Details
             </CardTitle>
+            {selectedContribution && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditDetails({ ...selectedContribution });
+                  setIsEditDetailsOpen(true);
+                }}
+              >
+                <Edit2 className="w-4 h-4 mr-1" /> Edit
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {selectedContribution ? (
@@ -513,6 +760,19 @@ const ContributionSetupPage = () => {
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     Beneficiary for {monthNames[selectedContribution.month - 1]} {selectedContribution.year}
+                    {/* inline edit icon next to beneficiary info */}
+                    {selectedContribution && (
+                      <button
+                        onClick={() => {
+                          setEditDetails({ ...selectedContribution });
+                          setIsEditDetailsOpen(true);
+                        }}
+                        className="ml-auto p-1 rounded hover:bg-muted/20 focus:outline-none"
+                        title="Edit beneficiary details"
+                      >
+                        <Edit2 className="w-4 h-4 text-primary" />
+                      </button>
+                    )}
                   </h4>
                   <div className="grid sm:grid-cols-3 gap-4 text-sm">
                     <div>
@@ -530,9 +790,21 @@ const ContributionSetupPage = () => {
                       </p>
                     </div>
                     <div>
+                      <p className="text-muted-foreground">Account Name</p>
+                      <p className="font-medium">
+                        {selectedContribution.beneficiary_account_name || "Not set"}
+                      </p>
+                    </div>
+                    <div>
                       <p className="text-muted-foreground">Account Number</p>
                       <p className="font-medium">
                         {selectedContribution.beneficiary_account_number || "Not set"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Sort Code</p>
+                      <p className="font-medium">
+                        {selectedContribution.beneficiary_sort_code || "Not set"}
                       </p>
                     </div>
                   </div>

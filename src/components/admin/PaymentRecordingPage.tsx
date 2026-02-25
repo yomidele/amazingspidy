@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -9,6 +10,8 @@ import {
   Users,
   Eye,
   Download,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,14 +76,21 @@ const PaymentRecordingPage = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedContribution, setSelectedContribution] = useState<string>("");
+  const [initialContributionId, setInitialContributionId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [groupName, setGroupName] = useState<string>("Amana Market");
 
+  // new states for editing and deletion
+  const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   const [newPayment, setNewPayment] = useState({
     user_id: "",
-    amount: 500,
+    amount: 0,
     status: "paid",
   });
 
@@ -90,8 +100,12 @@ const PaymentRecordingPage = () => {
   ];
 
   useEffect(() => {
+    // read param
+    const params = new URLSearchParams(location.search);
+    const contribId = params.get("contribution");
+    if (contribId) setInitialContributionId(contribId);
     fetchData();
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     if (selectedContribution) {
@@ -113,7 +127,18 @@ const PaymentRecordingPage = () => {
       setContributions(contribData || []);
 
       if (contribData && contribData.length > 0) {
-        setSelectedContribution(contribData[0].id);
+        // preserve existing or use initial param
+        if (
+          initialContributionId &&
+          contribData.find((c) => c.id === initialContributionId)
+        ) {
+          setSelectedContribution(initialContributionId);
+        } else if (
+          !selectedContribution ||
+          !contribData.find((c) => c.id === selectedContribution)
+        ) {
+          setSelectedContribution(contribData[0].id);
+        }
       }
 
       // Fetch members
@@ -132,6 +157,10 @@ const PaymentRecordingPage = () => {
   };
 
   const fetchPayments = async (contributionId: string) => {
+    // update url param
+    const params = new URLSearchParams(location.search);
+    params.set("contribution", contributionId);
+    navigate({ search: params.toString() }, { replace: true });
     try {
       const { data, error } = await supabase
         .from("contribution_payments")
@@ -140,7 +169,8 @@ const PaymentRecordingPage = () => {
         .order("payment_date", { ascending: false });
 
       if (error) throw error;
-      setPayments(data || []);
+      const list = data || [];
+      setPayments(list);
 
       // Fetch group name for the selected contribution
       const contrib = contributions.find((c) => c.id === contributionId);
@@ -152,8 +182,11 @@ const PaymentRecordingPage = () => {
           .maybeSingle();
         if (groupData) setGroupName(groupData.name);
       }
+
+      return list;
     } catch (error: any) {
       console.error("Error fetching payments:", error);
+      return [];
     }
   };
 
@@ -164,26 +197,33 @@ const PaymentRecordingPage = () => {
     }
 
     try {
-      // Check if payment already exists
-      const existingPayment = payments.find((p) => p.user_id === newPayment.user_id);
       const contribution = contributions.find((c) => c.id === selectedContribution);
       const memberName = getMemberName(newPayment.user_id);
       const periodName = contribution
         ? `${monthNames[contribution.month - 1]} ${contribution.year}`
         : "this month";
-      
-      if (existingPayment) {
-        // Update existing payment
+
+      if (paymentToEdit) {
+        // Updating an existing payment
         const { error } = await supabase
           .from("contribution_payments")
           .update({
+            user_id: newPayment.user_id,
             amount: newPayment.amount,
             status: newPayment.status,
             payment_date: new Date().toISOString(),
           })
-          .eq("id", existingPayment.id);
-
+          .eq("id", paymentToEdit.id);
         if (error) throw error;
+
+        // Notify contributor about the change
+        await supabase.from("notifications").insert({
+          user_id: newPayment.user_id,
+          title: "Payment Updated",
+          message: `Your payment of £${newPayment.amount} for ${periodName} has been updated by admin.`,
+          type: "payment",
+          link: "/dashboard/contributor",
+        });
       } else {
         // Create new payment
         const { error } = await supabase.from("contribution_payments").insert({
@@ -195,36 +235,36 @@ const PaymentRecordingPage = () => {
         });
 
         if (error) throw error;
+
+        // Send initial notification
+        if (newPayment.status === "paid") {
+          await supabase.from("notifications").insert({
+            user_id: newPayment.user_id,
+            title: "Payment Confirmed ✓",
+            message: `Your contribution of £${newPayment.amount} for ${periodName} has been recorded. Thank you!`,
+            type: "payment",
+            link: "/dashboard/contributor",
+          });
+        }
       }
 
-      // Send notification to the contributor
-      if (newPayment.status === "paid") {
-        await supabase.from("notifications").insert({
-          user_id: newPayment.user_id,
-          title: "Payment Confirmed ✓",
-          message: `Your contribution of £${newPayment.amount} for ${periodName} has been recorded. Thank you!`,
-          type: "payment",
-          link: "/dashboard/contributor",
-        });
-      }
-
-      // Update total collected
-      if (contribution && newPayment.status === "paid") {
-        const totalPaid = payments
-          .filter((p) => p.status === "paid" && p.user_id !== newPayment.user_id)
-          .reduce((sum, p) => sum + p.amount, 0) + newPayment.amount;
-
+      // recalc total collected from the latest payments list
+      const updatedPayments = await fetchPayments(selectedContribution);
+      const totalPaid = updatedPayments
+        .filter((p) => p.status === "paid")
+        .reduce((sum, p) => sum + p.amount, 0);
+      if (contribution) {
         await supabase
           .from("monthly_contributions")
           .update({ total_collected: totalPaid })
           .eq("id", selectedContribution);
       }
 
-      toast.success("Payment recorded successfully");
+      toast.success(paymentToEdit ? "Payment updated successfully" : "Payment recorded successfully");
       setIsRecordPaymentOpen(false);
-      setNewPayment({ user_id: "", amount: 500, status: "paid" });
-      fetchPayments(selectedContribution);
-      fetchData();
+      setPaymentToEdit(null);
+      setNewPayment({ user_id: "", amount: getPerMemberAmount(), status: "paid" });
+      await fetchData();
     } catch (error: any) {
       console.error("Error recording payment:", error);
       toast.error(error.message || "Failed to record payment");
@@ -241,11 +281,9 @@ const PaymentRecordingPage = () => {
       if (error) throw error;
 
       toast.success("Payment status updated");
-      fetchPayments(selectedContribution);
-      
+      const updatedPayments = await fetchPayments(selectedContribution);
       // Recalculate total collected
-      const totalPaid = payments
-        .map((p) => (p.id === paymentId ? { ...p, status } : p))
+      const totalPaid = updatedPayments
         .filter((p) => p.status === "paid")
         .reduce((sum, p) => sum + p.amount, 0);
 
@@ -261,9 +299,68 @@ const PaymentRecordingPage = () => {
     }
   };
 
+  const confirmDeletePayment = async () => {
+    if (!paymentToEdit) return;
+    try {
+      const deleted = await supabase
+        .from("contribution_payments")
+        .delete()
+        .eq("id", paymentToEdit.id);
+
+      if (deleted.error) throw deleted.error;
+
+      // notify user
+      const contribution = contributions.find((c) => c.id === selectedContribution);
+      const periodName = contribution
+        ? `${monthNames[contribution.month - 1]} ${contribution.year}`
+        : "this period";
+
+      await supabase.from("notifications").insert({
+        user_id: paymentToEdit.user_id,
+        title: "Payment Removed",
+        message: `Your payment of £${paymentToEdit.amount} for ${periodName} has been removed by admin.`,
+        type: "payment",
+        link: "/dashboard/contributor",
+      });
+
+      toast.success("Payment deleted");
+      setIsDeleteDialogOpen(false);
+      setPaymentToEdit(null);
+      const updatedPayments = await fetchPayments(selectedContribution);
+      const totalPaid = updatedPayments
+        .filter((p) => p.status === "paid")
+        .reduce((sum, p) => sum + p.amount, 0);
+      if (contribution) {
+        await supabase
+          .from("monthly_contributions")
+          .update({ total_collected: totalPaid })
+          .eq("id", selectedContribution);
+      }
+      fetchData();
+    } catch (error: any) {
+      console.error("Error deleting payment:", error);
+      toast.error("Failed to delete payment");
+    }
+  };
+
   const getMemberName = (userId: string) => {
     const member = members.find((m) => m.user_id === userId);
     return member?.full_name || member?.email || "Unknown";
+  };
+
+  const openEditDialog = (payment: Payment) => {
+    setPaymentToEdit(payment);
+    setNewPayment({
+      user_id: payment.user_id,
+      amount: payment.amount,
+      status: payment.status || "pending",
+    });
+    setIsRecordPaymentOpen(true);
+  };
+
+  const openDeleteDialog = (payment: Payment) => {
+    setPaymentToEdit(payment);
+    setIsDeleteDialogOpen(true);
   };
 
   const getMembersNotPaid = () => {
@@ -292,6 +389,19 @@ const PaymentRecordingPage = () => {
   const paidCount = payments.filter((p) => p.status === "paid").length;
   const pendingCount = payments.filter((p) => p.status === "pending").length;
 
+  const getPerMemberAmount = () => {
+    if (!currentContribution) return 0;
+    if (currentContribution.per_member_amount && currentContribution.per_member_amount > 0) {
+      return currentContribution.per_member_amount;
+    }
+    // fallback compute if stored
+    const memberCount = members.length; // approximate
+    if (memberCount > 0 && currentContribution.total_expected) {
+      return currentContribution.total_expected / memberCount;
+    }
+    return 0;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -313,7 +423,9 @@ const PaymentRecordingPage = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Record Contribution Payment</DialogTitle>
+              <DialogTitle>
+                {paymentToEdit ? "Edit Contribution Payment" : "Record Contribution Payment"}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -363,7 +475,7 @@ const PaymentRecordingPage = () => {
             </div>
             <DialogFooter>
               <Button variant="contribution" onClick={handleRecordPayment}>
-                Record Payment
+                {paymentToEdit ? "Update Payment" : "Record Payment"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -519,6 +631,22 @@ const PaymentRecordingPage = () => {
                           >
                             <Eye className="w-4 h-4 text-muted-foreground" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(payment)}
+                            title="Edit Payment"
+                          >
+                            <Pencil className="w-4 h-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(payment)}
+                            title="Delete Payment"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
                           {payment.status !== "paid" && (
                             <Button
                               variant="ghost"
@@ -564,7 +692,11 @@ const PaymentRecordingPage = () => {
                   variant="outline"
                   className="cursor-pointer hover:bg-contribution-light"
                   onClick={() => {
-                    setNewPayment({ ...newPayment, user_id: member.user_id });
+                    setNewPayment({
+                      ...newPayment,
+                      user_id: member.user_id,
+                      amount: getPerMemberAmount(),
+                    });
                     setIsRecordPaymentOpen(true);
                   }}
                 >
@@ -583,6 +715,32 @@ const PaymentRecordingPage = () => {
         onOpenChange={setReceiptOpen}
         transaction={selectedPayment}
       />
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Payment</DialogTitle>
+          </DialogHeader>
+          <p className="py-2">
+            Are you sure you want to delete this payment? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={confirmDeletePayment}
+            >
+              Delete
+            </Button>
+            <Button onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

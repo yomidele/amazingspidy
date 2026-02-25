@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -39,6 +39,7 @@ import TravelClientManagement from "@/components/admin/travel/TravelClientManage
 import TravelCaseManagement from "@/components/admin/travel/TravelCaseManagement";
 import TravelConsultationManagement from "@/components/admin/travel/TravelConsultationManagement";
 import TravelDashboardContent from "@/components/admin/travel/TravelDashboardContent";
+import UserActivityPage from "@/components/admin/UserActivityPage";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -46,9 +47,25 @@ const AdminDashboardContent = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [tutorialOpen, setTutorialOpen] = useState(false);
 
   const { tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial } = useTutorial();
+  const location = useLocation();
+
+  // sync state with path for user detail
+  useEffect(() => {
+    const match = location.pathname.match(/^\/admin\/users\/([^\/]+)/);
+    if (match) {
+      setActiveModule("contribution");
+      setActivePage("user-detail");
+      setSelectedUserId(match[1]);
+    } else if (activePage === "user-detail") {
+      // return to members on back
+      setActivePage("members");
+      setSelectedUserId(null);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -115,6 +132,8 @@ const AdminDashboardContent = () => {
       switch (activePage) {
         case "members":
           return <MemberManagementPage />;
+        case "user-detail":
+          return <UserActivityPage userId={selectedUserId} />;
         case "contributions":
           return <ContributionSetupPage />;
         case "payments":
@@ -285,6 +304,7 @@ const AdminDashboardContent = () => {
                    activePage === "contributions" ? "Monthly Contributions" :
                    activePage === "reviews" ? "Client Reviews" :
                    activePage === "settings" ? "Settings" :
+                   activePage === "user-detail" ? "User Activity" :
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
                 <p className="text-sm text-muted-foreground truncate">

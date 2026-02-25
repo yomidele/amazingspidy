@@ -196,7 +196,7 @@ const manualSections: ManualSection[] = [
       {
         heading: "Managing Beneficiary Information",
         paragraphs: [
-          "The beneficiary's bank details are visible to all members, enabling them to make direct transfers. Ensure this information is accurate and up to date.",
+          "The beneficiary's bank details (bank name, account number and sort code) are visible to all members, enabling them to make direct transfers. Ensure this information is accurate and up to date.",
         ],
         warnings: [
           "Changes to beneficiary details after contributions have started may cause confusion",
@@ -266,6 +266,21 @@ const manualSections: ManualSection[] = [
         warnings: [
           "Rejecting a payment removes it from the collected total",
           "Always document the reason for rejection for audit purposes",
+        ],
+      },
+      {
+        heading: "Editing or Deleting Payments",
+        paragraphs: [
+          "Admins can correct mistakes by editing or removing recorded payments. Any change is immediately visible in totals and on contributor dashboards.",
+        ],
+        steps: [
+          "Click the pencil icon beside a payment to open the edit dialog",
+          "Modify the amount, member or status as needed and click 'Update'",
+          "To remove a record entirely, click the trash icon and confirm",
+        ],
+        tips: [
+          "Contributors receive notifications when their payment is changed or deleted",
+          "Totals are recalculated automatically once you save or delete",
         ],
       },
       {

@@ -46,6 +46,7 @@ interface BeneficiaryInfo {
   name: string;
   bankName: string | null;
   accountNumber: string | null;
+  sortCode?: string | null;
 }
 
 const ContributorDashboard = () => {
@@ -179,7 +180,7 @@ const ContributorDashboard = () => {
       if (userGroupId) {
         const { data: currentMonthMc } = await supabase
           .from("monthly_contributions")
-          .select("id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number")
+          .select("id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number, beneficiary_sort_code")
           .eq("group_id", userGroupId)
           .eq("month", currentMonth)
           .eq("year", currentYear)
@@ -209,6 +210,7 @@ const ContributorDashboard = () => {
               name: benefProfile?.full_name || "Unknown",
               bankName: currentMonthMc.beneficiary_bank_name,
               accountNumber: currentMonthMc.beneficiary_account_number,
+              sortCode: currentMonthMc.beneficiary_sort_code || null,
             });
           }
         }
@@ -447,6 +449,12 @@ const ContributorDashboard = () => {
                             <span className="text-sm">Account Number:</span>
                             <span className="font-mono font-semibold">{currentBeneficiary.accountNumber}</span>
                           </div>
+                          {currentBeneficiary.sortCode && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Sort Code:</span>
+                              <span className="font-mono font-semibold">{currentBeneficiary.sortCode}</span>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="p-4 rounded-xl bg-muted/50 border border-border">

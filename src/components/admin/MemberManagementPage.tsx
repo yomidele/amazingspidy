@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -104,6 +105,7 @@ const monthNames = [
 ];
 
 const MemberManagementPage = () => {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [memberships, setMemberships] = useState<GroupMembership[]>([]);
@@ -1035,6 +1037,14 @@ const MemberManagementPage = () => {
                               }}
                             >
                               <Plus className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/users/${member.user_id}`)}
+                              title="View Activity"
+                            >
+                              <Eye className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"

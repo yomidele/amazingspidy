@@ -191,7 +191,7 @@ const manualSections: ManualSection[] = [
       {
         heading: "Managing Beneficiary Information",
         paragraphs: [
-          "The beneficiary's bank details are visible to all members, enabling them to make direct transfers. Ensure this information is accurate and up to date.",
+          "The beneficiary's bank details (bank name, account number and sort code) are visible to all members, enabling them to make direct transfers. Ensure this information is accurate and up to date.",
         ],
         warnings: [
           "Changes to beneficiary details after contributions have started may cause confusion",
@@ -245,6 +245,21 @@ const manualSections: ManualSection[] = [
           "PAID: Payment confirmed and verified. Added to the monthly total.",
           "PENDING: Payment recorded but awaiting verification. Not yet added to total.",
           "PARTIAL: Member paid less than the required amount. Balance remains outstanding.",
+        ],
+      },
+      {
+        heading: "Editing or Deleting Payments",
+        paragraphs: [
+          "Mistakes happen. Admins can modify or remove payment records directly from the table.",
+        ],
+        steps: [
+          "Click the pencil icon in the Actions column to edit a payment.",
+          "Adjust the member, amount or status in the dialog, then save. The contributor will be notified of any changes.",
+          "To delete a payment, click the trash icon and confirm your choice. Deleted records are removed from the member’s dashboard.",
+        ],
+        tips: [
+          "Totals are recalculated automatically and reflect the change immediately.",
+          "The member’s dashboard will show the updated history next time they visit.",
         ],
       },
       {

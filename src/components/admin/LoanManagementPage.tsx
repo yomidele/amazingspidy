@@ -10,6 +10,7 @@ import {
   Check,
   Clock,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,6 +99,11 @@ const LoanManagementPage = () => {
     repayment_type: "manual",
     notes: "",
   });
+
+  // delete loan
+  const [deletingLoan, setDeletingLoan] = useState<Loan | null>(null);
+  const [isDeleteLoanOpen, setIsDeleteLoanOpen] = useState(false);
+  const [isDeletingLoan, setIsDeletingLoan] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -208,6 +214,30 @@ const LoanManagementPage = () => {
     } catch (error: any) {
       console.error("Error recording repayment:", error);
       toast.error("Failed to record repayment");
+    }
+  };
+
+  const handleDeleteLoan = async () => {
+    if (!deletingLoan) return;
+    setIsDeletingLoan(true);
+
+    try {
+      const { error } = await supabase
+        .from("loans")
+        .delete()
+        .eq("id", deletingLoan.id);
+      if (error) throw error;
+
+      toast.success("Loan deleted successfully");
+      setIsDeleteLoanOpen(false);
+      setDeletingLoan(null);
+      // remove from local state immediately
+      setLoans((prev) => prev.filter((l) => l.id !== deletingLoan.id));
+    } catch (error: any) {
+      console.error("Error deleting loan:", error);
+      toast.error(error.message || "Failed to delete loan");
+    } finally {
+      setIsDeletingLoan(false);
     }
   };
 
@@ -444,6 +474,7 @@ const LoanManagementPage = () => {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -456,6 +487,18 @@ const LoanManagementPage = () => {
                           <DollarSign className="w-4 h-4 mr-1" />
                           Repay
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            setDeletingLoan(loan);
+                            setIsDeleteLoanOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -525,6 +568,32 @@ const LoanManagementPage = () => {
             </Button>
             <Button variant="contribution" onClick={handleRecordRepayment}>
               Record Repayment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Loan Confirmation Dialog */}
+      <Dialog open={isDeleteLoanOpen} onOpenChange={setIsDeleteLoanOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Loan</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              This action will permanently remove the loan record. Are you sure?
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteLoanOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteLoan}
+              disabled={isDeletingLoan}
+            >
+              {isDeletingLoan ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
