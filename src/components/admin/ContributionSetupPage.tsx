@@ -470,191 +470,6 @@ const ContributionSetupPage = () => {
                 </div>
               )}
 
-              {/* Edit Details Dialog */}
-              <Dialog open={isEditDetailsOpen} onOpenChange={setIsEditDetailsOpen}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Edit Contribution Details</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Per Member Amount</Label>
-                      <Input
-                        type="number"
-                        value={editDetails.per_member_amount || 0}
-                        onChange={(e) =>
-                          setEditDetails({
-                            ...editDetails,
-                            per_member_amount: parseFloat(e.target.value),
-                            total_expected:
-                              parseFloat(e.target.value) *
-                              (getGroupMembers(selectedContribution?.group_id || "").length || 0),
-                          })
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Total Expected: £{
-                          (getGroupMembers(selectedContribution?.group_id || "").length || 0) *
-                          (editDetails.per_member_amount || 0)
-                        }
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Beneficiary (from group members)</Label>
-                      <Select
-                        value={editDetails.beneficiary_user_id || ""}
-                        onValueChange={(v) =>
-                          setEditDetails({ ...editDetails, beneficiary_user_id: v })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select beneficiary" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(() => {
-                            const groupMems = getGroupMembers(
-                              selectedContribution?.group_id || ""
-                            );
-                            // if editing an existing beneficiary who may no longer be in the group, include them
-                            if (
-                              editDetails.beneficiary_user_id &&
-                              !groupMems.find(
-                                (m) => m.user_id === editDetails.beneficiary_user_id
-                              )
-                            ) {
-                              const extra = members.find(
-                                (m) => m.user_id === editDetails.beneficiary_user_id
-                              );
-                              if (extra) {
-                                groupMems.push(extra);
-                              }
-                            }
-                            return groupMems.map((member) => (
-                              <SelectItem
-                                key={member.user_id}
-                                value={member.user_id}
-                              >
-                                {member.full_name || member.email}
-                              </SelectItem>
-                            ));
-                          })()}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Beneficiary Account Name</Label>
-                      <Input
-                        value={editDetails.beneficiary_account_name || ""}
-                        onChange={(e) =>
-                          setEditDetails({
-                            ...editDetails,
-                            beneficiary_account_name: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Beneficiary Bank Name</Label>
-                      <Input
-                        value={editDetails.beneficiary_bank_name || ""}
-                        onChange={(e) =>
-                          setEditDetails({
-                            ...editDetails,
-                            beneficiary_bank_name: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Beneficiary Account Number</Label>
-                      <Input
-                        value={editDetails.beneficiary_account_number || ""}
-                        onChange={(e) =>
-                          setEditDetails({
-                            ...editDetails,
-                            beneficiary_account_number: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Sort Code</Label>
-                      <Input
-                        value={editDetails.beneficiary_sort_code || ""}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "");
-                          setEditDetails({
-                            ...editDetails,
-                            beneficiary_sort_code: digits,
-                          });
-                        }}
-                        maxLength={6}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditDetailsOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="contribution"
-                      onClick={async () => {
-                        if (!selectedContribution) return;
-                        // validate sort code on edit
-                        if (
-                          editDetails.beneficiary_sort_code &&
-                          !/^[0-9]+$/.test(editDetails.beneficiary_sort_code)
-                        ) {
-                          toast.error("Sort code must contain only numbers");
-                          return;
-                        }
-                        try {
-                          const { error } = await supabase
-                            .from("monthly_contributions")
-                            .update({
-                              total_expected: editDetails.total_expected,
-                              beneficiary_user_id:
-                                editDetails.beneficiary_user_id || null,
-                              beneficiary_bank_name:
-                                editDetails.beneficiary_bank_name || null,
-                              beneficiary_account_number:
-                                editDetails.beneficiary_account_number || null,
-                              beneficiary_account_name:
-                                editDetails.beneficiary_account_name || null,
-                              beneficiary_sort_code:
-                                editDetails.beneficiary_sort_code || null,
-                            })
-                            .eq("id", selectedContribution.id);
-                          if (error) throw error;
-                          toast.success("Details updated");
-                          setIsEditDetailsOpen(false);
-                          // update local selected object immediately
-                          setSelectedContribution((prev) =>
-                            prev
-                              ? { ...prev, ...editDetails as any }
-                              : prev
-                          );
-                          // refresh list and re-select updated entry to avoid stale data
-                          const refreshed = await fetchData();
-                          if (selectedContribution) {
-                            const updated = refreshed.find(c => c.id === selectedContribution.id);
-                            if (updated) setSelectedContribution(updated);
-                          }
-                        } catch (error: any) {
-                          console.error("Error updating details:", error);
-                          toast.error("Failed to update contribution");
-                        }
-                      }}
-                    >
-                      Save
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
               <Button 
                 variant="contribution" 
                 className="w-full" 
@@ -667,6 +482,206 @@ const ContributionSetupPage = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* FIXED: Edit Details Dialog - Moved OUTSIDE the Create Dialog */}
+      {/* This allows editing any contribution independently, without requiring "+ New Month" first */}
+      <Dialog open={isEditDetailsOpen} onOpenChange={setIsEditDetailsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Contribution Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Per Member Amount</Label>
+              <Input
+                type="number"
+                value={editDetails.per_member_amount || 0}
+                onChange={(e) =>
+                  setEditDetails({
+                    ...editDetails,
+                    per_member_amount: parseFloat(e.target.value),
+                    total_expected:
+                      parseFloat(e.target.value) *
+                      (getGroupMembers(selectedContribution?.group_id || "").length || 0),
+                  })
+                }
+                placeholder="Locked for setup ⚠️"
+                disabled
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Total Expected: £{
+                  (getGroupMembers(selectedContribution?.group_id || "").length || 0) *
+                  (editDetails.per_member_amount || 0)
+                }
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Beneficiary (from group members)</Label>
+              <Select
+                value={editDetails.beneficiary_user_id || ""}
+                onValueChange={(v) =>
+                  setEditDetails({ ...editDetails, beneficiary_user_id: v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select beneficiary" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(() => {
+                    const groupMems = getGroupMembers(
+                      selectedContribution?.group_id || ""
+                    );
+                    // Include existing beneficiary even if not in current group
+                    if (
+                      editDetails.beneficiary_user_id &&
+                      !groupMems.find(
+                        (m) => m.user_id === editDetails.beneficiary_user_id
+                      )
+                    ) {
+                      const extra = members.find(
+                        (m) => m.user_id === editDetails.beneficiary_user_id
+                      );
+                      if (extra) {
+                        groupMems.push(extra);
+                      }
+                    }
+                    return groupMems.map((member) => (
+                      <SelectItem
+                        key={member.user_id}
+                        value={member.user_id}
+                      >
+                        {member.full_name || member.email}
+                      </SelectItem>
+                    ));
+                  })()}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Beneficiary Account Name</Label>
+              <Input
+                value={editDetails.beneficiary_account_name || ""}
+                onChange={(e) =>
+                  setEditDetails({
+                    ...editDetails,
+                    beneficiary_account_name: e.target.value,
+                  })
+                }
+                placeholder="Locked for setup ⚠️"
+                disabled
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Beneficiary Bank Name</Label>
+              <Input
+                value={editDetails.beneficiary_bank_name || ""}
+                onChange={(e) =>
+                  setEditDetails({
+                    ...editDetails,
+                    beneficiary_bank_name: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Beneficiary Account Number</Label>
+              <Input
+                value={editDetails.beneficiary_account_number || ""}
+                onChange={(e) =>
+                  setEditDetails({
+                    ...editDetails,
+                    beneficiary_account_number: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Sort Code</Label>
+              <Input
+                value={editDetails.beneficiary_sort_code || ""}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  setEditDetails({
+                    ...editDetails,
+                    beneficiary_sort_code: digits,
+                  });
+                }}
+                placeholder="Locked for setup ⚠️"
+                maxLength={6}
+                disabled
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDetailsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contribution"
+              onClick={async () => {
+                if (!selectedContribution) return;
+                // Validate sort code format if provided
+                if (
+                  editDetails.beneficiary_sort_code &&
+                  !/^[0-9]+$/.test(editDetails.beneficiary_sort_code)
+                ) {
+                  toast.error("Sort code must contain only numbers");
+                  return;
+                }
+                try {
+                  // FIXED: Only send fields that exist in the current database schema
+                  // The newer columns (beneficiary_account_name, beneficiary_sort_code, per_member_amount)
+                  // are defined in migrations but may not be deployed yet to your Supabase instance.
+                  // Only update the core fields that exist in the base schema to avoid schema cache errors.
+                  const { error } = await supabase
+                    .from("monthly_contributions")
+                    .update({
+                      beneficiary_user_id: editDetails.beneficiary_user_id || null,
+                      beneficiary_bank_name: editDetails.beneficiary_bank_name || null,
+                      beneficiary_account_number: editDetails.beneficiary_account_number || null,
+                      total_expected: editDetails.total_expected || null,
+                    })
+                    .eq("id", selectedContribution.id);
+                  
+                  if (error) throw error;
+                  
+                  toast.success("Details updated successfully");
+                  setIsEditDetailsOpen(false);
+                  
+                  // FIXED: Update local state to reflect changes immediately
+                  setSelectedContribution((prev) =>
+                    prev
+                      ? { ...prev, ...editDetails as any }
+                      : prev
+                  );
+                  
+                  // FIXED: Properly handle fetchData() return value
+                  // fetchData() guarantees a return value so we can safely use it
+                  const refreshed = await fetchData();
+                  if (refreshed && selectedContribution) {
+                    // Find the updated contribution from refreshed data
+                    const updated = refreshed.find(c => c.id === selectedContribution.id);
+                    // Only update selectedContribution if we found the fresh data
+                    if (updated) {
+                      setSelectedContribution(updated);
+                    }
+                  }
+                } catch (error: any) {
+                  console.error("Error updating details:", error);
+                  // Provide more specific error message
+                  const errorMsg = error?.message || "Failed to update contribution details";
+                  toast.error(errorMsg);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Contributions List */}
