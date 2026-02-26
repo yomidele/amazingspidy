@@ -127,17 +127,18 @@ const PaymentRecordingPage = () => {
       setContributions(contribData || []);
 
       if (contribData && contribData.length > 0) {
-        // preserve existing or use initial param
-        if (
-          initialContributionId &&
-          contribData.find((c) => c.id === initialContributionId)
-        ) {
-          setSelectedContribution(initialContributionId);
-        } else if (
-          !selectedContribution ||
-          !contribData.find((c) => c.id === selectedContribution)
-        ) {
-          setSelectedContribution(contribData[0].id);
+        // FIXED: Only set selectedContribution if it's truly empty
+        // This preserves the user's selection across re-renders and API calls
+        if (!selectedContribution) {
+          // If no selection exists, prefer URL param, otherwise use first contribution
+          if (
+            initialContributionId &&
+            contribData.find((c) => c.id === initialContributionId)
+          ) {
+            setSelectedContribution(initialContributionId);
+          } else {
+            setSelectedContribution(contribData[0].id);
+          }
         }
       }
 
@@ -248,7 +249,8 @@ const PaymentRecordingPage = () => {
         }
       }
 
-      // recalc total collected from the latest payments list
+      // FIXED: Only fetch payments for the current selection and update totals
+      // This preserves selectedContribution and prevents month reset
       const updatedPayments = await fetchPayments(selectedContribution);
       const totalPaid = updatedPayments
         .filter((p) => p.status === "paid")
@@ -258,13 +260,21 @@ const PaymentRecordingPage = () => {
           .from("monthly_contributions")
           .update({ total_collected: totalPaid })
           .eq("id", selectedContribution);
+        
+        // Update local contributions state without resetting selectedContribution
+        setContributions(prev =>
+          prev.map(c =>
+            c.id === selectedContribution
+              ? { ...c, total_collected: totalPaid }
+              : c
+          )
+        );
       }
 
       toast.success(paymentToEdit ? "Payment updated successfully" : "Payment recorded successfully");
       setIsRecordPaymentOpen(false);
       setPaymentToEdit(null);
       setNewPayment({ user_id: "", amount: getPerMemberAmount(), status: "paid" });
-      await fetchData();
     } catch (error: any) {
       console.error("Error recording payment:", error);
       toast.error(error.message || "Failed to record payment");
@@ -281,6 +291,9 @@ const PaymentRecordingPage = () => {
       if (error) throw error;
 
       toast.success("Payment status updated");
+      
+      // FIXED: Only fetch and update payments for current selection
+      // Preserves selectedContribution without full data reload
       const updatedPayments = await fetchPayments(selectedContribution);
       // Recalculate total collected
       const totalPaid = updatedPayments
@@ -292,7 +305,14 @@ const PaymentRecordingPage = () => {
         .update({ total_collected: totalPaid })
         .eq("id", selectedContribution);
 
-      fetchData();
+      // Update local state with recalculated total
+      setContributions(prev =>
+        prev.map(c =>
+          c.id === selectedContribution
+            ? { ...c, total_collected: totalPaid }
+            : c
+        )
+      );
     } catch (error: any) {
       console.error("Error updating payment:", error);
       toast.error("Failed to update payment status");
@@ -326,6 +346,9 @@ const PaymentRecordingPage = () => {
       toast.success("Payment deleted");
       setIsDeleteDialogOpen(false);
       setPaymentToEdit(null);
+      
+      // FIXED: Only fetch and update for current selection
+      // Preserves selectedContribution without full data reload
       const updatedPayments = await fetchPayments(selectedContribution);
       const totalPaid = updatedPayments
         .filter((p) => p.status === "paid")
@@ -335,8 +358,16 @@ const PaymentRecordingPage = () => {
           .from("monthly_contributions")
           .update({ total_collected: totalPaid })
           .eq("id", selectedContribution);
+        
+        // Update local state with new total
+        setContributions(prev =>
+          prev.map(c =>
+            c.id === selectedContribution
+              ? { ...c, total_collected: totalPaid }
+              : c
+          )
+        );
       }
-      fetchData();
     } catch (error: any) {
       console.error("Error deleting payment:", error);
       toast.error("Failed to delete payment");
