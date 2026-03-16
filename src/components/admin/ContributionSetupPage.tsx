@@ -63,9 +63,6 @@ interface MonthlyContribution {
   beneficiary_user_id: string | null;
   beneficiary_account_number: string | null;
   beneficiary_bank_name: string | null;
-  beneficiary_account_name: string | null;
-  beneficiary_sort_code: string | null; // new field
-  per_member_amount: number | null;
   total_expected: number | null;
   total_collected: number | null;
   is_finalized: boolean;
