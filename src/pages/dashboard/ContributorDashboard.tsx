@@ -180,14 +180,13 @@ const ContributorDashboard = () => {
       if (userGroupId) {
         const { data: currentMonthMc } = await supabase
           .from("monthly_contributions")
-          .select("id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number, beneficiary_sort_code")
+          .select("id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number")
           .eq("group_id", userGroupId)
           .eq("month", currentMonth)
           .eq("year", currentYear)
           .maybeSingle();
 
         if (currentMonthMc) {
-          // Check if user has paid for this monthly contribution
           const { data: paymentCheck } = await supabase
             .from("contribution_payments")
             .select("id")
@@ -198,7 +197,6 @@ const ContributorDashboard = () => {
 
           setHasCurrentMonthPaid(paymentCheck && paymentCheck.length > 0);
 
-          // Get current beneficiary info
           if (currentMonthMc.beneficiary_user_id) {
             const { data: benefProfile } = await supabase
               .from("profiles")
@@ -210,7 +208,7 @@ const ContributorDashboard = () => {
               name: benefProfile?.full_name || "Unknown",
               bankName: currentMonthMc.beneficiary_bank_name,
               accountNumber: currentMonthMc.beneficiary_account_number,
-              sortCode: currentMonthMc.beneficiary_sort_code || null,
+              sortCode: null,
             });
           }
         }

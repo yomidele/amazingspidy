@@ -454,30 +454,6 @@ const ContributionSetupPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Per Member Amount</Label>
-              <Input
-                type="number"
-                value={editDetails.per_member_amount || 0}
-                onChange={(e) =>
-                  setEditDetails({
-                    ...editDetails,
-                    per_member_amount: parseFloat(e.target.value),
-                    total_expected:
-                      parseFloat(e.target.value) *
-                      (getGroupMembers(selectedContribution?.group_id || "").length || 0),
-                  })
-                }
-                placeholder="Locked for setup ⚠️"
-                disabled
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Total Expected: £{
-                  (getGroupMembers(selectedContribution?.group_id || "").length || 0) *
-                  (editDetails.per_member_amount || 0)
-                }
-              </p>
-            </div>
-            <div className="space-y-2">
               <Label>Beneficiary (from group members)</Label>
               <Select
                 value={editDetails.beneficiary_user_id || ""}
@@ -493,7 +469,6 @@ const ContributionSetupPage = () => {
                     const groupMems = getGroupMembers(
                       selectedContribution?.group_id || ""
                     );
-                    // Include existing beneficiary even if not in current group
                     if (
                       editDetails.beneficiary_user_id &&
                       !groupMems.find(
@@ -520,20 +495,6 @@ const ContributionSetupPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Beneficiary Account Name</Label>
-              <Input
-                value={editDetails.beneficiary_account_name || ""}
-                onChange={(e) =>
-                  setEditDetails({
-                    ...editDetails,
-                    beneficiary_account_name: e.target.value,
-                  })
-                }
-                placeholder="Locked for setup ⚠️"
-                disabled
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Beneficiary Bank Name</Label>
               <Input
                 value={editDetails.beneficiary_bank_name || ""}
@@ -555,22 +516,6 @@ const ContributionSetupPage = () => {
                     beneficiary_account_number: e.target.value,
                   })
                 }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Sort Code</Label>
-              <Input
-                value={editDetails.beneficiary_sort_code || ""}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, "");
-                  setEditDetails({
-                    ...editDetails,
-                    beneficiary_sort_code: digits,
-                  });
-                }}
-                placeholder="Locked for setup ⚠️"
-                maxLength={6}
-                disabled
               />
             </div>
           </div>
