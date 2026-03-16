@@ -336,10 +336,7 @@ export type Database = {
         Row: {
           beneficiary_account_number: string | null
           beneficiary_bank_name: string | null
-          beneficiary_account_name: string | null
           beneficiary_user_id: string | null
-          beneficiary_sort_code: string | null
-          per_member_amount: number | null
           created_at: string
           group_id: string
           id: string
@@ -353,10 +350,7 @@ export type Database = {
         Insert: {
           beneficiary_account_number?: string | null
           beneficiary_bank_name?: string | null
-          beneficiary_account_name?: string | null
           beneficiary_user_id?: string | null
-          beneficiary_sort_code?: string | null
-          per_member_amount?: number | null
           created_at?: string
           group_id: string
           id?: string
@@ -370,10 +364,7 @@ export type Database = {
         Update: {
           beneficiary_account_number?: string | null
           beneficiary_bank_name?: string | null
-          beneficiary_account_name?: string | null
           beneficiary_user_id?: string | null
-          beneficiary_sort_code?: string | null
-          per_member_amount?: number | null
           created_at?: string
           group_id?: string
           id?: string
