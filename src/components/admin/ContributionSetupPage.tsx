@@ -123,7 +123,6 @@ const ContributionSetupPage = () => {
         setNewContribution(prev => ({
           ...prev,
           group_id: groupsData[0].id,
-          per_member_amount: groupsData[0].contribution_amount,
         }));
       }
 
