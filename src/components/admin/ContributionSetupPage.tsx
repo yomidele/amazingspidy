@@ -204,6 +204,8 @@ const ContributionSetupPage = () => {
       return;
     }
     // Validate required fields
+    if (!newContribution.month || !newContribution.year) {
+      toast.error("Please select month and year");
       return;
     }
 
