@@ -531,14 +531,6 @@ const ContributionSetupPage = () => {
               variant="contribution"
               onClick={async () => {
                 if (!selectedContribution) return;
-                // Validate sort code format if provided
-                if (
-                  editDetails.beneficiary_sort_code &&
-                  !/^[0-9]+$/.test(editDetails.beneficiary_sort_code)
-                ) {
-                  toast.error("Sort code must contain only numbers");
-                  return;
-                }
                 try {
                   // FIXED: Only send fields that exist in the current database schema
                   // The newer columns (beneficiary_account_name, beneficiary_sort_code, per_member_amount)
