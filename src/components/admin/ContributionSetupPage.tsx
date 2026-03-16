@@ -705,21 +705,9 @@ const ContributionSetupPage = () => {
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Account Name</p>
-                      <p className="font-medium">
-                        {selectedContribution.beneficiary_account_name || "Not set"}
-                      </p>
-                    </div>
-                    <div>
                       <p className="text-muted-foreground">Account Number</p>
                       <p className="font-medium">
                         {selectedContribution.beneficiary_account_number || "Not set"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Sort Code</p>
-                      <p className="font-medium">
-                        {selectedContribution.beneficiary_sort_code || "Not set"}
                       </p>
                     </div>
                   </div>
