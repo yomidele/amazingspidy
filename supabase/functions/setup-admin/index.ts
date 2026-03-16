@@ -47,9 +47,28 @@ const handler = async (req: Request): Promise<Response> => {
     let userId: string;
 
     if (existingUser) {
-      // User exists, just get their ID
+      // User exists: keep account, sync password/metadata so credentials stay valid
       userId = existingUser.id;
-      console.log("User already exists:", userId);
+
+      const { error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password,
+        email_confirm: true,
+        user_metadata: {
+          ...(existingUser.user_metadata || {}),
+          full_name: fullName || existingUser.user_metadata?.full_name || "Administrator",
+          role: "admin",
+        },
+      });
+
+      if (updateUserError) {
+        console.error("Error updating existing user:", updateUserError);
+        return new Response(
+          JSON.stringify({ error: updateUserError.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("Updated existing user credentials:", userId);
     } else {
       // Create new user with admin API
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

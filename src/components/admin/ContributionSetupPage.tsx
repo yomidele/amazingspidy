@@ -204,6 +204,8 @@ const ContributionSetupPage = () => {
       return;
     }
     // Validate required fields
+    if (!newContribution.month || !newContribution.year) {
+      toast.error("Please select month and year");
       return;
     }
 
@@ -529,14 +531,6 @@ const ContributionSetupPage = () => {
               variant="contribution"
               onClick={async () => {
                 if (!selectedContribution) return;
-                // Validate sort code format if provided
-                if (
-                  editDetails.beneficiary_sort_code &&
-                  !/^[0-9]+$/.test(editDetails.beneficiary_sort_code)
-                ) {
-                  toast.error("Sort code must contain only numbers");
-                  return;
-                }
                 try {
                   // FIXED: Only send fields that exist in the current database schema
                   // The newer columns (beneficiary_account_name, beneficiary_sort_code, per_member_amount)
@@ -711,21 +705,9 @@ const ContributionSetupPage = () => {
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Account Name</p>
-                      <p className="font-medium">
-                        {selectedContribution.beneficiary_account_name || "Not set"}
-                      </p>
-                    </div>
-                    <div>
                       <p className="text-muted-foreground">Account Number</p>
                       <p className="font-medium">
                         {selectedContribution.beneficiary_account_number || "Not set"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Sort Code</p>
-                      <p className="font-medium">
-                        {selectedContribution.beneficiary_sort_code || "Not set"}
                       </p>
                     </div>
                   </div>
