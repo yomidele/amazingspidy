@@ -204,12 +204,7 @@ const ContributionSetupPage = () => {
       toast.error("Please select a contribution group");
       return;
     }
-    // validate sort code, if provided
-    if (
-      newContribution.beneficiary_sort_code &&
-      !/^[0-9]+$/.test(newContribution.beneficiary_sort_code)
-    ) {
-      toast.error("Sort code must contain only numbers");
+    // Validate required fields
       return;
     }
 
