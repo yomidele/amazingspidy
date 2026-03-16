@@ -405,14 +405,6 @@ const ContributionSetupPage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Beneficiary Account Name</Label>
-                <Input
-                  placeholder="Enter account name"
-                  value={newContribution.beneficiary_account_name}
-                  onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Beneficiary Bank Name</Label>
                 <Input
                   placeholder="Enter bank name"
@@ -426,18 +418,6 @@ const ContributionSetupPage = () => {
                   placeholder="Enter account number"
                   value={newContribution.beneficiary_account_number}
                   onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_number: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Sort Code</Label>
-                <Input
-                  placeholder="e.g. 123456"
-                  value={newContribution.beneficiary_sort_code}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    setNewContribution({ ...newContribution, beneficiary_sort_code: digits });
-                  }}
-                  maxLength={6}
                 />
               </div>
 
