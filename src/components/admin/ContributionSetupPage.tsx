@@ -218,16 +218,13 @@ const ContributionSetupPage = () => {
     const groupMembers = getGroupMembers(newContribution.group_id);
 
     try {
-      const perMember = newContribution.per_member_amount || selectedGroup.contribution_amount;
+      const perMember = selectedGroup.contribution_amount;
       const { error } = await supabase.from("monthly_contributions").insert({
         month: newContribution.month,
         year: newContribution.year,
         beneficiary_user_id: newContribution.beneficiary_user_id || null,
         beneficiary_account_number: newContribution.beneficiary_account_number || null,
         beneficiary_bank_name: newContribution.beneficiary_bank_name || null,
-        beneficiary_account_name: newContribution.beneficiary_account_name || null,
-        beneficiary_sort_code: newContribution.beneficiary_sort_code || null,
-        per_member_amount: perMember,
         total_expected: groupMembers.length * perMember,
         total_collected: 0,
         is_finalized: false,
