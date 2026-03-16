@@ -422,11 +422,8 @@ const PaymentRecordingPage = () => {
 
   const getPerMemberAmount = () => {
     if (!currentContribution) return 0;
-    if (currentContribution.per_member_amount && currentContribution.per_member_amount > 0) {
-      return currentContribution.per_member_amount;
-    }
-    // fallback compute if stored
-    const memberCount = members.length; // approximate
+    // Compute from total_expected and member count
+    const memberCount = members.length;
     if (memberCount > 0 && currentContribution.total_expected) {
       return currentContribution.total_expected / memberCount;
     }
