@@ -257,8 +257,7 @@ const ContributionSetupPage = () => {
     setNewContribution({
       ...newContribution,
       group_id: groupId,
-      beneficiary_user_id: "", // Reset beneficiary when group changes
-      per_member_amount: group?.contribution_amount || 0,
+      beneficiary_user_id: "",
     });
   };
 
