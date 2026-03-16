@@ -63,9 +63,6 @@ interface MonthlyContribution {
   beneficiary_user_id: string | null;
   beneficiary_account_number: string | null;
   beneficiary_bank_name: string | null;
-  beneficiary_account_name: string | null;
-  beneficiary_sort_code: string | null; // new field
-  per_member_amount: number | null;
   total_expected: number | null;
   total_collected: number | null;
   is_finalized: boolean;
@@ -98,9 +95,6 @@ const ContributionSetupPage = () => {
     beneficiary_user_id: "",
     beneficiary_account_number: "",
     beneficiary_bank_name: "",
-    beneficiary_account_name: "",
-    beneficiary_sort_code: "",
-    per_member_amount: 0,
   });
 
   const monthNames = [
@@ -129,7 +123,6 @@ const ContributionSetupPage = () => {
         setNewContribution(prev => ({
           ...prev,
           group_id: groupsData[0].id,
-          per_member_amount: groupsData[0].contribution_amount,
         }));
       }
 
@@ -210,12 +203,7 @@ const ContributionSetupPage = () => {
       toast.error("Please select a contribution group");
       return;
     }
-    // validate sort code, if provided
-    if (
-      newContribution.beneficiary_sort_code &&
-      !/^[0-9]+$/.test(newContribution.beneficiary_sort_code)
-    ) {
-      toast.error("Sort code must contain only numbers");
+    // Validate required fields
       return;
     }
 
@@ -229,16 +217,13 @@ const ContributionSetupPage = () => {
     const groupMembers = getGroupMembers(newContribution.group_id);
 
     try {
-      const perMember = newContribution.per_member_amount || selectedGroup.contribution_amount;
+      const perMember = selectedGroup.contribution_amount;
       const { error } = await supabase.from("monthly_contributions").insert({
         month: newContribution.month,
         year: newContribution.year,
         beneficiary_user_id: newContribution.beneficiary_user_id || null,
         beneficiary_account_number: newContribution.beneficiary_account_number || null,
         beneficiary_bank_name: newContribution.beneficiary_bank_name || null,
-        beneficiary_account_name: newContribution.beneficiary_account_name || null,
-        beneficiary_sort_code: newContribution.beneficiary_sort_code || null,
-        per_member_amount: perMember,
         total_expected: groupMembers.length * perMember,
         total_collected: 0,
         is_finalized: false,
@@ -257,9 +242,6 @@ const ContributionSetupPage = () => {
         beneficiary_user_id: "",
         beneficiary_account_number: "",
         beneficiary_bank_name: "",
-        beneficiary_account_name: "",
-        beneficiary_sort_code: "",
-        per_member_amount: 0,
       });
       fetchData();
     } catch (error: any) {
@@ -274,8 +256,7 @@ const ContributionSetupPage = () => {
     setNewContribution({
       ...newContribution,
       group_id: groupId,
-      beneficiary_user_id: "", // Reset beneficiary when group changes
-      per_member_amount: group?.contribution_amount || 0,
+      beneficiary_user_id: "",
     });
   };
 
@@ -423,14 +404,6 @@ const ContributionSetupPage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Beneficiary Account Name</Label>
-                <Input
-                  placeholder="Enter account name"
-                  value={newContribution.beneficiary_account_name}
-                  onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Beneficiary Bank Name</Label>
                 <Input
                   placeholder="Enter bank name"
@@ -444,18 +417,6 @@ const ContributionSetupPage = () => {
                   placeholder="Enter account number"
                   value={newContribution.beneficiary_account_number}
                   onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_number: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Sort Code</Label>
-                <Input
-                  placeholder="e.g. 123456"
-                  value={newContribution.beneficiary_sort_code}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    setNewContribution({ ...newContribution, beneficiary_sort_code: digits });
-                  }}
-                  maxLength={6}
                 />
               </div>
 
@@ -492,30 +453,6 @@ const ContributionSetupPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Per Member Amount</Label>
-              <Input
-                type="number"
-                value={editDetails.per_member_amount || 0}
-                onChange={(e) =>
-                  setEditDetails({
-                    ...editDetails,
-                    per_member_amount: parseFloat(e.target.value),
-                    total_expected:
-                      parseFloat(e.target.value) *
-                      (getGroupMembers(selectedContribution?.group_id || "").length || 0),
-                  })
-                }
-                placeholder="Locked for setup ⚠️"
-                disabled
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Total Expected: £{
-                  (getGroupMembers(selectedContribution?.group_id || "").length || 0) *
-                  (editDetails.per_member_amount || 0)
-                }
-              </p>
-            </div>
-            <div className="space-y-2">
               <Label>Beneficiary (from group members)</Label>
               <Select
                 value={editDetails.beneficiary_user_id || ""}
@@ -531,7 +468,6 @@ const ContributionSetupPage = () => {
                     const groupMems = getGroupMembers(
                       selectedContribution?.group_id || ""
                     );
-                    // Include existing beneficiary even if not in current group
                     if (
                       editDetails.beneficiary_user_id &&
                       !groupMems.find(
@@ -558,20 +494,6 @@ const ContributionSetupPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Beneficiary Account Name</Label>
-              <Input
-                value={editDetails.beneficiary_account_name || ""}
-                onChange={(e) =>
-                  setEditDetails({
-                    ...editDetails,
-                    beneficiary_account_name: e.target.value,
-                  })
-                }
-                placeholder="Locked for setup ⚠️"
-                disabled
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Beneficiary Bank Name</Label>
               <Input
                 value={editDetails.beneficiary_bank_name || ""}
@@ -593,22 +515,6 @@ const ContributionSetupPage = () => {
                     beneficiary_account_number: e.target.value,
                   })
                 }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Sort Code</Label>
-              <Input
-                value={editDetails.beneficiary_sort_code || ""}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, "");
-                  setEditDetails({
-                    ...editDetails,
-                    beneficiary_sort_code: digits,
-                  });
-                }}
-                placeholder="Locked for setup ⚠️"
-                maxLength={6}
-                disabled
               />
             </div>
           </div>
