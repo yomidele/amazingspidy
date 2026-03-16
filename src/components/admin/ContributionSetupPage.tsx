@@ -243,9 +243,6 @@ const ContributionSetupPage = () => {
         beneficiary_user_id: "",
         beneficiary_account_number: "",
         beneficiary_bank_name: "",
-        beneficiary_account_name: "",
-        beneficiary_sort_code: "",
-        per_member_amount: 0,
       });
       fetchData();
     } catch (error: any) {
