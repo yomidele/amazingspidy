@@ -74,15 +74,36 @@ const AdminDashboardContent = () => {
         navigate("/login/admin");
         return;
       }
+      // Verify user has admin role
+      const { data: role } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      if (!role) {
+        navigate("/login/admin");
+        return;
+      }
       setUser(session.user);
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session) {
         navigate("/login/admin");
       } else {
-        setUser(session.user);
+        const { data: role } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        if (!role) {
+          navigate("/login/admin");
+        } else {
+          setUser(session.user);
+        }
       }
     });
 
