@@ -1,0 +1,1 @@
+DROP POLICY "Anyone can create reviews" ON public.reviews;
