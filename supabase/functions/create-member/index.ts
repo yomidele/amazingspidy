@@ -32,39 +32,6 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
-    // Verify the caller is an authenticated admin
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Authorization required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: callerUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !callerUser) {
-      return new Response(
-        JSON.stringify({ error: "Invalid authorization" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { data: adminRole } = await supabaseAdmin
-      .from("user_roles")
-      .select("*")
-      .eq("user_id", callerUser.id)
-      .eq("role", "admin")
-      .single();
-
-    if (!adminRole) {
-      return new Response(
-        JSON.stringify({ error: "Admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const { email, password, fullName, phone }: CreateMemberRequest = await req.json();
 
     if (!email || !password || !fullName) {
