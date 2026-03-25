@@ -362,7 +362,7 @@ const LoanManagementPage = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Outstanding</p>
-                <p className="font-bold text-lg">${totalOutstanding.toLocaleString()}</p>
+                <p className="font-bold text-lg">£{totalOutstanding.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -441,12 +441,12 @@ const LoanManagementPage = () => {
                     <TableRow key={loan.id}>
                       <TableCell className="font-medium">{getMemberName(loan.user_id)}</TableCell>
                       <TableCell>{getGroupName(loan.group_id)}</TableCell>
-                      <TableCell>${loan.principal_amount.toLocaleString()}</TableCell>
+                      <TableCell>£{loan.principal_amount.toLocaleString()}</TableCell>
                       <TableCell className="font-semibold text-destructive">
-                        ${loan.outstanding_balance.toLocaleString()}
+                        £{loan.outstanding_balance.toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        {loan.monthly_repayment ? `$${loan.monthly_repayment}` : "—"}
+                        {loan.monthly_repayment ? `£${loan.monthly_repayment}` : "—"}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -522,7 +522,7 @@ const LoanManagementPage = () => {
                 <p className="font-semibold">{getMemberName(selectedLoan.user_id)}</p>
                 <p className="text-sm text-muted-foreground mt-2">Outstanding Balance</p>
                 <p className="font-bold text-lg text-destructive">
-                  ${selectedLoan.outstanding_balance.toLocaleString()}
+                  £{selectedLoan.outstanding_balance.toLocaleString()}
                 </p>
               </div>
               <div className="space-y-2">

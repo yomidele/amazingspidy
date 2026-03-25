@@ -44,11 +44,13 @@ import UserActivityPage from "@/components/admin/UserActivityPage";
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
 
   const { tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial } = useTutorial();
   const location = useLocation();
@@ -75,6 +77,22 @@ const AdminDashboardContent = () => {
         return;
       }
       setUser(session.user);
+
+      // Verify admin role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (!roleData) {
+        toast.error("Access denied. Admin privileges required.");
+        await supabase.auth.signOut();
+        navigate("/login/admin");
+        return;
+      }
+      setIsAdmin(true);
     };
     checkAuth();
 
@@ -88,6 +106,20 @@ const AdminDashboardContent = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (!user) return;
+    const fetchAlerts = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false);
+      setUnreadAlerts(count || 0);
+    };
+    fetchAlerts();
+  }, [user]);
 
   // Auto-show tutorial for new admins
   useEffect(() => {
@@ -104,6 +136,20 @@ const AdminDashboardContent = () => {
     toast.success("Logged out successfully");
     navigate("/login/admin");
   };
+
+  // Show loading while checking admin role
+  if (isAdmin === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center animate-pulse">
+            <Shield className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <p className="text-muted-foreground text-sm">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
 
   const contributionNavItems = [
     { icon: LayoutDashboard, label: "Dashboard", page: "dashboard", tooltip: tooltipContent.dashboardHome },
@@ -334,7 +380,7 @@ const AdminDashboardContent = () => {
                   <AdminTooltip content={tooltipContent.notifications}>
                     <Button variant="outline" size="sm" className="whitespace-nowrap">
                       <Bell className="w-4 h-4 mr-2" />
-                      Alerts (3)
+                      Alerts{unreadAlerts > 0 ? ` (${unreadAlerts})` : ""}
                     </Button>
                   </AdminTooltip>
                   <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : "Add a new travel client"}>
