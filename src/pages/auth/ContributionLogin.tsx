@@ -203,16 +203,7 @@ const ContributionLogin = () => {
               </div>
             </div>
 
-            {isLogin && (
-              <div className="flex justify-end">
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-contribution hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-            )}
+            {/* Forgot password disabled — no route exists yet */}
 
             <Button
               type="submit"
