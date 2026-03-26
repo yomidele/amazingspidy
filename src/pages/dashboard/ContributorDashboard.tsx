@@ -316,7 +316,7 @@ const ContributorDashboard = () => {
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="font-semibold text-sidebar-primary">ServiPro</h2>
+                <h2 className="font-semibold text-sidebar-primary">AMANA MARKET</h2>
                 <p className="text-xs text-sidebar-foreground/60">Contributor Portal</p>
               </div>
             </div>
@@ -326,17 +326,9 @@ const ContributorDashboard = () => {
                 <TrendingUp className="w-5 h-5 mr-3" />
                 Dashboard
               </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <Wallet className="w-5 h-5 mr-3" />
-                Contributions
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <CreditCard className="w-5 h-5 mr-3" />
-                Loans
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <Bell className="w-5 h-5 mr-3" />
-                Notifications
+              <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={handleLogout}>
+                <LogOut className="w-5 h-5 mr-3" />
+                Sign Out
               </Button>
             </nav>
           </div>
