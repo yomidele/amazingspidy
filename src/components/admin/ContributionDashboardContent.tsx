@@ -46,91 +46,71 @@ const ContributionDashboardContent = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch total active members
-      const { count: memberCount } = await supabase
-        .from("group_memberships")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
-
-      // Fetch current month's contributions total
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
-      
-      const { data: monthlyContrib } = await supabase
-        .from("monthly_contributions")
-        .select("total_collected, beneficiary_user_id")
-        .eq("month", currentMonth)
-        .eq("year", currentYear)
-        .maybeSingle();
 
-      // Fetch beneficiary name if exists
-      let beneficiaryName = null;
-      if (monthlyContrib?.beneficiary_user_id) {
-        const { data: profile } = await supabase
+      // Run independent queries in parallel
+      const [memberCountRes, monthlyContribRes, loansRes, paymentsRes, allProfilesRes] = await Promise.all([
+        supabase
+          .from("group_memberships")
+          .select("*", { count: "exact", head: true })
+          .eq("is_active", true),
+        supabase
+          .from("monthly_contributions")
+          .select("total_collected, beneficiary_user_id")
+          .eq("month", currentMonth)
+          .eq("year", currentYear)
+          .maybeSingle(),
+        supabase
+          .from("loans")
+          .select("outstanding_balance, monthly_repayment, user_id, status, id")
+          .eq("status", "active"),
+        supabase
+          .from("contribution_payments")
+          .select("id, amount, payment_date, status, user_id")
+          .order("payment_date", { ascending: false })
+          .limit(10),
+        supabase
           .from("profiles")
-          .select("full_name")
-          .eq("user_id", monthlyContrib.beneficiary_user_id)
-          .maybeSingle();
-        beneficiaryName = profile?.full_name || null;
-      }
+          .select("user_id, full_name"),
+      ]);
 
-      // Fetch outstanding loans total
-      const { data: loansData } = await supabase
-        .from("loans")
-        .select("outstanding_balance, monthly_repayment, user_id, status, id")
-        .eq("status", "active");
-
-      const totalOutstanding = loansData?.reduce((sum, loan) => sum + Number(loan.outstanding_balance), 0) || 0;
-
-      // Build loans list with member names
-      const loansWithNames: OutstandingLoan[] = [];
-      if (loansData && loansData.length > 0) {
-        for (const loan of loansData) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", loan.user_id)
-            .maybeSingle();
-          
-          loansWithNames.push({
-            id: loan.id,
-            memberName: profile?.full_name || "Unknown Member",
-            balance: Number(loan.outstanding_balance),
-            monthlyRepayment: Number(loan.monthly_repayment) || 0,
-            status: loan.status === "active" ? "On Track" : loan.status || "Unknown",
-          });
+      // Build a profile lookup map (fixes N+1 query)
+      const profileMap = new Map<string, string>();
+      if (allProfilesRes.data) {
+        for (const p of allProfilesRes.data) {
+          profileMap.set(p.user_id, p.full_name || "Unknown Member");
         }
       }
 
-      // Fetch recent payments with member names
-      const { data: paymentsData } = await supabase
-        .from("contribution_payments")
-        .select("id, amount, payment_date, status, user_id")
-        .order("payment_date", { ascending: false })
-        .limit(10);
-
-      const paymentsWithNames: RecentPayment[] = [];
-      if (paymentsData && paymentsData.length > 0) {
-        for (const payment of paymentsData) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", payment.user_id)
-            .maybeSingle();
-          
-          paymentsWithNames.push({
-            id: payment.id,
-            memberName: profile?.full_name || "Unknown Member",
-            amount: Number(payment.amount),
-            date: payment.payment_date ? formatDistanceToNow(new Date(payment.payment_date), { addSuffix: false }) : "Unknown",
-            status: payment.status === "paid" ? "Paid" : payment.status === "pending" ? "Pending" : payment.status || "Unknown",
-          });
-        }
+      // Beneficiary name
+      let beneficiaryName: string | null = null;
+      if (monthlyContribRes.data?.beneficiary_user_id) {
+        beneficiaryName = profileMap.get(monthlyContribRes.data.beneficiary_user_id) || null;
       }
+
+      // Build loans list using profile map
+      const totalOutstanding = loansRes.data?.reduce((sum, loan) => sum + Number(loan.outstanding_balance), 0) || 0;
+      const loansWithNames: OutstandingLoan[] = (loansRes.data || []).map((loan) => ({
+        id: loan.id,
+        memberName: profileMap.get(loan.user_id) || "Unknown Member",
+        balance: Number(loan.outstanding_balance),
+        monthlyRepayment: Number(loan.monthly_repayment) || 0,
+        status: loan.status === "active" ? "On Track" : loan.status || "Unknown",
+      }));
+
+      // Build payments list using profile map
+      const paymentsWithNames: RecentPayment[] = (paymentsRes.data || []).map((payment) => ({
+        id: payment.id,
+        memberName: profileMap.get(payment.user_id) || "Unknown Member",
+        amount: Number(payment.amount),
+        date: payment.payment_date ? formatDistanceToNow(new Date(payment.payment_date), { addSuffix: false }) : "Unknown",
+        status: payment.status === "paid" ? "Paid" : payment.status === "pending" ? "Pending" : payment.status || "Unknown",
+      }));
 
       setStats({
-        totalMembers: memberCount || 0,
-        monthlyContributions: Number(monthlyContrib?.total_collected) || 0,
+        totalMembers: memberCountRes.count || 0,
+        monthlyContributions: Number(monthlyContribRes.data?.total_collected) || 0,
         outstandingLoans: totalOutstanding,
         currentBeneficiary: beneficiaryName,
         currentMonth: format(new Date(), "MMM yyyy"),
@@ -175,7 +155,7 @@ const ContributionDashboardContent = () => {
     <>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {statsCards.map((stat, index) => (
+        {statsCards.map((stat) => (
           <Card key={stat.title} className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
