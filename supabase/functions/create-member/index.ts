@@ -12,6 +12,7 @@ interface CreateMemberRequest {
   password: string;
   fullName: string;
   phone?: string;
+  role?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -32,7 +33,8 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
-    const { email, password, fullName, phone }: CreateMemberRequest = await req.json();
+    const { email, password, fullName, phone, role }: CreateMemberRequest = await req.json();
+    const memberRole = role === "investor" ? "investor" : "contributor";
 
     if (!email || !password || !fullName) {
       return new Response(
@@ -56,10 +58,10 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm email - no confirmation email sent
+      email_confirm: true,
       user_metadata: {
         full_name: fullName,
-        role: "contributor",
+        role: memberRole,
       },
     });
 
@@ -74,12 +76,11 @@ const handler = async (req: Request): Promise<Response> => {
     const userId = newUser.user.id;
     console.log("Created new user:", userId);
 
-    // Add contributor role
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .insert({
         user_id: userId,
-        role: "contributor",
+        role: memberRole,
       });
 
     if (roleError && !roleError.message.includes("duplicate")) {
