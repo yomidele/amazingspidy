@@ -71,6 +71,12 @@ export default {
           foreground: "hsl(var(--travel-foreground))",
           light: "hsl(var(--travel-light))",
         },
+        investor: {
+          DEFAULT: "hsl(var(--investor))",
+          foreground: "hsl(var(--investor-foreground))",
+          light: "hsl(var(--investor-light))",
+        },
+        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
@@ -128,6 +134,7 @@ export default {
         glow: "var(--shadow-glow)",
         contribution: "var(--shadow-contribution)",
         travel: "var(--shadow-travel)",
+        investor: "var(--shadow-investor)",
       },
     },
   },
