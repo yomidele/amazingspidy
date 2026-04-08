@@ -204,7 +204,7 @@ const AdminDashboardContent = () => {
         default:
           return <ContributionDashboardContent />;
       }
-    } else {
+    } else if (activeModule === "travel") {
       switch (activePage) {
         case "travel-clients":
           return <TravelClientManagement />;
@@ -224,6 +224,21 @@ const AdminDashboardContent = () => {
         case "travel-dashboard":
         default:
           return <TravelDashboardContent />;
+      }
+    } else {
+      switch (activePage) {
+        case "investor-management":
+          return <InvestorManagementPage />;
+        case "investor-settings":
+          return (
+            <AdminSettingsPage
+              onOpenTutorial={() => setTutorialOpen(true)}
+              onOpenManual={() => navigate("/admin/manual")}
+            />
+          );
+        case "investor-dashboard":
+        default:
+          return <InvestorManagementPage />;
       }
     }
   };
