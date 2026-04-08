@@ -40,13 +40,14 @@ import TravelCaseManagement from "@/components/admin/travel/TravelCaseManagement
 import TravelConsultationManagement from "@/components/admin/travel/TravelConsultationManagement";
 import TravelDashboardContent from "@/components/admin/travel/TravelDashboardContent";
 import UserActivityPage from "@/components/admin/UserActivityPage";
+import InvestorManagementPage from "@/components/admin/InvestorManagementPage";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
+  const [activeModule, setActiveModule] = useState<"contribution" | "travel" | "investor">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [tutorialOpen, setTutorialOpen] = useState(false);
