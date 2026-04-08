@@ -172,7 +172,13 @@ const AdminDashboardContent = () => {
     { icon: Settings, label: "Settings", page: "travel-settings", tooltip: tooltipContent.settings },
   ];
 
-  const navItems = activeModule === "contribution" ? contributionNavItems : travelNavItems;
+  const investorNavItems = [
+    { icon: LayoutDashboard, label: "Dashboard", page: "investor-dashboard", tooltip: "Investor management overview" },
+    { icon: TrendingUp, label: "Investors", page: "investor-management", tooltip: "Manage investors and investments" },
+    { icon: Settings, label: "Settings", page: "investor-settings", tooltip: tooltipContent.settings },
+  ];
+
+  const navItems = activeModule === "contribution" ? contributionNavItems : activeModule === "travel" ? travelNavItems : investorNavItems;
 
   const renderContent = () => {
     if (activeModule === "contribution") {
