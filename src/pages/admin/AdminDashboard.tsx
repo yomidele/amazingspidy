@@ -285,31 +285,44 @@ const AdminDashboardContent = () => {
 
             {/* Module Switcher */}
             <div className="mb-6 p-1 rounded-xl bg-sidebar-accent/50">
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-3 gap-1">
                 <AdminTooltip content={tooltipContent.switchToAmana}>
                   <button
                     onClick={() => { setActiveModule("contribution"); setActivePage("dashboard"); }}
-                    className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center justify-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors ${
                       activeModule === "contribution"
                         ? "bg-contribution text-white"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
                     }`}
                   >
-                    <Users className="w-4 h-4" />
+                    <Users className="w-3.5 h-3.5" />
                     <span>Amana</span>
                   </button>
                 </AdminTooltip>
                 <AdminTooltip content={tooltipContent.switchToTeemah}>
                   <button
                     onClick={() => { setActiveModule("travel"); setActivePage("travel-dashboard"); }}
-                    className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center justify-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors ${
                       activeModule === "travel"
                         ? "bg-travel text-white"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
                     }`}
                   >
-                    <Plane className="w-4 h-4" />
+                    <Plane className="w-3.5 h-3.5" />
                     <span>Teemah</span>
+                  </button>
+                </AdminTooltip>
+                <AdminTooltip content="Manage investor accounts and investments">
+                  <button
+                    onClick={() => { setActiveModule("investor"); setActivePage("investor-dashboard"); }}
+                    className={`flex items-center justify-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors ${
+                      activeModule === "investor"
+                        ? "bg-investor text-white"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Invest</span>
                   </button>
                 </AdminTooltip>
               </div>
