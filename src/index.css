@@ -48,9 +48,13 @@
     --contribution-foreground: 270 70% 98%;
     --contribution-light: 270 70% 95%;
     
-    --travel: 168 76% 42%;
-    --travel-foreground: 168 76% 98%;
-    --travel-light: 168 76% 95%;
+   --travel: 168 76% 42%;
+   --travel-foreground: 168 76% 98%;
+   --travel-light: 168 76% 95%;
+
+   --investor: 210 80% 50%;
+   --investor-foreground: 210 80% 98%;
+   --investor-light: 210 80% 95%;
 
     --success: 142 76% 36%;
     --success-foreground: 142 76% 98%;
@@ -61,7 +65,8 @@
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(215 50% 23%) 0%, hsl(215 60% 35%) 100%);
     --gradient-contribution: linear-gradient(135deg, hsl(270 70% 50%) 0%, hsl(280 75% 55%) 100%);
-    --gradient-travel: linear-gradient(135deg, hsl(168 76% 42%) 0%, hsl(178 70% 50%) 100%);
+   --gradient-travel: linear-gradient(135deg, hsl(168 76% 42%) 0%, hsl(178 70% 50%) 100%);
+   --gradient-investor: linear-gradient(135deg, hsl(210 80% 50%) 0%, hsl(220 75% 55%) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(215 50% 15%) 0%, hsl(215 60% 25%) 50%, hsl(220 55% 30%) 100%);
     
     /* Shadows */
@@ -71,7 +76,8 @@
     --shadow-xl: 0 20px 25px -5px hsl(215 50% 23% / 0.1), 0 8px 10px -6px hsl(215 50% 23% / 0.1);
     --shadow-glow: 0 0 40px hsl(215 50% 23% / 0.15);
     --shadow-contribution: 0 10px 30px -10px hsl(270 70% 50% / 0.3);
-    --shadow-travel: 0 10px 30px -10px hsl(168 76% 42% / 0.3);
+   --shadow-travel: 0 10px 30px -10px hsl(168 76% 42% / 0.3);
+   --shadow-investor: 0 10px 30px -10px hsl(210 80% 50% / 0.3);
 
     /* Sidebar */
     --sidebar-background: 215 50% 18%;
@@ -114,7 +120,8 @@
     --ring: 213 27% 84%;
 
     --contribution-light: 270 70% 15%;
-    --travel-light: 168 76% 15%;
+   --travel-light: 168 76% 15%;
+   --investor-light: 210 80% 15%;
 
     --sidebar-background: 222 47% 6%;
     --sidebar-foreground: 240 5% 96%;

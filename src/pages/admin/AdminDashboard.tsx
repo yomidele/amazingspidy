@@ -40,13 +40,14 @@ import TravelCaseManagement from "@/components/admin/travel/TravelCaseManagement
 import TravelConsultationManagement from "@/components/admin/travel/TravelConsultationManagement";
 import TravelDashboardContent from "@/components/admin/travel/TravelDashboardContent";
 import UserActivityPage from "@/components/admin/UserActivityPage";
+import InvestorManagementPage from "@/components/admin/InvestorManagementPage";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeModule, setActiveModule] = useState<"contribution" | "travel">("contribution");
+  const [activeModule, setActiveModule] = useState<"contribution" | "travel" | "investor">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [tutorialOpen, setTutorialOpen] = useState(false);
@@ -171,7 +172,13 @@ const AdminDashboardContent = () => {
     { icon: Settings, label: "Settings", page: "travel-settings", tooltip: tooltipContent.settings },
   ];
 
-  const navItems = activeModule === "contribution" ? contributionNavItems : travelNavItems;
+  const investorNavItems = [
+    { icon: LayoutDashboard, label: "Dashboard", page: "investor-dashboard", tooltip: "Investor management overview" },
+    { icon: TrendingUp, label: "Investors", page: "investor-management", tooltip: "Manage investors and investments" },
+    { icon: Settings, label: "Settings", page: "investor-settings", tooltip: tooltipContent.settings },
+  ];
+
+  const navItems = activeModule === "contribution" ? contributionNavItems : activeModule === "travel" ? travelNavItems : investorNavItems;
 
   const renderContent = () => {
     if (activeModule === "contribution") {
@@ -197,7 +204,7 @@ const AdminDashboardContent = () => {
         default:
           return <ContributionDashboardContent />;
       }
-    } else {
+    } else if (activeModule === "travel") {
       switch (activePage) {
         case "travel-clients":
           return <TravelClientManagement />;
@@ -217,6 +224,21 @@ const AdminDashboardContent = () => {
         case "travel-dashboard":
         default:
           return <TravelDashboardContent />;
+      }
+    } else {
+      switch (activePage) {
+        case "investor-management":
+          return <InvestorManagementPage />;
+        case "investor-settings":
+          return (
+            <AdminSettingsPage
+              onOpenTutorial={() => setTutorialOpen(true)}
+              onOpenManual={() => navigate("/admin/manual")}
+            />
+          );
+        case "investor-dashboard":
+        default:
+          return <InvestorManagementPage />;
       }
     }
   };
@@ -263,31 +285,44 @@ const AdminDashboardContent = () => {
 
             {/* Module Switcher */}
             <div className="mb-6 p-1 rounded-xl bg-sidebar-accent/50">
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-3 gap-1">
                 <AdminTooltip content={tooltipContent.switchToAmana}>
                   <button
                     onClick={() => { setActiveModule("contribution"); setActivePage("dashboard"); }}
-                    className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center justify-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors ${
                       activeModule === "contribution"
                         ? "bg-contribution text-white"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
                     }`}
                   >
-                    <Users className="w-4 h-4" />
+                    <Users className="w-3.5 h-3.5" />
                     <span>Amana</span>
                   </button>
                 </AdminTooltip>
                 <AdminTooltip content={tooltipContent.switchToTeemah}>
                   <button
                     onClick={() => { setActiveModule("travel"); setActivePage("travel-dashboard"); }}
-                    className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center justify-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors ${
                       activeModule === "travel"
                         ? "bg-travel text-white"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
                     }`}
                   >
-                    <Plane className="w-4 h-4" />
+                    <Plane className="w-3.5 h-3.5" />
                     <span>Teemah</span>
+                  </button>
+                </AdminTooltip>
+                <AdminTooltip content="Manage investor accounts and investments">
+                  <button
+                    onClick={() => { setActiveModule("investor"); setActivePage("investor-dashboard"); }}
+                    className={`flex items-center justify-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors ${
+                      activeModule === "investor"
+                        ? "bg-investor text-white"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Invest</span>
                   </button>
                 </AdminTooltip>
               </div>

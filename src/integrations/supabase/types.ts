@@ -247,6 +247,48 @@ export type Database = {
           },
         ]
       }
+      investments: {
+        Row: {
+          amount: number
+          created_at: string
+          duration_months: number
+          end_date: string | null
+          id: string
+          interest_rate: number
+          investor_id: string
+          notes: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          duration_months?: number
+          end_date?: string | null
+          id?: string
+          interest_rate?: number
+          investor_id: string
+          notes?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          duration_months?: number
+          end_date?: string | null
+          id?: string
+          interest_rate?: number
+          investor_id?: string
+          notes?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loan_repayments: {
         Row: {
           amount: number
@@ -545,7 +587,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "contributor" | "travel_client"
+      app_role: "admin" | "contributor" | "travel_client" | "investor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -673,7 +715,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "contributor", "travel_client"],
+      app_role: ["admin", "contributor", "travel_client", "investor"],
     },
   },
 } as const
