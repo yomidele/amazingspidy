@@ -147,6 +147,20 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
     }
   };
 
+  const handleDeleteInvestor = async (userId: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete investor "${name}"? This will remove their account, investments, and all payment records.`)) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-member", {
+        body: { userId },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success("Investor deleted successfully");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete investor");
+    }
+  };
+
   const openAddInvestment = () => {
     setEditingInvestment(null);
     setInvestmentForm({ investor_id: "", amount: "", interest_rate: "0", duration_months: "12", start_date: new Date().toISOString().split("T")[0], end_date: "", status: "active", notes: "" });
