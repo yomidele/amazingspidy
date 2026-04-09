@@ -75,13 +75,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Delete user's related data first (in order of dependencies)
     
-    // 1. Delete contribution payments
+    // 1. Delete investor payments
+    await supabaseAdmin
+      .from("investor_payments")
+      .delete()
+      .eq("investor_id", userId);
+
+    // 2. Delete investments
+    await supabaseAdmin
+      .from("investments")
+      .delete()
+      .eq("investor_id", userId);
+
+    // 3. Delete contribution payments
     await supabaseAdmin
       .from("contribution_payments")
       .delete()
       .eq("user_id", userId);
 
-    // 2. Delete loan repayments (via loans)
+    // 4. Delete loan repayments (via loans)
     const { data: loans } = await supabaseAdmin
       .from("loans")
       .select("id")
@@ -101,13 +113,13 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("user_id", userId);
     }
 
-    // 3. Delete group memberships
+    // 5. Delete group memberships
     await supabaseAdmin
       .from("group_memberships")
       .delete()
       .eq("user_id", userId);
 
-    // 4. Delete notifications
+    // 6. Delete notifications
     await supabaseAdmin
       .from("notifications")
       .delete()

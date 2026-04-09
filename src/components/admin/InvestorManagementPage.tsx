@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, TrendingUp, UserPlus, DollarSign, Receipt } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, TrendingUp, UserPlus, DollarSign, Receipt, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -144,6 +144,20 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       toast.error(err.message || "Failed to create investor");
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const handleDeleteInvestor = async (userId: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete investor "${name}"? This will remove their account, investments, and all payment records.`)) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-member", {
+        body: { userId },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success("Investor deleted successfully");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete investor");
     }
   };
 
@@ -302,10 +316,13 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
                       <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
                         <span className="font-semibold text-sm">{inv.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm truncate">{inv.full_name || "Unknown"}</p>
                         <p className="text-xs text-muted-foreground truncate">{inv.email}</p>
                       </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteInvestor(inv.user_id, inv.full_name || "Unknown")} title="Delete investor">
+                        <UserMinus className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   ))}
                 </div>
