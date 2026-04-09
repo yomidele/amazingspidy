@@ -175,6 +175,7 @@ const AdminDashboardContent = () => {
   const investorNavItems = [
     { icon: LayoutDashboard, label: "Dashboard", page: "investor-dashboard", tooltip: "Investor management overview" },
     { icon: TrendingUp, label: "Investors", page: "investor-management", tooltip: "Manage investors and investments" },
+    { icon: Receipt, label: "Payments", page: "investor-payments", tooltip: "Record payments to investors" },
     { icon: Settings, label: "Settings", page: "investor-settings", tooltip: tooltipContent.settings },
   ];
 
@@ -229,6 +230,8 @@ const AdminDashboardContent = () => {
       switch (activePage) {
         case "investor-management":
           return <InvestorManagementPage />;
+        case "investor-payments":
+          return <InvestorManagementPage initialTab="payments" />;
         case "investor-settings":
           return (
             <AdminSettingsPage
@@ -238,7 +241,7 @@ const AdminDashboardContent = () => {
           );
         case "investor-dashboard":
         default:
-          return <InvestorManagementPage />;
+          return <InvestorManagementPage initialTab="overview" />;
       }
     }
   };
@@ -389,7 +392,7 @@ const AdminDashboardContent = () => {
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
                 <p className="text-sm text-muted-foreground truncate">
-                  Manage your {activeModule === "contribution" ? "Amana Market Contribution" : "Teemah Travels services"}
+                  Manage your {activeModule === "contribution" ? "Amana Market Contribution" : activeModule === "investor" ? "investor accounts and investments" : "Teemah Travels services"}
                 </p>
               </div>
               
