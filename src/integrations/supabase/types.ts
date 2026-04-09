@@ -289,6 +289,44 @@ export type Database = {
         }
         Relationships: []
       }
+      investor_payments: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          id: string
+          investment_id: string
+          investor_id: string
+          notes: string | null
+          payment_date: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          id?: string
+          investment_id: string
+          investor_id: string
+          notes?: string | null
+          payment_date?: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          id?: string
+          investment_id?: string
+          investor_id?: string
+          notes?: string | null
+          payment_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_payments_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_repayments: {
         Row: {
           amount: number
