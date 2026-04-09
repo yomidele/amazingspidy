@@ -76,7 +76,6 @@ export default {
           foreground: "hsl(var(--investor-foreground))",
           light: "hsl(var(--investor-light))",
         },
-        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
