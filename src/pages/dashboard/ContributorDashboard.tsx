@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ContributorTransactionList from "@/components/dashboard/ContributorTransactionList";
+import LoanRequestForm from "@/components/dashboard/LoanRequestForm";
+import GuarantorRequests from "@/components/dashboard/GuarantorRequests";
 
 interface LoanData {
   outstanding_balance: number;
@@ -403,6 +405,12 @@ const ContributorDashboard = () => {
                   </Card>
                 </motion.div>
               ))}
+            </div>
+
+            {/* Loan Request & Guarantor */}
+            <div className="grid lg:grid-cols-2 gap-6 mb-6">
+              <LoanRequestForm userId={user?.id || ""} userName={user?.user_metadata?.full_name} />
+              <GuarantorRequests userId={user?.id || ""} />
             </div>
 
             {/* Transactions & Beneficiary Status */}
