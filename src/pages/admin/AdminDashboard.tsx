@@ -41,6 +41,7 @@ import TravelConsultationManagement from "@/components/admin/travel/TravelConsul
 import TravelDashboardContent from "@/components/admin/travel/TravelDashboardContent";
 import UserActivityPage from "@/components/admin/UserActivityPage";
 import InvestorManagementPage from "@/components/admin/InvestorManagementPage";
+import LoanRequestReview from "@/components/admin/LoanRequestReview";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -158,6 +159,7 @@ const AdminDashboardContent = () => {
     { icon: Wallet, label: "Contributions", page: "contributions", tooltip: tooltipContent.newMonth },
     { icon: Receipt, label: "Payments", page: "payments", tooltip: tooltipContent.recordPayment },
     { icon: CreditCard, label: "Loans", page: "loans", tooltip: tooltipContent.issueLoan },
+    { icon: FileCheck, label: "Loan Requests", page: "loan-requests", tooltip: "Review and approve loan requests from contributors" },
     { icon: Bell, label: "Notifications", page: "notifications", tooltip: tooltipContent.notifications },
     { icon: Settings, label: "Settings", page: "settings", tooltip: tooltipContent.settings },
   ];
@@ -194,6 +196,8 @@ const AdminDashboardContent = () => {
           return <PaymentRecordingPage />;
         case "loans":
           return <LoanManagementPage />;
+        case "loan-requests":
+          return <LoanRequestReview />;
         case "settings":
           return (
             <AdminSettingsPage
