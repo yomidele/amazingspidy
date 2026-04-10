@@ -327,6 +327,44 @@ export type Database = {
           },
         ]
       }
+      loan_guarantors: {
+        Row: {
+          created_at: string
+          guarantor_id: string
+          id: string
+          loan_request_id: string
+          responded_at: string | null
+          response_note: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          guarantor_id: string
+          id?: string
+          loan_request_id: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          guarantor_id?: string
+          id?: string
+          loan_request_id?: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_guarantors_loan_request_id_fkey"
+            columns: ["loan_request_id"]
+            isOneToOne: false
+            referencedRelation: "loan_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_repayments: {
         Row: {
           amount: number
@@ -364,6 +402,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      loan_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          borrower_id: string
+          created_at: string
+          duration_months: number
+          group_id: string
+          id: string
+          purpose: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          borrower_id: string
+          created_at?: string
+          duration_months?: number
+          group_id: string
+          id?: string
+          purpose?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          borrower_id?: string
+          created_at?: string
+          duration_months?: number
+          group_id?: string
+          id?: string
+          purpose?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       loans: {
         Row: {
