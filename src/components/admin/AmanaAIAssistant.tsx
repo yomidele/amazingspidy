@@ -12,9 +12,9 @@ type ChatSize = "normal" | "large" | "fullscreen";
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-ai-assistant`;
 
 const sizeClasses: Record<ChatSize, string> = {
-  normal: "fixed bottom-4 right-4 w-[360px] sm:w-[400px] h-[520px]",
-  large: "fixed bottom-4 right-4 w-[500px] sm:w-[600px] h-[680px]",
-  fullscreen: "fixed inset-4",
+  normal: "fixed bottom-0 right-0 left-0 sm:left-auto sm:bottom-4 sm:right-4 w-full sm:w-[400px] h-[85vh] sm:h-[520px]",
+  large: "fixed bottom-0 right-0 left-0 sm:left-auto sm:bottom-4 sm:right-4 w-full sm:w-[600px] h-[90vh] sm:h-[680px]",
+  fullscreen: "fixed inset-0 sm:inset-4",
 };
 
 const AmanaAIAssistant = () => {
