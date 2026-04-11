@@ -218,6 +218,42 @@ const LoanRequestReview = () => {
     }
   };
 
+  const handleDelete = async (request: LoanRequestRow) => {
+    if (!confirm(`Delete loan request from ${request.borrower_name}? This will clear their loan eligibility for a new request.`)) return;
+    setProcessing(request.id);
+    try {
+      // Delete related guarantors and signatures first
+      await Promise.all([
+        supabase.from("loan_guarantors").delete().eq("loan_request_id", request.id),
+        supabase.from("loan_signatures").delete().eq("loan_request_id", request.id),
+      ]);
+
+      const { error } = await supabase.from("loan_requests").delete().eq("id", request.id);
+      if (error) throw error;
+
+      await logActivity(
+        "loan_request_deleted",
+        `Loan request of £${request.amount.toLocaleString()} by ${request.borrower_name} was deleted by admin.`,
+        "loan_request", request.id
+      );
+
+      await sendNotification(
+        request.borrower_id,
+        "Loan Request Removed",
+        `Your loan request of £${request.amount.toLocaleString()} has been removed. You are now eligible to submit a new request.`,
+        "info", "/dashboard/contributor"
+      );
+
+      toast.success("Loan request deleted. User can now submit a new request.");
+      fetchRequests();
+      setSelectedRequest(null);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete request");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-muted text-muted-foreground",
