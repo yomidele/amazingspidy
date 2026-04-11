@@ -484,9 +484,12 @@ const TravelDashboard = () => {
             <span className="font-semibold">Travel Client</span>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleLogout}>
-          <LogOut className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {user && <NotificationBell userId={user.id} variant="light" />}
+          <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
       </header>
 
       <div className="flex">
