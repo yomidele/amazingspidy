@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import RoleChooserModal from "@/components/shared/RoleChooserModal";
 
 const ContributionLogin = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showRoleChooser, setShowRoleChooser] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -25,11 +27,34 @@ const ContributionLogin = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
         if (error) throw error;
+
+        // Check user roles
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+
+        const roleList = roles?.map((r) => r.role) || [];
+        const isContributor = roleList.includes("contributor");
+        const isInvestor = roleList.includes("investor");
+
+        if (!isContributor) {
+          await supabase.auth.signOut();
+          toast.error("You do not have contributor access.");
+          return;
+        }
+
+        // If user has both roles, show chooser
+        if (isContributor && isInvestor) {
+          setShowRoleChooser(true);
+          return;
+        }
+
         toast.success("Welcome back!");
         navigate("/dashboard/contributor");
       } else {
@@ -54,8 +79,19 @@ const ContributionLogin = () => {
     }
   };
 
+  const handleRoleChoice = (role: "contributor" | "investor") => {
+    setShowRoleChooser(false);
+    if (role === "contributor") {
+      navigate("/dashboard/contributor");
+    } else {
+      navigate("/investor-dashboard");
+    }
+  };
+
   return (
     <div className="min-h-screen flex">
+      <RoleChooserModal open={showRoleChooser} onChoose={handleRoleChoice} />
+
       {/* Left Panel - Branding */}
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
@@ -105,7 +141,6 @@ const ContributionLogin = () => {
           </div>
         </div>
 
-        {/* Decorative circles */}
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2" />
         <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full" />
       </div>
@@ -202,8 +237,6 @@ const ContributionLogin = () => {
                 </button>
               </div>
             </div>
-
-            {/* Forgot password disabled — no route exists yet */}
 
             <Button
               type="submit"

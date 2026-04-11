@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, TrendingUp, UserPlus, DollarSign, Receipt, UserMinus } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, TrendingUp, DollarSign, Receipt, ShieldCheck, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,10 +54,11 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "payments">(initialTab);
 
-  // Create investor dialog
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [newInvestor, setNewInvestor] = useState({ fullName: "", email: "", password: "" });
+  // Promote user dialog
+  const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoteLoading, setPromoteLoading] = useState(false);
+  const [nonInvestorUsers, setNonInvestorUsers] = useState<{ user_id: string; full_name: string | null; email: string | null }[]>([]);
+  const [selectedPromoteUser, setSelectedPromoteUser] = useState("");
 
   // Investment dialog
   const [investmentOpen, setInvestmentOpen] = useState(false);
@@ -93,23 +94,26 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
     ]);
 
     const profileMap = new Map(allProfilesRes.data?.map((p: any) => [p.user_id, { name: p.full_name || "Unknown", email: p.email }]) || []);
-    const investorIds = rolesRes.data?.map((r) => r.user_id) || [];
+    const investorIds = new Set(rolesRes.data?.map((r) => r.user_id) || []);
 
     setInvestors(
-      investorIds.map((id) => ({
+      Array.from(investorIds).map((id) => ({
         user_id: id,
         full_name: (profileMap.get(id) as any)?.name || "Unknown",
         email: (profileMap.get(id) as any)?.email || null,
       }))
     );
 
+    // Build list of non-investor users for promotion
+    const nonInvestors = (allProfilesRes.data || [])
+      .filter((p: any) => !investorIds.has(p.user_id))
+      .map((p: any) => ({ user_id: p.user_id, full_name: p.full_name, email: p.email }));
+    setNonInvestorUsers(nonInvestors);
+
     const investmentMap = new Map<string, number>();
     const mappedInvestments = (invDataRes.data || []).map((inv: any) => {
       investmentMap.set(inv.id, Number(inv.amount));
-      return {
-        ...inv,
-        investor_name: (profileMap.get(inv.investor_id) as any)?.name || "Unknown",
-      };
+      return { ...inv, investor_name: (profileMap.get(inv.investor_id) as any)?.name || "Unknown" };
     });
     setInvestments(mappedInvestments);
 
@@ -126,38 +130,39 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleCreateInvestor = async () => {
-    if (!newInvestor.fullName || !newInvestor.email || !newInvestor.password) {
-      toast.error("All fields are required"); return;
-    }
-    setCreateLoading(true);
+  const handlePromoteToInvestor = async () => {
+    if (!selectedPromoteUser) { toast.error("Please select a user"); return; }
+    setPromoteLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-member", {
-        body: { email: newInvestor.email, password: newInvestor.password, fullName: newInvestor.fullName, role: "investor" },
+      const { error } = await supabase.from("user_roles").insert({
+        user_id: selectedPromoteUser,
+        role: "investor" as any,
       });
-      if (error || data?.error) throw new Error(data?.error || error?.message);
-      toast.success("Investor created successfully");
-      setCreateOpen(false);
-      setNewInvestor({ fullName: "", email: "", password: "" });
+      if (error) throw error;
+      toast.success("User promoted to investor successfully");
+      setPromoteOpen(false);
+      setSelectedPromoteUser("");
       fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create investor");
+      toast.error(err.message || "Failed to promote user");
     } finally {
-      setCreateLoading(false);
+      setPromoteLoading(false);
     }
   };
 
-  const handleDeleteInvestor = async (userId: string, name: string) => {
-    if (!confirm(`Are you sure you want to permanently delete investor "${name}"? This will remove their account, investments, and all payment records.`)) return;
+  const handleRevokeInvestorRole = async (userId: string, name: string) => {
+    if (!confirm(`Revoke investor access for "${name}"? They will no longer be able to access the investor dashboard.`)) return;
     try {
-      const { data, error } = await supabase.functions.invoke("delete-member", {
-        body: { userId },
-      });
-      if (error || data?.error) throw new Error(data?.error || error?.message);
-      toast.success("Investor deleted successfully");
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .eq("role", "investor" as any);
+      if (error) throw error;
+      toast.success("Investor access revoked");
       fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete investor");
+      toast.error(err.message || "Failed to revoke access");
     }
   };
 
@@ -226,14 +231,8 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
     fetchData();
   };
 
-  // Calculate financial summaries per investment
-  const getExpectedReturn = (inv: Investment) => {
-    return Number(inv.amount) * (1 + Number(inv.interest_rate) / 100);
-  };
-
-  const getTotalPaid = (investmentId: string) => {
-    return payments.filter((p) => p.investment_id === investmentId).reduce((s, p) => s + Number(p.amount_paid), 0);
-  };
+  const getExpectedReturn = (inv: Investment) => Number(inv.amount) * (1 + Number(inv.interest_rate) / 100);
+  const getTotalPaid = (investmentId: string) => payments.filter((p) => p.investment_id === investmentId).reduce((s, p) => s + Number(p.amount_paid), 0);
 
   const totalCapital = investments.reduce((s, i) => s + Number(i.amount), 0);
   const totalExpectedReturn = investments.reduce((s, i) => s + getExpectedReturn(i), 0);
@@ -263,7 +262,7 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Investors</CardTitle>
-            <TrendingUp className="w-4 h-4 text-investor" />
+            <TrendingUp className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{investors.length}</div></CardContent>
         </Card>
@@ -291,8 +290,8 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
         <>
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            <Button variant="investor" onClick={() => setCreateOpen(true)}>
-              <UserPlus className="w-4 h-4 mr-2" /> Add Investor
+            <Button variant="investor" onClick={() => setPromoteOpen(true)}>
+              <ShieldCheck className="w-4 h-4 mr-2" /> Activate Investor Role
             </Button>
             <Button variant="outline" onClick={openAddInvestment}>
               <Plus className="w-4 h-4 mr-2" /> Add Investment
@@ -305,10 +304,10 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
 
           {/* Investors List */}
           <Card>
-            <CardHeader><CardTitle>Investors</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Active Investors</CardTitle></CardHeader>
             <CardContent>
               {investors.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No investors yet</p>
+                <p className="text-muted-foreground text-center py-4">No investors yet. Promote an existing user to investor.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {investors.map((inv) => (
@@ -320,8 +319,13 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
                         <p className="font-medium text-sm truncate">{inv.full_name || "Unknown"}</p>
                         <p className="text-xs text-muted-foreground truncate">{inv.email}</p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteInvestor(inv.user_id, inv.full_name || "Unknown")} title="Delete investor">
-                        <UserMinus className="w-4 h-4 text-destructive" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRevokeInvestorRole(inv.user_id, inv.full_name || "Unknown")}
+                        title="Revoke investor access"
+                      >
+                        <ShieldOff className="w-4 h-4 text-destructive" />
                       </Button>
                     </div>
                   ))}
@@ -330,7 +334,7 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
             </CardContent>
           </Card>
 
-          {/* Investments Table with financial tracking */}
+          {/* Investments Table */}
           <Card>
             <CardHeader><CardTitle>All Investments</CardTitle></CardHeader>
             <CardContent>
@@ -427,18 +431,39 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
         </>
       )}
 
-      {/* Create Investor Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      {/* Promote User to Investor Dialog */}
+      <Dialog open={promoteOpen} onOpenChange={setPromoteOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add New Investor</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><Label>Full Name</Label><Input value={newInvestor.fullName} onChange={(e) => setNewInvestor({ ...newInvestor, fullName: e.target.value })} /></div>
-            <div><Label>Email</Label><Input type="email" value={newInvestor.email} onChange={(e) => setNewInvestor({ ...newInvestor, email: e.target.value })} /></div>
-            <div><Label>Password</Label><Input type="password" value={newInvestor.password} onChange={(e) => setNewInvestor({ ...newInvestor, password: e.target.value })} /></div>
+          <DialogHeader>
+            <DialogTitle>Activate Investor Role</DialogTitle>
+            <DialogDescription>
+              Select an existing user to grant investor access. This does not create a new account — it adds the investor role to their existing account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Select User</Label>
+              <Select value={selectedPromoteUser} onValueChange={setSelectedPromoteUser}>
+                <SelectTrigger><SelectValue placeholder="Choose a user to promote" /></SelectTrigger>
+                <SelectContent>
+                  {nonInvestorUsers.length === 0 ? (
+                    <SelectItem value="_none" disabled>All users already have investor access</SelectItem>
+                  ) : (
+                    nonInvestorUsers.map((u) => (
+                      <SelectItem key={u.user_id} value={u.user_id}>
+                        {u.full_name || "Unknown"} — {u.email}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button variant="investor" onClick={handleCreateInvestor} disabled={createLoading}>{createLoading ? "Creating..." : "Create Investor"}</Button>
+            <Button variant="outline" onClick={() => setPromoteOpen(false)}>Cancel</Button>
+            <Button variant="investor" onClick={handlePromoteToInvestor} disabled={promoteLoading || !selectedPromoteUser}>
+              {promoteLoading ? "Promoting..." : "Activate Investor Role"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -446,7 +471,12 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       {/* Investment Dialog */}
       <Dialog open={investmentOpen} onOpenChange={setInvestmentOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editingInvestment ? "Edit Investment" : "Add Investment"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editingInvestment ? "Edit Investment" : "Add Investment"}</DialogTitle>
+            <DialogDescription>
+              {editingInvestment ? "Update the investment details below." : "Record a new investment for an existing investor."}
+            </DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Investor</Label>
@@ -489,7 +519,10 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       {/* Record Payment Dialog */}
       <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Record Payment to Investor</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Record Payment to Investor</DialogTitle>
+            <DialogDescription>Record a payment made to an investor for their investment.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Investor</Label>

@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import RoleChooserModal from "@/components/shared/RoleChooserModal";
 
 const InvestorLogin = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showRoleChooser, setShowRoleChooser] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,17 +27,25 @@ const InvestorLogin = () => {
       });
       if (error) throw error;
 
-      // Verify investor role
-      const { data: roleData } = await supabase
+      // Check user roles
+      const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", data.user.id)
-        .eq("role", "investor")
-        .maybeSingle();
+        .eq("user_id", data.user.id);
 
-      if (!roleData) {
+      const roleList = roles?.map((r) => r.role) || [];
+      const isContributor = roleList.includes("contributor");
+      const isInvestor = roleList.includes("investor");
+
+      if (!isInvestor) {
         await supabase.auth.signOut();
-        toast.error("Access denied. Investor privileges required.");
+        toast.error("You are not registered as an investor. Contact your administrator.");
+        return;
+      }
+
+      // If user has both roles, show chooser
+      if (isContributor && isInvestor) {
+        setShowRoleChooser(true);
         return;
       }
 
@@ -48,8 +58,19 @@ const InvestorLogin = () => {
     }
   };
 
+  const handleRoleChoice = (role: "contributor" | "investor") => {
+    setShowRoleChooser(false);
+    if (role === "contributor") {
+      navigate("/dashboard/contributor");
+    } else {
+      navigate("/investor-dashboard");
+    }
+  };
+
   return (
     <div className="min-h-screen flex">
+      <RoleChooserModal open={showRoleChooser} onChoose={handleRoleChoice} />
+
       {/* Left Panel */}
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
@@ -150,7 +171,7 @@ const InvestorLogin = () => {
 
           <div className="mt-8 pt-8 border-t border-border text-center">
             <p className="text-sm text-muted-foreground">
-              Contact your administrator if you don't have credentials.
+              Contact your administrator if you don't have investor access.
             </p>
           </div>
         </motion.div>
