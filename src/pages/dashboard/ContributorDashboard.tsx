@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import ContributorTransactionList from "@/components/dashboard/ContributorTransactionList";
 import LoanRequestForm from "@/components/dashboard/LoanRequestForm";
 import GuarantorRequests from "@/components/dashboard/GuarantorRequests";
+import RepaymentSchedule from "@/components/dashboard/RepaymentSchedule";
 
 interface LoanData {
   outstanding_balance: number;
