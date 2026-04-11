@@ -414,7 +414,12 @@ const ContributorDashboard = () => {
               <GuarantorRequests userId={user?.id || ""} />
             </div>
 
-            {/* Transactions & Beneficiary Status */}
+            {/* Repayment Schedule */}
+            <div className="mb-6">
+              <RepaymentSchedule userId={user?.id || ""} />
+            </div>
+
+
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Transaction History with Receipts */}
               <ContributorTransactionList
