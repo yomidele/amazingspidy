@@ -25,6 +25,7 @@ interface LoanRequestRow {
   purpose: string | null;
   status: string;
   guarantor_name: string;
+  guarantor_id: string;
   guarantor_status: string;
   created_at: string;
   group_id: string;
@@ -74,9 +75,11 @@ const LoanRequestReview = () => {
 
         let guarantorName = "None";
         let guarantorStatus = "none";
+        let guarantorId = "";
         if (guarantors && guarantors.length > 0) {
           const g = guarantors[0];
           guarantorStatus = g.status;
+          guarantorId = g.guarantor_id;
           const { data: gProfile } = await supabase
             .from("profiles")
             .select("full_name")
@@ -95,6 +98,7 @@ const LoanRequestReview = () => {
           purpose: lr.purpose,
           status: lr.status,
           guarantor_name: guarantorName,
+          guarantor_id: guarantorId,
           guarantor_status: guarantorStatus,
           created_at: lr.created_at,
           group_id: lr.group_id,
@@ -109,10 +113,43 @@ const LoanRequestReview = () => {
     }
   };
 
+  const generateRepaymentSchedule = async (loanId: string, amount: number, durationMonths: number) => {
+    const monthlyAmount = Math.ceil((amount / durationMonths) * 100) / 100;
+    const now = new Date();
+    const repayments = [];
+
+    for (let i = 1; i <= durationMonths; i++) {
+      const dueDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const isLast = i === durationMonths;
+      const amountDue = isLast ? amount - monthlyAmount * (durationMonths - 1) : monthlyAmount;
+
+      repayments.push({
+        loan_id: loanId,
+        amount: 0,
+        amount_due: amountDue,
+        due_date: dueDate.toISOString().split("T")[0],
+        repayment_type: "scheduled",
+        notes: `Installment ${i} of ${durationMonths}`,
+      });
+    }
+
+    const { error } = await supabase.from("loan_repayments").insert(repayments);
+    if (error) throw error;
+  };
+
+  const logActivity = async (action: string, description: string, entityType: string, entityId: string) => {
+    await supabase.from("activity_logs").insert({
+      user_id: null,
+      action,
+      description,
+      entity_type: entityType,
+      entity_id: entityId,
+    });
+  };
+
   const handleDecision = async (request: LoanRequestRow, approve: boolean) => {
     setProcessing(request.id);
     try {
-      // Update request status
       const { error: updateError } = await supabase
         .from("loan_requests")
         .update({
@@ -123,21 +160,37 @@ const LoanRequestReview = () => {
 
       if (updateError) throw updateError;
 
-      // If approved, create actual loan
       if (approve) {
-        const { error: loanError } = await supabase.from("loans").insert({
+        const { data: loan, error: loanError } = await supabase.from("loans").insert({
           user_id: request.borrower_id,
           group_id: request.group_id,
           principal_amount: request.amount,
           outstanding_balance: request.amount,
+          monthly_repayment: Math.ceil((request.amount / request.duration_months) * 100) / 100,
           status: "active",
           issued_date: new Date().toISOString(),
-        });
+        }).select("id").single();
 
         if (loanError) throw loanError;
+
+        await generateRepaymentSchedule(loan.id, request.amount, request.duration_months);
+
+        await logActivity(
+          "loan_approved",
+          `Loan of £${request.amount.toLocaleString()} approved for ${request.borrower_name}. Guarantor: ${request.guarantor_name}. Duration: ${request.duration_months} months.`,
+          "loan",
+          loan.id
+        );
+      } else {
+        await logActivity(
+          "loan_rejected",
+          `Loan request of £${request.amount.toLocaleString()} by ${request.borrower_name} was rejected. Reason: ${adminNotes[request.id] || "No reason provided"}.`,
+          "loan_request",
+          request.id
+        );
       }
 
-      toast.success(approve ? "Loan approved and issued!" : "Loan request rejected");
+      toast.success(approve ? "Loan approved with repayment schedule!" : "Loan request rejected");
       fetchRequests();
     } catch (error: any) {
       console.error("Error processing request:", error);
