@@ -227,6 +227,8 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
     });
     if (error) { toast.error("Failed to record payment"); return; }
     toast.success("Payment recorded");
+    const invName = investors.find((i) => i.user_id === paymentForm.investor_id)?.full_name || "Unknown";
+    await logActivity("investor_payment", `Recorded payment of £${paymentForm.amount_paid} to investor ${invName}`, "investor_payment", paymentForm.investment_id, paymentForm.investor_id);
     setPaymentOpen(false);
     setPaymentForm({ investor_id: "", investment_id: "", amount_paid: "", payment_date: new Date().toISOString().split("T")[0], notes: "" });
     fetchData();
