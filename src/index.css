@@ -213,6 +213,37 @@
     50% { transform: translateY(-20px); }
   }
 
+  /* Contributor dark dashboard overrides for child components */
+  .contributor-dark-override .rounded-lg.border.bg-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border-radius: 1rem;
+  }
+
+  .contributor-dark-override .text-card-foreground {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .contributor-dark-override .text-muted-foreground {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .contributor-dark-override .bg-muted\/50,
+  .contributor-dark-override .bg-muted\/30,
+  .contributor-dark-override .bg-muted {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .contributor-dark-override .border {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .contributor-dark-override .bg-secondary {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
   /* Scrollbar styling for horizontal scroll areas */
   .scrollbar-thin {
     scrollbar-width: thin;
