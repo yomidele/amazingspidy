@@ -109,7 +109,7 @@ const LoanRequestReview = () => {
         amount: 0,
         amount_due: amountDue,
         due_date: dueDate.toISOString().split("T")[0],
-        repayment_type: "scheduled",
+        repayment_type: "manual",
         notes: `Installment ${i} of ${durationMonths}`,
       });
     }
