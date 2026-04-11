@@ -53,6 +53,7 @@ const AdminDashboardContent = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [triggerAddInvestor, setTriggerAddInvestor] = useState(false);
 
   const { tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial } = useTutorial();
   const location = useLocation();
