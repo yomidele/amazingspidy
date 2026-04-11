@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { CreditCard, AlertTriangle, CheckCircle, Users, Send } from "lucide-react";
+import { CreditCard, AlertTriangle, CheckCircle, Users, Send, FileText } from "lucide-react";
 import SignaturePad from "@/components/shared/SignaturePad";
+import LoanDocumentViewer from "@/components/admin/LoanDocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,20 +53,23 @@ interface LoanRequest {
   purpose: string | null;
   status: string;
   created_at: string;
+  group_id: string;
 }
 
 const MIN_PAID_MONTHS = 3;
 const LOAN_MULTIPLIER = 2;
 
-// Sub-component for each loan request with signing capability
+// Sub-component for each loan request with signing and document viewing capability
 const LoanRequestItem = ({
   request,
   userId,
+  userName,
   getStatusBadge,
   onSignComplete,
 }: {
   request: LoanRequest;
   userId: string;
+  userName?: string;
   getStatusBadge: (status: string) => React.ReactNode;
   onSignComplete: () => void;
 }) => {
@@ -73,9 +77,13 @@ const LoanRequestItem = ({
   const [hasSigned, setHasSigned] = useState<boolean | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [viewDocument, setViewDocument] = useState(false);
+  const [guarantorInfo, setGuarantorInfo] = useState<{ name: string; id: string } | null>(null);
+  const [groupName, setGroupName] = useState("Contribution Group");
 
   useEffect(() => {
     checkSignature();
+    fetchGuarantorAndGroup();
   }, [request.id]);
 
   const checkSignature = async () => {
@@ -85,6 +93,33 @@ const LoanRequestItem = ({
       .eq("loan_request_id", request.id)
       .eq("signer_role", "borrower");
     setHasSigned(data && data.length > 0);
+  };
+
+  const fetchGuarantorAndGroup = async () => {
+    const [guarantorRes, groupRes] = await Promise.all([
+      supabase
+        .from("loan_guarantors")
+        .select("guarantor_id")
+        .eq("loan_request_id", request.id)
+        .limit(1),
+      supabase
+        .from("contribution_groups")
+        .select("name")
+        .eq("id", request.group_id)
+        .maybeSingle(),
+    ]);
+
+    if (groupRes.data) setGroupName(groupRes.data.name);
+
+    if (guarantorRes.data && guarantorRes.data.length > 0) {
+      const gId = guarantorRes.data[0].guarantor_id;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", gId)
+        .maybeSingle();
+      setGuarantorInfo({ name: profile?.full_name || "Unknown", id: gId });
+    }
   };
 
   const handleSign = async () => {
@@ -101,6 +136,21 @@ const LoanRequestItem = ({
         signature_data: signature,
       });
       if (error) throw error;
+
+      // Check if guarantor has also signed, if so update to pending_admin
+      const { data: gSig } = await supabase
+        .from("loan_signatures")
+        .select("id")
+        .eq("loan_request_id", request.id)
+        .eq("signer_role", "guarantor");
+
+      if (gSig && gSig.length > 0 && request.status === "awaiting_guarantor") {
+        await supabase
+          .from("loan_requests")
+          .update({ status: "pending_admin" })
+          .eq("id", request.id);
+      }
+
       toast.success("Signature saved successfully!");
       setHasSigned(true);
       setShowSign(false);
@@ -114,14 +164,41 @@ const LoanRequestItem = ({
 
   const needsSignature = hasSigned === false && ["awaiting_guarantor", "pending_admin", "approved"].includes(request.status);
 
+  if (viewDocument && guarantorInfo) {
+    return (
+      <LoanDocumentViewer
+        loanRequest={{
+          id: request.id,
+          borrower_id: userId,
+          borrower_name: userName || "Borrower",
+          guarantor_name: guarantorInfo.name,
+          guarantor_id: guarantorInfo.id,
+          amount: request.amount,
+          duration_months: request.duration_months,
+          purpose: request.purpose,
+          group_name: groupName,
+          status: request.status,
+          created_at: request.created_at,
+        }}
+        onBack={() => setViewDocument(false)}
+      />
+    );
+  }
+
   return (
     <div className="p-3 rounded-lg bg-muted/50 space-y-2">
-      <div className="flex items-center justify-between">
+      <div
+        className="flex items-center justify-between cursor-pointer hover:opacity-80"
+        onClick={() => guarantorInfo && setViewDocument(true)}
+      >
         <div>
           <p className="text-sm font-medium">£{request.amount.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">
             {new Date(request.created_at).toLocaleDateString()} • {request.purpose}
           </p>
+          {guarantorInfo && (
+            <p className="text-xs text-primary mt-0.5">Tap to view loan document →</p>
+          )}
         </div>
         {getStatusBadge(request.status)}
       </div>
@@ -149,7 +226,7 @@ const LoanRequestItem = ({
   );
 };
 
-const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
+const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
   const [eligibility, setEligibility] = useState<EligibilityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -243,7 +320,7 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
     try {
       const { data, error } = await supabase
         .from("loan_requests")
-        .select("id, amount, duration_months, purpose, status, created_at")
+        .select("id, amount, duration_months, purpose, status, created_at, group_id")
         .eq("borrower_id", userId)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -506,8 +583,9 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
                 key={req.id}
                 request={req}
                 userId={userId}
+                userName={userName}
                 getStatusBadge={getStatusBadge}
-                onSignComplete={() => fetchMyRequests()}
+                onSignComplete={() => { fetchMyRequests(); checkEligibility(); }}
               />
             ))}
           </div>
