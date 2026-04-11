@@ -18,6 +18,12 @@ import AdminManualPage from "./pages/admin/AdminManualPage";
 import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
 import InvestorInfoPage from "./pages/InvestorInfoPage";
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
