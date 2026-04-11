@@ -40,7 +40,11 @@ interface OutstandingLoan {
   status: string;
 }
 
-const ContributionDashboardContent = () => {
+interface ContributionDashboardContentProps {
+  onNavigate?: (page: string) => void;
+}
+
+const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardContentProps) => {
   const [stats, setStats] = useState<DashboardStats>({
     totalMembers: 0, monthlyContributions: 0, outstandingLoans: 0, overdueLoans: 0,
     currentBeneficiary: null, currentMonth: format(new Date(), "MMM yyyy"),
@@ -165,14 +169,14 @@ const ContributionDashboardContent = () => {
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase();
 
   const statsCards = [
-    { title: "Total Members", value: stats.totalMembers.toString(), icon: Users, color: "text-contribution", bgColor: "bg-contribution-light" },
-    { title: "Monthly Contributions", value: formatCurrency(stats.monthlyContributions), icon: Wallet, color: "text-contribution", bgColor: "bg-contribution-light" },
-    { title: "Outstanding Loans", value: formatCurrency(stats.outstandingLoans), icon: CreditCard, color: "text-primary", bgColor: "bg-primary/10" },
-    { title: "Overdue Repayments", value: stats.overdueLoans.toString(), icon: AlertTriangle, color: stats.overdueLoans > 0 ? "text-destructive" : "text-success", bgColor: stats.overdueLoans > 0 ? "bg-destructive/10" : "bg-success/10" },
-    { title: "Investor Capital", value: formatCurrency(stats.totalInvestorFunds), icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10" },
-    { title: "Investor Obligations", value: formatCurrency(stats.totalInvestorObligations), icon: DollarSign, color: "text-amber-600", bgColor: "bg-amber-100" },
-    { title: "Available Funds", value: formatCurrency(stats.availableFunds), icon: BarChart3, color: stats.availableFunds >= 0 ? "text-success" : "text-destructive", bgColor: stats.availableFunds >= 0 ? "bg-success/10" : "bg-destructive/10" },
-    { title: "Beneficiary", value: stats.currentBeneficiary || "Not Set", icon: UserCheck, color: "text-primary", bgColor: "bg-primary/10", subtitle: stats.currentMonth },
+    { title: "Total Members", value: stats.totalMembers.toString(), icon: Users, color: "text-contribution", bgColor: "bg-contribution-light", page: "members" },
+    { title: "Monthly Contributions", value: formatCurrency(stats.monthlyContributions), icon: Wallet, color: "text-contribution", bgColor: "bg-contribution-light", page: "contributions" },
+    { title: "Outstanding Loans", value: formatCurrency(stats.outstandingLoans), icon: CreditCard, color: "text-primary", bgColor: "bg-primary/10", page: "loans" },
+    { title: "Overdue Repayments", value: stats.overdueLoans.toString(), icon: AlertTriangle, color: stats.overdueLoans > 0 ? "text-destructive" : "text-success", bgColor: stats.overdueLoans > 0 ? "bg-destructive/10" : "bg-success/10", page: "loans" },
+    { title: "Investor Capital", value: formatCurrency(stats.totalInvestorFunds), icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", page: "investor-management" },
+    { title: "Investor Obligations", value: formatCurrency(stats.totalInvestorObligations), icon: DollarSign, color: "text-amber-600", bgColor: "bg-amber-100", page: "investor-payments" },
+    { title: "Available Funds", value: formatCurrency(stats.availableFunds), icon: BarChart3, color: stats.availableFunds >= 0 ? "text-success" : "text-destructive", bgColor: stats.availableFunds >= 0 ? "bg-success/10" : "bg-destructive/10", page: "contributions" },
+    { title: "Beneficiary", value: stats.currentBeneficiary || "Not Set", icon: UserCheck, color: "text-primary", bgColor: "bg-primary/10", subtitle: stats.currentMonth, page: "contributions" },
   ];
 
   if (loading) {
@@ -193,7 +197,11 @@ const ContributionDashboardContent = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
         {statsCards.map((stat) => (
-          <Card key={stat.title} className="card-hover">
+          <Card
+            key={stat.title}
+            className="card-hover cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
+            onClick={() => onNavigate?.(stat.page)}
+          >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${stat.bgColor}`}>
