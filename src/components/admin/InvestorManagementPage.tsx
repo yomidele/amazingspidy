@@ -145,9 +145,32 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       toast.success("User promoted to investor successfully");
       setPromoteOpen(false);
       setSelectedPromoteUser("");
+      setPromoteMode("choose");
       fetchData();
     } catch (err: any) {
       toast.error(err.message || "Failed to promote user");
+    } finally {
+      setPromoteLoading(false);
+    }
+  };
+
+  const handleCreateNewInvestor = async () => {
+    const { fullName, email, password, phone } = newInvestorForm;
+    if (!fullName || !email || !password) { toast.error("Name, email and password are required"); return; }
+    setPromoteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-member", {
+        body: { email, password, fullName, phone, role: "investor" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("New investor account created successfully. Share login credentials via WhatsApp.");
+      setPromoteOpen(false);
+      setNewInvestorForm({ fullName: "", email: "", password: "", phone: "" });
+      setPromoteMode("choose");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create investor");
     } finally {
       setPromoteLoading(false);
     }
