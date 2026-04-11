@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CreditCard, AlertTriangle, CheckCircle, Users, Send } from "lucide-react";
+import SignaturePad from "@/components/shared/SignaturePad";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -64,6 +65,7 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
   const [fellowContributors, setFellowContributors] = useState<FellowContributor[]>([]);
   const [myRequests, setMyRequests] = useState<LoanRequest[]>([]);
 
+  const [borrowerSignature, setBorrowerSignature] = useState<string | null>(null);
   const [form, setForm] = useState({
     amount: 0,
     duration_months: 6,
@@ -185,6 +187,11 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
       return;
     }
 
+    if (!borrowerSignature) {
+      toast.error("Please sign the loan application before submitting");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { data: membership, error: membershipError } = await supabase
@@ -226,9 +233,18 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
 
       if (guarantorError) throw guarantorError;
 
+      // Save borrower signature
+      await supabase.from("loan_signatures" as any).insert({
+        loan_request_id: request.id,
+        signer_id: userId,
+        signer_role: "borrower",
+        signature_data: borrowerSignature,
+      });
+
       toast.success("Loan request submitted! Awaiting guarantor approval.");
       setDialogOpen(false);
       setForm({ amount: 0, duration_months: 6, purpose: "", guarantor_id: "" });
+      setBorrowerSignature(null);
       checkEligibility();
       fetchMyRequests();
     } catch (error: any) {
@@ -370,6 +386,15 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
                   {fellowContributors.length === 0 && (
                     <p className="text-xs text-destructive">No active contributors are currently available in your group to act as guarantor.</p>
                   )}
+                </div>
+
+                {/* Borrower Signature */}
+                <div className="space-y-2">
+                  <SignaturePad
+                    label="Your Signature (required)"
+                    onSave={(data) => setBorrowerSignature(data)}
+                    existingSignature={borrowerSignature}
+                  />
                 </div>
               </div>
               <DialogFooter>
