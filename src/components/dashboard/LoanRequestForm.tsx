@@ -99,7 +99,7 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
           .select("id")
           .eq("borrower_id", userId)
           .in("status", ["pending", "awaiting_guarantor", "pending_admin"]),
-        supabase.rpc("get_same_group_guarantors" as any, { _user_id: userId }),
+        supabase.rpc("get_same_group_guarantors" as any, { _user_id: userId }) as any,
       ]);
 
       if (paymentsResult.error) throw paymentsResult.error;
@@ -133,8 +133,9 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
         reasons,
       });
 
+      const guarantorData = (guarantorsResult.data as any[] | null) || [];
       setFellowContributors(
-        reasons.length === 0 ? ((guarantorsResult.data as unknown as FellowContributor[] | null) ?? []) : [],
+        reasons.length === 0 ? guarantorData.map((g: any) => ({ user_id: g.user_id, full_name: g.full_name })) : [],
       );
     } catch (error) {
       console.error("Error checking eligibility:", error);
