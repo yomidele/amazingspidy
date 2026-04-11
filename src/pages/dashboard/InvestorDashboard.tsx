@@ -122,32 +122,32 @@ const InvestorDashboard = () => {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Invested</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Invested</CardTitle>
                 <DollarSign className="w-4 h-4 text-primary" />
               </CardHeader>
-              <CardContent><div className="text-2xl font-bold">£{totalInvested.toLocaleString()}</div></CardContent>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold">£{totalInvested.toLocaleString()}</div></CardContent>
             </Card>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Expected Return</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Expected Return</CardTitle>
                 <TrendingUp className="w-4 h-4 text-amber-500" />
               </CardHeader>
-              <CardContent><div className="text-2xl font-bold text-amber-600">£{totalExpectedReturn.toLocaleString()}</div></CardContent>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-amber-600">£{totalExpectedReturn.toLocaleString()}</div></CardContent>
             </Card>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Received</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Received</CardTitle>
                 <Receipt className="w-4 h-4 text-green-500" />
               </CardHeader>
-              <CardContent><div className="text-2xl font-bold text-green-600">£{totalPaid.toLocaleString()}</div></CardContent>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-green-600">£{totalPaid.toLocaleString()}</div></CardContent>
             </Card>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Balance Due</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Balance Due</CardTitle>
                 <Clock className="w-4 h-4 text-destructive" />
               </CardHeader>
-              <CardContent><div className="text-2xl font-bold text-destructive">£{remainingBalance.toLocaleString()}</div></CardContent>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-destructive">£{remainingBalance.toLocaleString()}</div></CardContent>
             </Card>
           </div>
 
