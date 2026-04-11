@@ -736,6 +736,14 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      is_guarantor_for_request: {
+        Args: { _loan_request_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_loan_borrower: {
+        Args: { _loan_request_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "contributor" | "travel_client" | "investor"
