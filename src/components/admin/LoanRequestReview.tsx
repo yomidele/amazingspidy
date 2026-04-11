@@ -319,6 +319,17 @@ const LoanRequestReview = () => {
                             </div>
                           </div>
                         )}
+                        {req.status === "approved" && (
+                          <LoanAgreement
+                            borrowerName={req.borrower_name}
+                            guarantorName={req.guarantor_name}
+                            amount={req.amount}
+                            durationMonths={req.duration_months}
+                            purpose={req.purpose || "General"}
+                            groupName={req.group_name}
+                            date={req.created_at}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
