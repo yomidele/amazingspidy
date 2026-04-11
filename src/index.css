@@ -244,6 +244,76 @@
     background: rgba(255, 255, 255, 0.08);
   }
 
+  /* Force light text for all text inside contributor dark override */
+  .contributor-dark-override h1,
+  .contributor-dark-override h2,
+  .contributor-dark-override h3,
+  .contributor-dark-override h4,
+  .contributor-dark-override p,
+  .contributor-dark-override span,
+  .contributor-dark-override label,
+  .contributor-dark-override li,
+  .contributor-dark-override td,
+  .contributor-dark-override th {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .contributor-dark-override .text-gray-500,
+  .contributor-dark-override .text-gray-600,
+  .contributor-dark-override .text-gray-700,
+  .contributor-dark-override .text-gray-400 {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+
+  .contributor-dark-override .text-green-600 {
+    color: rgb(34, 197, 94) !important;
+  }
+
+  .contributor-dark-override .bg-green-50 {
+    background: rgba(34, 197, 94, 0.1) !important;
+  }
+
+  .contributor-dark-override .border-green-300 {
+    border-color: rgba(34, 197, 94, 0.3) !important;
+  }
+
+  .contributor-dark-override .bg-white {
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .contributor-dark-override .text-gray-900 {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  .contributor-dark-override .border-gray-200,
+  .contributor-dark-override .border-gray-300 {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .contributor-dark-override hr {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .contributor-dark-override .text-success {
+    color: rgb(34, 197, 94) !important;
+  }
+
+  .contributor-dark-override .text-destructive {
+    color: rgb(239, 68, 68) !important;
+  }
+
+  .contributor-dark-override .text-primary {
+    color: rgb(99, 179, 237) !important;
+  }
+
+  .contributor-dark-override [data-slot="content"] {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .contributor-dark-override .font-bold {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
   /* Scrollbar styling for horizontal scroll areas */
   .scrollbar-thin {
     scrollbar-width: thin;
