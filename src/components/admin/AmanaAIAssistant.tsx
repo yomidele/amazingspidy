@@ -1,25 +1,37 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, X, Mic, MicOff, Send, Loader2 } from "lucide-react";
+import { Bot, X, Mic, MicOff, Send, Loader2, Maximize2, Minimize2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 
 type Msg = { role: "user" | "assistant"; content: string };
+type ChatSize = "normal" | "large" | "fullscreen";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-ai-assistant`;
+
+const sizeClasses: Record<ChatSize, string> = {
+  normal: "fixed bottom-4 right-4 w-[360px] sm:w-[400px] h-[520px]",
+  large: "fixed bottom-4 right-4 w-[500px] sm:w-[600px] h-[680px]",
+  fullscreen: "fixed inset-4",
+};
 
 const AmanaAIAssistant = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [wakeWordActive, setWakeWordActive] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
   const [inputText, setInputText] = useState("");
+  const [chatSize, setChatSize] = useState<ChatSize>("normal");
+  const [wakeWordActive, setWakeWordActive] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const wakeRecognitionRef = useRef<any>(null);
+  const openRef = useRef(open);
+
+  useEffect(() => { openRef.current = open; }, [open]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,89 +39,73 @@ const AmanaAIAssistant = () => {
 
   useEffect(scrollToBottom, [messages]);
 
-  // Wake word listener - "Hi Amana"
+  // Wake word listener
   useEffect(() => {
     if (!wakeWordActive || open) return;
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
+    let recognition: any;
+    let shouldRestart = true;
 
-    recognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript.toLowerCase().trim();
-        if (transcript.includes("hi amana") || transcript.includes("hey amana") || transcript.includes("hello amana")) {
-          setOpen(true);
-          setMessages((prev) =>
-            prev.length === 0
-              ? [{ role: "assistant", content: "Hello Admin! 👋 I'm Amana, your AI assistant. How can I help you today? You can ask me to manage contributions, check loan applications, manage investors, or anything else on your dashboard." }]
-              : prev
-          );
-          recognition.stop();
-          break;
+    const createRecognition = () => {
+      recognition = new SR();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript.toLowerCase().trim();
+          if (
+            transcript.includes("hi amana") ||
+            transcript.includes("hey amana") ||
+            transcript.includes("hello amana") ||
+            transcript.includes("hi amanda") ||
+            transcript.includes("hey amanda")
+          ) {
+            shouldRestart = false;
+            recognition.stop();
+            setOpen(true);
+            setMessages((prev) =>
+              prev.length === 0
+                ? [{ role: "assistant", content: "Hello Admin! 👋 I'm **Amana**, your AI assistant. How can I help you today?" }]
+                : prev
+            );
+            break;
+          }
         }
-      }
+      };
+
+      recognition.onerror = (e: any) => {
+        if (e.error !== "no-speech" && e.error !== "aborted") {
+          console.log("Wake word error:", e.error);
+        }
+      };
+
+      recognition.onend = () => {
+        if (shouldRestart && !openRef.current) {
+          setTimeout(() => {
+            try { recognition.start(); } catch {}
+          }, 300);
+        }
+      };
+
+      return recognition;
     };
 
-    recognition.onerror = (e: any) => {
-      if (e.error !== "no-speech" && e.error !== "aborted") {
-        console.log("Wake word error:", e.error);
-      }
-    };
-
-    recognition.onend = () => {
-      if (wakeWordActive && !open) {
-        try { recognition.start(); } catch {}
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch {}
-
+    recognition = createRecognition();
+    try { recognition.start(); } catch {}
     wakeRecognitionRef.current = recognition;
 
     return () => {
+      shouldRestart = false;
       try { recognition.stop(); } catch {}
     };
   }, [wakeWordActive, open]);
 
-  const startVoiceInput = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error("Speech recognition not supported in this browser");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = "en-US";
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setIsListening(false);
-      sendMessage(transcript);
-    };
-
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
-
-    recognition.start();
-    setIsListening(true);
-    recognitionRef.current = recognition;
-  }, []);
-
-  const stopVoiceInput = () => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  };
-
-  const sendMessage = async (text: string) => {
+  const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
     setInputText("");
 
@@ -182,13 +178,12 @@ const AmanaAIAssistant = () => {
         }
       }
 
-      // Check if response contains an action block
+      // Execute action blocks
       if (assistantSoFar.includes("```action")) {
         const actionMatch = assistantSoFar.match(/```action\s*([\s\S]*?)```/);
         if (actionMatch) {
           try {
             const action = JSON.parse(actionMatch[1].trim());
-            // Execute the action
             const { data: { session: s } } = await supabase.auth.getSession();
             const actionResp = await fetch(CHAT_URL, {
               method: "POST",
@@ -222,11 +217,83 @@ const AmanaAIAssistant = () => {
     } finally {
       setIsLoading(false);
     }
+  }, [messages, isLoading]);
+
+  // Voice recording - converts speech to text in the input field
+  const startVoiceRecording = useCallback(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+
+    const recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = "";
+      let interimTranscript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      setInputText(finalTranscript || interimTranscript);
+    };
+
+    recognition.onerror = (e: any) => {
+      console.error("Voice input error:", e.error);
+      if (e.error === "not-allowed") {
+        toast.error("Microphone permission denied. Please allow microphone access.");
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      // Auto-send if we got text
+      setInputText((current) => {
+        if (current.trim()) {
+          setTimeout(() => {
+            const input = document.getElementById("amana-input") as HTMLInputElement;
+            if (input?.value.trim()) {
+              sendMessage(input.value);
+            }
+          }, 100);
+        }
+        return current;
+      });
+    };
+
+    try {
+      recognition.start();
+      setIsRecording(true);
+      recognitionRef.current = recognition;
+    } catch (e: any) {
+      toast.error("Could not start microphone. Check browser permissions.");
+    }
+  }, [sendMessage]);
+
+  const stopVoiceRecording = () => {
+    recognitionRef.current?.stop();
+    setIsRecording(false);
+  };
+
+  const cycleSize = () => {
+    setChatSize((prev) => {
+      if (prev === "normal") return "large";
+      if (prev === "large") return "fullscreen";
+      return "normal";
+    });
   };
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating trigger button */}
       <AnimatePresence>
         {!open && (
           <motion.button
@@ -238,7 +305,7 @@ const AmanaAIAssistant = () => {
               if (messages.length === 0) {
                 setMessages([{
                   role: "assistant",
-                  content: "Hello Admin! 👋 I'm **Amana**, your AI assistant. I can help you manage contributions, loans, investors, and more. Just ask me or use the microphone! You can also say **\"Hi Amana\"** anytime to summon me.",
+                  content: "Hello Admin! 👋 I'm **Amana**, your AI assistant. I can help you manage contributions, loans, investors, and more. Just ask me or tap the 🎤 to speak! You can also say **\"Hi Amana\"** anytime to summon me.",
                 }]);
               }
             }}
@@ -259,25 +326,46 @@ const AmanaAIAssistant = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[400px] h-[520px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className={`z-50 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden ${sizeClasses[chatSize]}`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground">
+            <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Bot className="w-5 h-5" />
                 <div>
                   <h3 className="font-semibold text-sm">Amana AI Assistant</h3>
-                  <p className="text-xs opacity-80">Your admin helper</p>
+                  <p className="text-xs opacity-80">
+                    {isRecording ? "🎤 Listening..." : "Your admin helper"}
+                  </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-primary-foreground hover:bg-white/20"
-                onClick={() => setOpen(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {/* Resize button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-primary-foreground hover:bg-white/20"
+                  onClick={cycleSize}
+                  title={chatSize === "fullscreen" ? "Minimize" : chatSize === "large" ? "Full screen" : "Enlarge"}
+                >
+                  {chatSize === "fullscreen" ? (
+                    <Minimize2 className="w-4 h-4" />
+                  ) : chatSize === "large" ? (
+                    <Maximize2 className="w-4 h-4" />
+                  ) : (
+                    <Square className="w-3.5 h-3.5" />
+                  )}
+                </Button>
+                {/* Close button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-primary-foreground hover:bg-white/20"
+                  onClick={() => { setOpen(false); setChatSize("normal"); }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -312,26 +400,28 @@ const AmanaAIAssistant = () => {
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-border">
+            <div className="p-3 border-t border-border flex-shrink-0">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={isListening ? stopVoiceInput : startVoiceInput}
+                  onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
                   className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                    isListening
+                    isRecording
                       ? "bg-destructive text-white animate-pulse"
                       : "bg-muted text-muted-foreground hover:bg-accent"
                   }`}
+                  title={isRecording ? "Stop recording" : "Record voice command"}
                 >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 </button>
                 <input
+                  id="amana-input"
                   type="text"
-                  placeholder={isListening ? "Listening..." : "Type or use mic..."}
+                  placeholder={isRecording ? "🎤 Listening... speak now" : "Type or tap mic to speak..."}
                   className="flex-1 bg-muted rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage(inputText)}
-                  disabled={isListening}
+                  disabled={isRecording}
                 />
                 <Button
                   size="icon"
@@ -342,9 +432,9 @@ const AmanaAIAssistant = () => {
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
-              {isListening && (
+              {isRecording && (
                 <p className="text-xs text-center text-destructive mt-2 animate-pulse">
-                  🎤 Listening... speak your command
+                  🎤 Recording... tap mic again to stop & send
                 </p>
               )}
             </div>
