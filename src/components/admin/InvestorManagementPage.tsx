@@ -319,7 +319,7 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
         <>
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            <Button variant="investor" onClick={() => setPromoteOpen(true)}>
+            <Button variant="investor" onClick={() => { setPromoteMode("choose"); setPromoteOpen(true); }}>
               <ShieldCheck className="w-4 h-4 mr-2" /> Activate Investor Role
             </Button>
             <Button variant="outline" onClick={openAddInvestment}>
