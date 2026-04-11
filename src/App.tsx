@@ -15,6 +15,7 @@ import InvestorDashboard from "./pages/dashboard/InvestorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManualPage from "./pages/admin/AdminManualPage";
 import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
+import InvestorInfoPage from "./pages/InvestorInfoPage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,9 @@ const App = () => (
           
           {/* Teemah Travels Page */}
           <Route path="/teemah-travels" element={<TeemahTravelsPage />} />
+          
+          {/* Investor Info Page */}
+          <Route path="/become-investor" element={<InvestorInfoPage />} />
           
           {/* Auth Routes */}
           <Route path="/login/contribution" element={<ContributionLogin />} />

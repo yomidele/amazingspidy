@@ -42,6 +42,7 @@ import TravelDashboardContent from "@/components/admin/travel/TravelDashboardCon
 import UserActivityPage from "@/components/admin/UserActivityPage";
 import InvestorManagementPage from "@/components/admin/InvestorManagementPage";
 import LoanRequestReview from "@/components/admin/LoanRequestReview";
+import InvestorRequestsPage from "@/components/admin/InvestorRequestsPage";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -179,6 +180,7 @@ const AdminDashboardContent = () => {
     { icon: LayoutDashboard, label: "Dashboard", page: "investor-dashboard", tooltip: "Investor management overview" },
     { icon: TrendingUp, label: "Investors", page: "investor-management", tooltip: "Manage investors and investments" },
     { icon: Receipt, label: "Payments", page: "investor-payments", tooltip: "Record payments to investors" },
+    { icon: Users, label: "Applications", page: "investor-requests", tooltip: "Review investor applications" },
     { icon: Settings, label: "Settings", page: "investor-settings", tooltip: tooltipContent.settings },
   ];
 
@@ -242,6 +244,8 @@ const AdminDashboardContent = () => {
           return <InvestorManagementPage triggerAddInvestor={triggerAddInvestor} onAddInvestorHandled={() => setTriggerAddInvestor(false)} />;
         case "investor-payments":
           return <InvestorManagementPage initialTab="payments" />;
+        case "investor-requests":
+          return <InvestorRequestsPage />;
         case "investor-settings":
           return (
             <AdminSettingsPage

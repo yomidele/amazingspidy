@@ -104,9 +104,9 @@ const Header = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/login/admin")}
+              onClick={() => navigate("/become-investor")}
             >
-              Admin
+              Become an Investor
             </Button>
             <Button
               variant="contribution"
@@ -182,11 +182,11 @@ const Header = () => {
                     variant="outline"
                     className="w-full"
                     onClick={() => {
-                      navigate("/login/admin");
+                      navigate("/become-investor");
                       setMobileMenuOpen(false);
                     }}
                   >
-                    Admin Login
+                    Become an Investor
                   </Button>
                   <Button
                     variant="contribution"
