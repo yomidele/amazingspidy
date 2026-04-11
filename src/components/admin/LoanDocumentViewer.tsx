@@ -270,7 +270,15 @@ const LoanDocumentViewer = ({ loanRequest, onBack }: LoanDocumentViewerProps) =>
         pdf.text("✓ APPROVED BY ADMINISTRATOR", pw / 2, y + 9, { align: "center" });
       }
 
-      pdf.save(`loan-agreement-${loanRequest.borrower_name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+      const pdfBlob = pdf.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `loan-agreement-${loanRequest.borrower_name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again.");
