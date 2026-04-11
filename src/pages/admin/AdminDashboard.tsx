@@ -53,6 +53,7 @@ const AdminDashboardContent = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [triggerAddInvestor, setTriggerAddInvestor] = useState(false);
 
   const { tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial } = useTutorial();
   const location = useLocation();
@@ -238,7 +239,7 @@ const AdminDashboardContent = () => {
     } else {
       switch (activePage) {
         case "investor-management":
-          return <InvestorManagementPage />;
+          return <InvestorManagementPage triggerAddInvestor={triggerAddInvestor} onAddInvestorHandled={() => setTriggerAddInvestor(false)} />;
         case "investor-payments":
           return <InvestorManagementPage initialTab="payments" />;
         case "investor-settings":
@@ -250,7 +251,7 @@ const AdminDashboardContent = () => {
           );
         case "investor-dashboard":
         default:
-          return <InvestorManagementPage initialTab="overview" />;
+          return <InvestorManagementPage initialTab="overview" triggerAddInvestor={triggerAddInvestor} onAddInvestorHandled={() => setTriggerAddInvestor(false)} />;
       }
     }
   };
@@ -437,7 +438,8 @@ const AdminDashboardContent = () => {
                       className="whitespace-nowrap"
                       onClick={() => {
                         if (activeModule === "investor") {
-                          setActivePage("investor-management");
+                          setActivePage("investor-dashboard");
+                          setTriggerAddInvestor(true);
                         } else if (activeModule === "contribution") {
                           setActivePage("members");
                         } else {

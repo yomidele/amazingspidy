@@ -45,9 +45,11 @@ interface InvestorPayment {
 
 interface Props {
   initialTab?: "overview" | "payments";
+  triggerAddInvestor?: boolean;
+  onAddInvestorHandled?: () => void;
 }
 
-const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
+const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, onAddInvestorHandled }: Props) => {
   const [investors, setInvestors] = useState<Investor[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [payments, setPayments] = useState<InvestorPayment[]>([]);
@@ -62,6 +64,15 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
   const [nonInvestorUsers, setNonInvestorUsers] = useState<{ user_id: string; full_name: string | null; email: string | null }[]>([]);
   const [selectedPromoteUser, setSelectedPromoteUser] = useState("");
   const [newInvestorForm, setNewInvestorForm] = useState({ fullName: "", email: "", password: "", phone: "" });
+
+  // Handle external trigger to open add investor dialog
+  useEffect(() => {
+    if (triggerAddInvestor) {
+      setPromoteMode("choose");
+      setPromoteOpen(true);
+      onAddInvestorHandled?.();
+    }
+  }, [triggerAddInvestor]);
 
   // Investment dialog
   const [investmentOpen, setInvestmentOpen] = useState(false);
