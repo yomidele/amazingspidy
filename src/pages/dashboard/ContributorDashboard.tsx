@@ -17,6 +17,7 @@ import GuarantorRequests from "@/components/dashboard/GuarantorRequests";
 import RepaymentSchedule from "@/components/dashboard/RepaymentSchedule";
 import ContributorCharts from "@/components/dashboard/ContributorCharts";
 import ContributorInsights from "@/components/dashboard/ContributorInsights";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 interface BeneficiaryInfo {
   name: string;
@@ -237,9 +238,12 @@ const ContributorDashboard = () => {
             <span className="font-semibold text-sm">Contributor</span>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleLogout} className="text-white/70 hover:text-white hover:bg-white/10">
-          <LogOut className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {user && <NotificationBell userId={user.id} variant="glass" />}
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-white/70 hover:text-white hover:bg-white/10">
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
       </header>
 
       <div className="flex">

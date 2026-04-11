@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import LiveReviews from "@/components/travel/LiveReviews";
 import { format } from "date-fns";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 interface UserCase {
   id: string;
