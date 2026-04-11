@@ -57,9 +57,11 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
 
   // Promote user dialog
   const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoteMode, setPromoteMode] = useState<"choose" | "existing" | "new">("choose");
   const [promoteLoading, setPromoteLoading] = useState(false);
   const [nonInvestorUsers, setNonInvestorUsers] = useState<{ user_id: string; full_name: string | null; email: string | null }[]>([]);
   const [selectedPromoteUser, setSelectedPromoteUser] = useState("");
+  const [newInvestorForm, setNewInvestorForm] = useState({ fullName: "", email: "", password: "", phone: "" });
 
   // Investment dialog
   const [investmentOpen, setInvestmentOpen] = useState(false);
