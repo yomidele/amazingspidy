@@ -57,6 +57,98 @@ interface LoanRequest {
 const MIN_PAID_MONTHS = 3;
 const LOAN_MULTIPLIER = 2;
 
+// Sub-component for each loan request with signing capability
+const LoanRequestItem = ({
+  request,
+  userId,
+  getStatusBadge,
+  onSignComplete,
+}: {
+  request: LoanRequest;
+  userId: string;
+  getStatusBadge: (status: string) => React.ReactNode;
+  onSignComplete: () => void;
+}) => {
+  const [showSign, setShowSign] = useState(false);
+  const [hasSigned, setHasSigned] = useState<boolean | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    checkSignature();
+  }, [request.id]);
+
+  const checkSignature = async () => {
+    const { data } = await supabase
+      .from("loan_signatures")
+      .select("id")
+      .eq("loan_request_id", request.id)
+      .eq("signer_role", "borrower");
+    setHasSigned(data && data.length > 0);
+  };
+
+  const handleSign = async () => {
+    if (!signature) {
+      toast.error("Please draw your signature first");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("loan_signatures").insert({
+        loan_request_id: request.id,
+        signer_id: userId,
+        signer_role: "borrower",
+        signature_data: signature,
+      });
+      if (error) throw error;
+      toast.success("Signature saved successfully!");
+      setHasSigned(true);
+      setShowSign(false);
+      onSignComplete();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save signature");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const needsSignature = hasSigned === false && ["awaiting_guarantor", "pending_admin", "approved"].includes(request.status);
+
+  return (
+    <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">£{request.amount.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">
+            {new Date(request.created_at).toLocaleDateString()} • {request.purpose}
+          </p>
+        </div>
+        {getStatusBadge(request.status)}
+      </div>
+      {needsSignature && !showSign && (
+        <Button size="sm" variant="outline" className="w-full text-xs border-destructive/50 text-destructive" onClick={() => setShowSign(true)}>
+          ⚠️ Sign Loan Document
+        </Button>
+      )}
+      {showSign && (
+        <div className="space-y-2 pt-2 border-t">
+          <SignaturePad
+            label="Your Signature (Borrower)"
+            onSave={(data) => setSignature(data)}
+            existingSignature={signature}
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleSign} disabled={!signature || saving}>
+              {saving ? "Saving..." : "Submit Signature"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowSign(false)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
   const [eligibility, setEligibility] = useState<EligibilityResult | null>(null);
   const [loading, setLoading] = useState(true);
