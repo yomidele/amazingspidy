@@ -392,17 +392,17 @@ const AdminDashboardContent = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0 p-4 lg:p-8 pt-20 lg:pt-8 overflow-x-auto">
+        <main className="flex-1 min-w-0 px-3 py-4 sm:p-4 lg:p-8 pt-20 lg:pt-8 overflow-x-hidden">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`${activeModule}-${activePage}`}
-            className="max-w-7xl mx-auto min-w-[320px]"
+            className="max-w-7xl mx-auto"
           >
             {/* Header */}
-            <div className="flex flex-col gap-4 mb-6 lg:mb-8">
+            <div className="flex flex-col gap-3 mb-4 lg:mb-8">
               <div className="min-w-0">
-                <h1 className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 truncate">
+                <h1 className="font-heading text-lg sm:text-2xl lg:text-3xl font-bold text-foreground mb-0.5 truncate">
                   {activePage === "dashboard" ? "Admin Dashboard" : 
                    activePage === "contributions" ? "Monthly Contributions" :
                    activePage === "reviews" ? "Client Reviews" :
@@ -410,56 +410,54 @@ const AdminDashboardContent = () => {
                    activePage === "user-detail" ? "User Activity" :
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
-                <p className="text-sm text-muted-foreground truncate">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
                   Manage your {activeModule === "contribution" ? "Amana Market Contribution" : activeModule === "investor" ? "investor accounts and investments" : "Teemah Travels services"}
                 </p>
               </div>
               
-              {/* Action buttons - horizontally scrollable on mobile */}
-              <div className="overflow-x-auto pb-2 -mb-2 scrollbar-thin">
-                <div className="flex items-center gap-2 min-w-max">
-                  {activeModule === "contribution" && (
-                    <>
-                      <AdminTooltip content={tooltipContent.restartTutorial}>
-                        <Button variant="outline" size="sm" className="whitespace-nowrap" onClick={() => setTutorialOpen(true)}>
-                          <HelpCircle className="w-4 h-4 mr-2" />
-                          Tutorial
-                        </Button>
-                      </AdminTooltip>
-                      <AdminTooltip content={tooltipContent.openAdminManual}>
-                        <Button variant="outline" size="sm" onClick={() => navigate("/admin/manual")} className="whitespace-nowrap">
-                          <BookOpen className="w-4 h-4 mr-2" />
-                          Manual
-                        </Button>
-                      </AdminTooltip>
-                    </>
-                  )}
-                  <AdminTooltip content={tooltipContent.notifications}>
-                    <Button variant="outline" size="sm" className="whitespace-nowrap">
-                      <Bell className="w-4 h-4 mr-2" />
-                      Alerts{unreadAlerts > 0 ? ` (${unreadAlerts})` : ""}
-                    </Button>
-                  </AdminTooltip>
-                  <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : activeModule === "investor" ? "Add a new investor" : "Add a new travel client"}>
-                    <Button
-                      variant={activeModule === "contribution" ? "contribution" : activeModule === "investor" ? "investor" : "travel"}
-                      size="sm"
-                      className="whitespace-nowrap"
-                      onClick={() => {
-                        if (activeModule === "investor") {
-                          setActivePage("investor-dashboard");
-                          setTriggerAddInvestor(true);
-                        } else if (activeModule === "contribution") {
-                          setActivePage("members");
-                        } else {
-                          setActivePage("travel-clients");
-                        }
-                      }}
-                    >
-                      + Add {activeModule === "contribution" ? "Member" : activeModule === "investor" ? "Investor" : "Client"}
-                    </Button>
-                  </AdminTooltip>
-                </div>
+              {/* Action buttons - wrapping on mobile */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {activeModule === "contribution" && (
+                  <>
+                    <AdminTooltip content={tooltipContent.restartTutorial}>
+                      <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm px-2.5 sm:px-3" onClick={() => setTutorialOpen(true)}>
+                        <HelpCircle className="w-3.5 h-3.5 mr-1.5" />
+                        Tutorial
+                      </Button>
+                    </AdminTooltip>
+                    <AdminTooltip content={tooltipContent.openAdminManual}>
+                      <Button variant="outline" size="sm" onClick={() => navigate("/admin/manual")} className="h-8 text-xs sm:text-sm px-2.5 sm:px-3">
+                        <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                        Manual
+                      </Button>
+                    </AdminTooltip>
+                  </>
+                )}
+                <AdminTooltip content={tooltipContent.notifications}>
+                  <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm px-2.5 sm:px-3">
+                    <Bell className="w-3.5 h-3.5 mr-1.5" />
+                    Alerts{unreadAlerts > 0 ? ` (${unreadAlerts})` : ""}
+                  </Button>
+                </AdminTooltip>
+                <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : activeModule === "investor" ? "Add a new investor" : "Add a new travel client"}>
+                  <Button
+                    variant={activeModule === "contribution" ? "contribution" : activeModule === "investor" ? "investor" : "travel"}
+                    size="sm"
+                    className="h-8 text-xs sm:text-sm px-2.5 sm:px-3"
+                    onClick={() => {
+                      if (activeModule === "investor") {
+                        setActivePage("investor-dashboard");
+                        setTriggerAddInvestor(true);
+                      } else if (activeModule === "contribution") {
+                        setActivePage("members");
+                      } else {
+                        setActivePage("travel-clients");
+                      }
+                    }}
+                  >
+                    + Add {activeModule === "contribution" ? "Member" : activeModule === "investor" ? "Investor" : "Client"}
+                  </Button>
+                </AdminTooltip>
               </div>
             </div>
 
