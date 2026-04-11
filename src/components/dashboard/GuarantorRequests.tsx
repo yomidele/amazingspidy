@@ -284,6 +284,21 @@ const GuarantorRequestItem = ({
         signature_data: lateSignature,
       });
       if (error) throw error;
+
+      // Check if borrower has also signed, if so update to pending_admin
+      const { data: bSig } = await supabase
+        .from("loan_signatures")
+        .select("id")
+        .eq("loan_request_id", req.loan_request_id)
+        .eq("signer_role", "borrower");
+
+      if (bSig && bSig.length > 0 && req.loan_status === "awaiting_guarantor") {
+        await supabase
+          .from("loan_requests")
+          .update({ status: "pending_admin" })
+          .eq("id", req.loan_request_id);
+      }
+
       toast.success("Signature saved successfully!");
       setHasSigned(true);
       setShowLateSign(false);
