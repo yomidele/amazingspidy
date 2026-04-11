@@ -10,6 +10,10 @@ import {
   FileCheck,
   MessageSquare,
   ArrowRight,
+  TrendingUp,
+  ShieldCheck,
+  PiggyBank,
+  Percent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
