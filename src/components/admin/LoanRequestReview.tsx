@@ -372,7 +372,16 @@ const LoanRequestReview = () => {
                     {req.guarantor_status === "approved" && <CheckCircle className="w-3 h-3 text-success" />}
                     {req.guarantor_status === "rejected" && <XCircle className="w-3 h-3 text-destructive" />}
                   </div>
-                  <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-2">
+                    <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                    <button
+                      className="p-1 rounded hover:bg-destructive/10 text-destructive"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(req); }}
+                      title="Delete request"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
