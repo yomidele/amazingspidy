@@ -43,6 +43,7 @@ import UserActivityPage from "@/components/admin/UserActivityPage";
 import InvestorManagementPage from "@/components/admin/InvestorManagementPage";
 import LoanRequestReview from "@/components/admin/LoanRequestReview";
 import InvestorRequestsPage from "@/components/admin/InvestorRequestsPage";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -275,11 +276,14 @@ const AdminDashboardContent = () => {
             <span className="font-semibold">Admin</span>
           </div>
         </div>
-        <AdminTooltip content={tooltipContent.logout}>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </AdminTooltip>
+        <div className="flex items-center gap-2">
+          {user && <NotificationBell userId={user.id} variant="light" />}
+          <AdminTooltip content={tooltipContent.logout}>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </AdminTooltip>
+        </div>
       </header>
 
       <div className="flex">
