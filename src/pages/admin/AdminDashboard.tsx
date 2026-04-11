@@ -438,7 +438,8 @@ const AdminDashboardContent = () => {
                       className="whitespace-nowrap"
                       onClick={() => {
                         if (activeModule === "investor") {
-                          setActivePage("investor-management");
+                          setActivePage("investor-dashboard");
+                          setTriggerAddInvestor(true);
                         } else if (activeModule === "contribution") {
                           setActivePage("members");
                         } else {
