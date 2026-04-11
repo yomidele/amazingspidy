@@ -40,7 +40,11 @@ interface OutstandingLoan {
   status: string;
 }
 
-const ContributionDashboardContent = () => {
+interface ContributionDashboardContentProps {
+  onNavigate?: (page: string) => void;
+}
+
+const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardContentProps) => {
   const [stats, setStats] = useState<DashboardStats>({
     totalMembers: 0, monthlyContributions: 0, outstandingLoans: 0, overdueLoans: 0,
     currentBeneficiary: null, currentMonth: format(new Date(), "MMM yyyy"),
