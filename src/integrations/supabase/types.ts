@@ -478,6 +478,44 @@ export type Database = {
         }
         Relationships: []
       }
+      loan_signatures: {
+        Row: {
+          created_at: string
+          id: string
+          loan_request_id: string
+          signature_data: string
+          signed_at: string
+          signer_id: string
+          signer_role: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          loan_request_id: string
+          signature_data: string
+          signed_at?: string
+          signer_id: string
+          signer_role: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          loan_request_id?: string
+          signature_data?: string
+          signed_at?: string
+          signer_id?: string
+          signer_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_signatures_loan_request_id_fkey"
+            columns: ["loan_request_id"]
+            isOneToOne: false
+            referencedRelation: "loan_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loans: {
         Row: {
           created_at: string
