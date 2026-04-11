@@ -239,7 +239,7 @@ const AdminDashboardContent = () => {
     } else {
       switch (activePage) {
         case "investor-management":
-          return <InvestorManagementPage />;
+          return <InvestorManagementPage triggerAddInvestor={triggerAddInvestor} onAddInvestorHandled={() => setTriggerAddInvestor(false)} />;
         case "investor-payments":
           return <InvestorManagementPage initialTab="payments" />;
         case "investor-settings":
@@ -251,7 +251,7 @@ const AdminDashboardContent = () => {
           );
         case "investor-dashboard":
         default:
-          return <InvestorManagementPage initialTab="overview" />;
+          return <InvestorManagementPage initialTab="overview" triggerAddInvestor={triggerAddInvestor} onAddInvestorHandled={() => setTriggerAddInvestor(false)} />;
       }
     }
   };
