@@ -410,15 +410,13 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Your Requests</h4>
             {myRequests.map((req) => (
-              <div key={req.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div>
-                  <p className="text-sm font-medium">£{req.amount.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(req.created_at).toLocaleDateString()} • {req.purpose}
-                  </p>
-                </div>
-                {getStatusBadge(req.status)}
-              </div>
+              <LoanRequestItem
+                key={req.id}
+                request={req}
+                userId={userId}
+                getStatusBadge={getStatusBadge}
+                onSignComplete={() => fetchMyRequests()}
+              />
             ))}
           </div>
         )}
