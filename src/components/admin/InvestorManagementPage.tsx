@@ -65,6 +65,15 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
   const [selectedPromoteUser, setSelectedPromoteUser] = useState("");
   const [newInvestorForm, setNewInvestorForm] = useState({ fullName: "", email: "", password: "", phone: "" });
 
+  // Handle external trigger to open add investor dialog
+  useEffect(() => {
+    if (triggerAddInvestor) {
+      setPromoteMode("choose");
+      setPromoteOpen(true);
+      onAddInvestorHandled?.();
+    }
+  }, [triggerAddInvestor]);
+
   // Investment dialog
   const [investmentOpen, setInvestmentOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
