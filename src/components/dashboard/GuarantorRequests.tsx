@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Shield, CheckCircle, XCircle } from "lucide-react";
 import SignaturePad from "@/components/shared/SignaturePad";
+import LoanDocumentViewer from "@/components/admin/LoanDocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,10 +17,15 @@ interface GuarantorRequest {
   id: string;
   status: string;
   loan_request_id: string;
+  borrower_id: string;
   borrower_name: string;
+  guarantor_name: string;
   amount: number;
   purpose: string | null;
   duration_months: number;
+  group_id: string;
+  group_name: string;
+  loan_status: string;
   created_at: string;
 }
 
@@ -29,6 +35,7 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [responseNote, setResponseNote] = useState("");
   const [guarantorSignature, setGuarantorSignature] = useState<string | null>(null);
+  const [viewingDocument, setViewingDocument] = useState<GuarantorRequest | null>(null);
 
   useEffect(() => {
     if (userId) fetchRequests();
@@ -49,11 +56,18 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
         return;
       }
 
+      // Fetch guarantor's own name
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", userId)
+        .maybeSingle();
+
       const enriched: GuarantorRequest[] = [];
       for (const rec of guarantorRecords) {
         const { data: loanReq } = await supabase
           .from("loan_requests")
-          .select("borrower_id, amount, purpose, duration_months")
+          .select("borrower_id, amount, purpose, duration_months, group_id, status")
           .eq("id", rec.loan_request_id)
           .maybeSingle();
 
@@ -65,14 +79,26 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
           .eq("user_id", loanReq.borrower_id)
           .maybeSingle();
 
+        // Fetch group name
+        const { data: group } = await supabase
+          .from("contribution_groups")
+          .select("name")
+          .eq("id", loanReq.group_id)
+          .maybeSingle();
+
         enriched.push({
           id: rec.id,
           status: rec.status,
           loan_request_id: rec.loan_request_id,
-          borrower_name: profile?.full_name || "Unknown",
+          borrower_id: loanReq.borrower_id,
+          borrower_name: profile?.full_name || "Unknown Member",
+          guarantor_name: myProfile?.full_name || "Unknown",
           amount: Number(loanReq.amount),
           purpose: loanReq.purpose,
           duration_months: loanReq.duration_months,
+          group_id: loanReq.group_id,
+          group_name: group?.name || "Contribution Group",
+          loan_status: loanReq.status,
           created_at: rec.created_at,
         });
       }
@@ -104,7 +130,6 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
       if (gError) throw gError;
 
       if (approve) {
-        // Save guarantor signature
         await supabase.from("loan_signatures" as any).insert({
           loan_request_id: loanRequestId,
           signer_id: userId,
@@ -148,6 +173,28 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
 
   if (requests.length === 0) return null;
 
+  // Show document viewer if a request is selected
+  if (viewingDocument) {
+    return (
+      <LoanDocumentViewer
+        loanRequest={{
+          id: viewingDocument.loan_request_id,
+          borrower_id: viewingDocument.borrower_id,
+          borrower_name: viewingDocument.borrower_name,
+          guarantor_name: viewingDocument.guarantor_name,
+          guarantor_id: userId,
+          amount: viewingDocument.amount,
+          duration_months: viewingDocument.duration_months,
+          purpose: viewingDocument.purpose,
+          group_name: viewingDocument.group_name,
+          status: viewingDocument.loan_status,
+          created_at: viewingDocument.created_at,
+        }}
+        onBack={() => setViewingDocument(null)}
+      />
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -170,6 +217,7 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
             setGuarantorSignature={setGuarantorSignature}
             handleRespond={handleRespond}
             fetchRequests={fetchRequests}
+            onViewDocument={() => setViewingDocument(req)}
           />
         ))}
       </CardContent>
@@ -177,7 +225,6 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
   );
 };
 
-// Sub-component for each guarantor request with late-signing capability
 const GuarantorRequestItem = ({
   req,
   userId,
@@ -189,6 +236,7 @@ const GuarantorRequestItem = ({
   setGuarantorSignature,
   handleRespond,
   fetchRequests,
+  onViewDocument,
 }: {
   req: GuarantorRequest;
   userId: string;
@@ -200,6 +248,7 @@ const GuarantorRequestItem = ({
   setGuarantorSignature: (sig: string | null) => void;
   handleRespond: (requestId: string, loanRequestId: string, approve: boolean) => void;
   fetchRequests: () => void;
+  onViewDocument: () => void;
 }) => {
   const [hasSigned, setHasSigned] = useState<boolean | null>(null);
   const [showLateSign, setShowLateSign] = useState(false);
@@ -250,20 +299,23 @@ const GuarantorRequestItem = ({
 
   return (
     <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
-      <div className="flex items-center justify-between">
+      <div
+        className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={onViewDocument}
+      >
         <div>
           <p className="font-semibold">{req.borrower_name}</p>
           <p className="text-sm text-muted-foreground">
             £{req.amount.toLocaleString()} • {req.duration_months} months
           </p>
           {req.purpose && <p className="text-sm mt-1">{req.purpose}</p>}
+          <p className="text-xs text-primary mt-1">Tap to view loan document →</p>
         </div>
         <Badge variant={req.status === "pending" ? "default" : req.status === "approved" ? "outline" : "destructive"}>
           {req.status}
         </Badge>
       </div>
 
-      {/* Late signing for approved requests without signature */}
       {needsLateSignature && !showLateSign && (
         <Button size="sm" variant="outline" className="w-full text-xs border-destructive/50 text-destructive" onClick={() => setShowLateSign(true)}>
           ⚠️ Sign Loan Document (Required)
