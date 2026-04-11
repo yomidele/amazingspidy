@@ -1,20 +1,19 @@
 import { useState, useEffect } from "react";
-import { FileCheck, CheckCircle, XCircle, Users } from "lucide-react";
+import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck } from "lucide-react";
 import LoanAgreement from "@/components/dashboard/LoanAgreement";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logActivity, sendNotification, checkLiquidity, type LiquidityCheck } from "@/lib/activityLogger";
 
 interface LoanRequestRow {
   id: string;
@@ -37,74 +36,58 @@ const LoanRequestReview = () => {
   const [loading, setLoading] = useState(true);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
+  const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
+    open: false, request: null, check: null,
+  });
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  useEffect(() => { fetchRequests(); }, []);
 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const { data: loanRequests } = await supabase
-        .from("loan_requests")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [loanRes, profilesRes, groupsRes] = await Promise.all([
+        supabase.from("loan_requests").select("*").order("created_at", { ascending: false }),
+        supabase.from("profiles").select("user_id, full_name"),
+        supabase.from("contribution_groups").select("id, name"),
+      ]);
 
-      if (!loanRequests) {
-        setRequests([]);
-        return;
+      if (!loanRes.data) { setRequests([]); return; }
+
+      const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p.full_name || "Unknown"]));
+      const groupMap = new Map((groupsRes.data || []).map((g) => [g.id, g.name]));
+
+      // Fetch all guarantors in one query
+      const requestIds = loanRes.data.map((r) => r.id);
+      const { data: allGuarantors } = await supabase
+        .from("loan_guarantors")
+        .select("loan_request_id, guarantor_id, status")
+        .in("loan_request_id", requestIds);
+
+      const guarantorMap = new Map<string, { guarantor_id: string; status: string }>();
+      for (const g of allGuarantors || []) {
+        if (!guarantorMap.has(g.loan_request_id)) {
+          guarantorMap.set(g.loan_request_id, { guarantor_id: g.guarantor_id, status: g.status });
+        }
       }
 
-      const enriched: LoanRequestRow[] = [];
-      for (const lr of loanRequests) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("user_id", lr.borrower_id)
-          .maybeSingle();
-
-        const { data: group } = await supabase
-          .from("contribution_groups")
-          .select("name")
-          .eq("id", lr.group_id)
-          .maybeSingle();
-
-        const { data: guarantors } = await supabase
-          .from("loan_guarantors")
-          .select("guarantor_id, status")
-          .eq("loan_request_id", lr.id);
-
-        let guarantorName = "None";
-        let guarantorStatus = "none";
-        let guarantorId = "";
-        if (guarantors && guarantors.length > 0) {
-          const g = guarantors[0];
-          guarantorStatus = g.status;
-          guarantorId = g.guarantor_id;
-          const { data: gProfile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", g.guarantor_id)
-            .maybeSingle();
-          guarantorName = gProfile?.full_name || "Unknown";
-        }
-
-        enriched.push({
+      const enriched: LoanRequestRow[] = loanRes.data.map((lr) => {
+        const g = guarantorMap.get(lr.id);
+        return {
           id: lr.id,
           borrower_id: lr.borrower_id,
-          borrower_name: profile?.full_name || "Unknown",
-          group_name: group?.name || "Unknown",
+          borrower_name: profileMap.get(lr.borrower_id) || "Unknown",
+          group_name: groupMap.get(lr.group_id) || "Unknown",
           amount: Number(lr.amount),
           duration_months: lr.duration_months,
           purpose: lr.purpose,
           status: lr.status,
-          guarantor_name: guarantorName,
-          guarantor_id: guarantorId,
-          guarantor_status: guarantorStatus,
+          guarantor_name: g ? (profileMap.get(g.guarantor_id) || "Unknown") : "None",
+          guarantor_id: g?.guarantor_id || "",
+          guarantor_status: g?.status || "none",
           created_at: lr.created_at,
           group_id: lr.group_id,
-        });
-      }
+        };
+      });
 
       setRequests(enriched);
     } catch (error) {
@@ -138,63 +121,100 @@ const LoanRequestReview = () => {
     if (error) throw error;
   };
 
-  const logActivity = async (action: string, description: string, entityType: string, entityId: string) => {
-    await supabase.from("activity_logs").insert({
-      user_id: null,
-      action,
-      description,
-      entity_type: entityType,
-      entity_id: entityId,
-    });
+  const handleApproveClick = async (request: LoanRequestRow) => {
+    // Check liquidity before approving
+    const check = await checkLiquidity(request.amount);
+    if (!check.canApproveLoan) {
+      setLiquidityDialog({ open: true, request, check });
+      return;
+    }
+    await executeApproval(request);
   };
 
-  const handleDecision = async (request: LoanRequestRow, approve: boolean) => {
+  const executeApproval = async (request: LoanRequestRow) => {
     setProcessing(request.id);
+    setLiquidityDialog({ open: false, request: null, check: null });
     try {
       const { error: updateError } = await supabase
         .from("loan_requests")
-        .update({
-          status: approve ? "approved" : "rejected",
-          admin_notes: adminNotes[request.id] || null,
-        })
+        .update({ status: "approved", admin_notes: adminNotes[request.id] || null })
         .eq("id", request.id);
 
       if (updateError) throw updateError;
 
-      if (approve) {
-        const { data: loan, error: loanError } = await supabase.from("loans").insert({
-          user_id: request.borrower_id,
-          group_id: request.group_id,
-          principal_amount: request.amount,
-          outstanding_balance: request.amount,
-          monthly_repayment: Math.ceil((request.amount / request.duration_months) * 100) / 100,
-          status: "active",
-          issued_date: new Date().toISOString(),
-        }).select("id").single();
+      const { data: loan, error: loanError } = await supabase.from("loans").insert({
+        user_id: request.borrower_id,
+        group_id: request.group_id,
+        principal_amount: request.amount,
+        outstanding_balance: request.amount,
+        monthly_repayment: Math.ceil((request.amount / request.duration_months) * 100) / 100,
+        status: "active",
+        issued_date: new Date().toISOString(),
+      }).select("id").single();
 
-        if (loanError) throw loanError;
+      if (loanError) throw loanError;
 
-        await generateRepaymentSchedule(loan.id, request.amount, request.duration_months);
+      await generateRepaymentSchedule(loan.id, request.amount, request.duration_months);
 
-        await logActivity(
-          "loan_approved",
-          `Loan of £${request.amount.toLocaleString()} approved for ${request.borrower_name}. Guarantor: ${request.guarantor_name}. Duration: ${request.duration_months} months.`,
-          "loan",
-          loan.id
-        );
-      } else {
-        await logActivity(
-          "loan_rejected",
-          `Loan request of £${request.amount.toLocaleString()} by ${request.borrower_name} was rejected. Reason: ${adminNotes[request.id] || "No reason provided"}.`,
-          "loan_request",
-          request.id
+      // Log and notify
+      await logActivity(
+        "loan_approved",
+        `Loan of £${request.amount.toLocaleString()} approved for ${request.borrower_name}. Guarantor: ${request.guarantor_name}. Duration: ${request.duration_months} months.`,
+        "loan", loan.id
+      );
+
+      await sendNotification(
+        request.borrower_id,
+        "Loan Approved ✅",
+        `Your loan request of £${request.amount.toLocaleString()} has been approved! Check your repayment schedule.`,
+        "success", "/dashboard/contributor"
+      );
+
+      if (request.guarantor_id) {
+        await sendNotification(
+          request.guarantor_id,
+          "Loan You Guaranteed Was Approved",
+          `The loan of £${request.amount.toLocaleString()} for ${request.borrower_name} that you guaranteed has been approved.`,
+          "info"
         );
       }
 
-      toast.success(approve ? "Loan approved with repayment schedule!" : "Loan request rejected");
+      toast.success("Loan approved with repayment schedule!");
       fetchRequests();
     } catch (error: any) {
       console.error("Error processing request:", error);
+      toast.error(error.message || "Failed to process request");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleReject = async (request: LoanRequestRow) => {
+    setProcessing(request.id);
+    try {
+      const { error: updateError } = await supabase
+        .from("loan_requests")
+        .update({ status: "rejected", admin_notes: adminNotes[request.id] || null })
+        .eq("id", request.id);
+
+      if (updateError) throw updateError;
+
+      await logActivity(
+        "loan_rejected",
+        `Loan request of £${request.amount.toLocaleString()} by ${request.borrower_name} was rejected. Reason: ${adminNotes[request.id] || "No reason provided"}.`,
+        "loan_request", request.id
+      );
+
+      await sendNotification(
+        request.borrower_id,
+        "Loan Request Rejected",
+        `Your loan request of £${request.amount.toLocaleString()} has been rejected. ${adminNotes[request.id] ? `Reason: ${adminNotes[request.id]}` : "Contact admin for details."}`,
+        "error"
+      );
+
+      toast.success("Loan request rejected");
+      fetchRequests();
+    } catch (error: any) {
       toast.error(error.message || "Failed to process request");
     } finally {
       setProcessing(null);
@@ -209,11 +229,7 @@ const LoanRequestReview = () => {
       approved: "bg-success/10 text-success border-success",
       rejected: "bg-destructive/10 text-destructive border-destructive",
     };
-    return (
-      <Badge variant="outline" className={colors[status] || ""}>
-        {status.replace("_", " ")}
-      </Badge>
-    );
+    return <Badge variant="outline" className={colors[status] || ""}>{status.replace("_", " ")}</Badge>;
   };
 
   return (
@@ -247,8 +263,7 @@ const LoanRequestReview = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileCheck className="w-5 h-5" />
-            All Loan Requests
+            <FileCheck className="w-5 h-5" /> All Loan Requests
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -300,20 +315,14 @@ const LoanRequestReview = () => {
                               onChange={(e) => setAdminNotes({ ...adminNotes, [req.id]: e.target.value })}
                             />
                             <div className="flex gap-1 justify-end">
-                              <Button
-                                size="sm"
-                                disabled={processing === req.id}
-                                onClick={() => handleDecision(req, true)}
-                                className="bg-success hover:bg-success/90"
-                              >
+                              <Button size="sm" disabled={processing === req.id}
+                                onClick={() => handleApproveClick(req)}
+                                className="bg-success hover:bg-success/90">
                                 Approve
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
+                              <Button size="sm" variant="destructive"
                                 disabled={processing === req.id}
-                                onClick={() => handleDecision(req, false)}
-                              >
+                                onClick={() => handleReject(req)}>
                                 Reject
                               </Button>
                             </div>
@@ -339,6 +348,56 @@ const LoanRequestReview = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Liquidity Warning Dialog */}
+      <Dialog open={liquidityDialog.open} onOpenChange={(open) => !open && setLiquidityDialog({ open: false, request: null, check: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Liquidity Warning
+            </DialogTitle>
+            <DialogDescription>
+              The system does not have sufficient available funds to cover this loan.
+            </DialogDescription>
+          </DialogHeader>
+          {liquidityDialog.check && (
+            <div className="space-y-3 py-2">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-muted-foreground text-xs">Total Contributions</p>
+                  <p className="font-bold">£{liquidityDialog.check.totalContributions.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-muted-foreground text-xs">Active Loans</p>
+                  <p className="font-bold text-destructive">£{liquidityDialog.check.totalActiveLoans.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-muted-foreground text-xs">Investor Obligations</p>
+                  <p className="font-bold text-amber-600">£{liquidityDialog.check.totalInvestorObligations.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-muted-foreground text-xs">Available Funds</p>
+                  <p className={`font-bold ${liquidityDialog.check.availableFunds >= 0 ? "text-success" : "text-destructive"}`}>
+                    £{liquidityDialog.check.availableFunds.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
+                <p><strong>Requested:</strong> £{liquidityDialog.request?.amount.toLocaleString()}</p>
+                <p className="text-destructive mt-1">{liquidityDialog.check.reason}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLiquidityDialog({ open: false, request: null, check: null })}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => liquidityDialog.request && executeApproval(liquidityDialog.request)}>
+              <ShieldCheck className="w-4 h-4 mr-2" /> Override & Approve Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
