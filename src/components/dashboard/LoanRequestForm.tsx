@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { CreditCard, AlertTriangle, CheckCircle, Users, Send } from "lucide-react";
 import SignaturePad from "@/components/shared/SignaturePad";
 import { Button } from "@/components/ui/button";
