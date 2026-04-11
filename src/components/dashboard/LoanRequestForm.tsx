@@ -15,6 +15,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -41,7 +42,6 @@ interface EligibilityResult {
 interface FellowContributor {
   user_id: string;
   full_name: string | null;
-  email: string | null;
 }
 
 interface LoanRequest {
@@ -56,7 +56,7 @@ interface LoanRequest {
 const MIN_PAID_MONTHS = 3;
 const LOAN_MULTIPLIER = 2;
 
-const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
+const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
   const [eligibility, setEligibility] = useState<EligibilityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,33 +83,34 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
     const reasons: string[] = [];
 
     try {
-      // Get paid contributions count
-      const { data: payments } = await supabase
-        .from("contribution_payments")
-        .select("amount")
-        .eq("user_id", userId)
-        .eq("status", "paid");
+      const [paymentsResult, activeLoansResult, pendingRequestsResult, guarantorsResult] = await Promise.all([
+        supabase
+          .from("contribution_payments")
+          .select("amount")
+          .eq("user_id", userId)
+          .eq("status", "paid"),
+        supabase
+          .from("loans")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("status", "active"),
+        supabase
+          .from("loan_requests")
+          .select("id")
+          .eq("borrower_id", userId)
+          .in("status", ["pending", "awaiting_guarantor", "pending_admin"]),
+        supabase.rpc("get_same_group_guarantors", { _user_id: userId }),
+      ]);
 
-      const totalContributed = payments?.reduce((s, p) => s + Number(p.amount), 0) || 0;
-      const paidMonths = payments?.length || 0;
+      if (paymentsResult.error) throw paymentsResult.error;
+      if (activeLoansResult.error) throw activeLoansResult.error;
+      if (pendingRequestsResult.error) throw pendingRequestsResult.error;
+      if (guarantorsResult.error) throw guarantorsResult.error;
 
-      // Check active loans
-      const { data: activeLoans } = await supabase
-        .from("loans")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("status", "active");
-
-      const hasActiveLoan = (activeLoans?.length || 0) > 0;
-
-      // Check pending loan requests
-      const { data: pendingRequests } = await supabase
-        .from("loan_requests")
-        .select("id")
-        .eq("borrower_id", userId)
-        .in("status", ["pending", "awaiting_guarantor", "pending_admin"]);
-
-      const hasPendingRequest = (pendingRequests?.length || 0) > 0;
+      const totalContributed = paymentsResult.data?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
+      const paidMonths = paymentsResult.data?.length || 0;
+      const hasActiveLoan = (activeLoansResult.data?.length || 0) > 0;
+      const hasPendingRequest = (pendingRequestsResult.data?.length || 0) > 0;
 
       if (paidMonths < MIN_PAID_MONTHS) {
         reasons.push(`You need at least ${MIN_PAID_MONTHS} months of paid contributions (you have ${paidMonths}).`);
@@ -132,62 +133,52 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
         reasons,
       });
 
-      // Fetch fellow contributors for guarantor selection
-      if (reasons.length === 0) {
-        const { data: membership } = await supabase
-          .from("group_memberships")
-          .select("group_id")
-          .eq("user_id", userId)
-          .eq("is_active", true)
-          .limit(1);
-
-        if (membership && membership.length > 0) {
-          const { data: fellowMembers } = await supabase
-            .from("group_memberships")
-            .select("user_id")
-            .eq("group_id", membership[0].group_id)
-            .eq("is_active", true)
-            .neq("user_id", userId);
-
-          if (fellowMembers) {
-            const userIds = fellowMembers.map((m) => m.user_id);
-            const { data: profiles } = await supabase
-              .from("profiles")
-              .select("user_id, full_name, email")
-              .in("user_id", userIds);
-
-            setFellowContributors(profiles || []);
-          }
-        }
-      }
+      setFellowContributors(
+        reasons.length === 0 ? ((guarantorsResult.data as FellowContributor[] | null) ?? []) : [],
+      );
     } catch (error) {
       console.error("Error checking eligibility:", error);
+      setFellowContributors([]);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchMyRequests = async () => {
-    const { data } = await supabase
-      .from("loan_requests")
-      .select("id, amount, duration_months, purpose, status, created_at")
-      .eq("borrower_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(5);
+    try {
+      const { data, error } = await supabase
+        .from("loan_requests")
+        .select("id, amount, duration_months, purpose, status, created_at")
+        .eq("borrower_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-    setMyRequests((data as LoanRequest[]) || []);
+      if (error) throw error;
+      setMyRequests((data as LoanRequest[]) || []);
+    } catch (error) {
+      console.error("Error fetching loan requests:", error);
+      setMyRequests([]);
+    }
   };
 
   const handleSubmit = async () => {
     if (!eligibility?.eligible) return;
+
     if (form.amount <= 0 || form.amount > eligibility.maxLoanAmount) {
       toast.error(`Loan amount must be between £1 and £${eligibility.maxLoanAmount.toLocaleString()}`);
       return;
     }
+
     if (!form.guarantor_id) {
       toast.error("Please select a guarantor");
       return;
     }
+
+    if (!fellowContributors.some((contributor) => contributor.user_id === form.guarantor_id)) {
+      toast.error("Guarantor must be an active contributor in your group");
+      return;
+    }
+
     if (!form.purpose.trim()) {
       toast.error("Please provide a purpose for the loan");
       return;
@@ -195,20 +186,20 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
 
     setSubmitting(true);
     try {
-      // Get user's group
-      const { data: membership } = await supabase
+      const { data: membership, error: membershipError } = await supabase
         .from("group_memberships")
         .select("group_id")
         .eq("user_id", userId)
         .eq("is_active", true)
         .limit(1);
 
+      if (membershipError) throw membershipError;
+
       if (!membership || membership.length === 0) {
         toast.error("No active group membership found");
         return;
       }
 
-      // Create loan request
       const { data: request, error: requestError } = await supabase
         .from("loan_requests")
         .insert({
@@ -224,7 +215,6 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
 
       if (requestError) throw requestError;
 
-      // Add guarantor
       const { error: guarantorError } = await supabase
         .from("loan_guarantors")
         .insert({
@@ -279,7 +269,6 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Eligibility Status */}
         {eligibility && (
           <div className={`p-4 rounded-xl border ${eligibility.eligible ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20"}`}>
             <div className="flex items-center gap-2 mb-2">
@@ -296,18 +285,15 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
               <p>Total contributed: £{eligibility.totalContributed.toLocaleString()}</p>
               <p>Months paid: {eligibility.paidMonths}</p>
               {eligibility.eligible && (
-                <p className="font-medium text-foreground">
-                  Max loan amount: £{eligibility.maxLoanAmount.toLocaleString()}
-                </p>
+                <p className="font-medium text-foreground">Max loan amount: £{eligibility.maxLoanAmount.toLocaleString()}</p>
               )}
-              {eligibility.reasons.map((r, i) => (
-                <p key={i} className="text-destructive">• {r}</p>
+              {eligibility.reasons.map((reason, index) => (
+                <p key={index} className="text-destructive">• {reason}</p>
               ))}
             </div>
           </div>
         )}
 
-        {/* Request Loan Button */}
         {eligibility?.eligible && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -319,6 +305,9 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>New Loan Request</DialogTitle>
+                <DialogDescription>
+                  Choose an active guarantor from your contribution group before submitting this request.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -335,14 +324,14 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
                   <Label>Duration (months)</Label>
                   <Select
                     value={String(form.duration_months)}
-                    onValueChange={(v) => setForm({ ...form, duration_months: parseInt(v) })}
+                    onValueChange={(value) => setForm({ ...form, duration_months: parseInt(value) })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {[3, 6, 9, 12].map((m) => (
-                        <SelectItem key={m} value={String(m)}>{m} months</SelectItem>
+                      {[3, 6, 9, 12].map((months) => (
+                        <SelectItem key={months} value={String(months)}>{months} months</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -362,24 +351,28 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
                   </Label>
                   <Select
                     value={form.guarantor_id}
-                    onValueChange={(v) => setForm({ ...form, guarantor_id: v })}
+                    onValueChange={(value) => setForm({ ...form, guarantor_id: value })}
+                    disabled={fellowContributors.length === 0}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a fellow contributor" />
+                      <SelectValue placeholder={fellowContributors.length === 0 ? "No same-group guarantors available" : "Select a fellow contributor"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {fellowContributors.map((c) => (
-                        <SelectItem key={c.user_id} value={c.user_id}>
-                          {c.full_name || c.email}
+                      {fellowContributors.map((contributor) => (
+                        <SelectItem key={contributor.user_id} value={contributor.user_id}>
+                          {contributor.full_name || "Unnamed member"}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">Your guarantor must approve before admin review.</p>
+                  {fellowContributors.length === 0 && (
+                    <p className="text-xs text-destructive">No active contributors are currently available in your group to act as guarantor.</p>
+                  )}
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleSubmit} disabled={submitting}>
+                <Button onClick={handleSubmit} disabled={submitting || fellowContributors.length === 0}>
                   {submitting ? "Submitting..." : "Submit Request"}
                 </Button>
               </DialogFooter>
@@ -387,7 +380,6 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
           </Dialog>
         )}
 
-        {/* My Requests */}
         {myRequests.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Your Requests</h4>
