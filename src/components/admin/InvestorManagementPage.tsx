@@ -461,39 +461,84 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       )}
 
       {/* Promote User to Investor Dialog */}
-      <Dialog open={promoteOpen} onOpenChange={setPromoteOpen}>
+      <Dialog open={promoteOpen} onOpenChange={(open) => { setPromoteOpen(open); if (!open) setPromoteMode("choose"); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Activate Investor Role</DialogTitle>
             <DialogDescription>
-              Select an existing user to grant investor access. This does not create a new account — it adds the investor role to their existing account.
+              {promoteMode === "choose" && "Choose how to add an investor."}
+              {promoteMode === "existing" && "Select an existing member to grant investor access."}
+              {promoteMode === "new" && "Create a new account with investor role."}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>Select User</Label>
-              <Select value={selectedPromoteUser} onValueChange={setSelectedPromoteUser}>
-                <SelectTrigger><SelectValue placeholder="Choose a user to promote" /></SelectTrigger>
-                <SelectContent>
-                  {nonInvestorUsers.length === 0 ? (
-                    <SelectItem value="_none" disabled>All users already have investor access</SelectItem>
-                  ) : (
-                    nonInvestorUsers.map((u) => (
-                      <SelectItem key={u.user_id} value={u.user_id}>
-                        {u.full_name || "Unknown"} — {u.email}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+
+          {promoteMode === "choose" && (
+            <div className="grid grid-cols-1 gap-3 py-4">
+              <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-1" onClick={() => setPromoteMode("existing")}>
+                <span className="font-semibold">Add from Existing Members</span>
+                <span className="text-xs text-muted-foreground">Promote a current contributor to also be an investor</span>
+              </Button>
+              <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-1" onClick={() => setPromoteMode("new")}>
+                <span className="font-semibold">Create New Investor Account</span>
+                <span className="text-xs text-muted-foreground">Register a brand new user with investor login credentials</span>
+              </Button>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPromoteOpen(false)}>Cancel</Button>
-            <Button variant="investor" onClick={handlePromoteToInvestor} disabled={promoteLoading || !selectedPromoteUser}>
-              {promoteLoading ? "Promoting..." : "Activate Investor Role"}
-            </Button>
-          </DialogFooter>
+          )}
+
+          {promoteMode === "existing" && (
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Select User</Label>
+                <Select value={selectedPromoteUser} onValueChange={setSelectedPromoteUser}>
+                  <SelectTrigger><SelectValue placeholder="Choose a user to promote" /></SelectTrigger>
+                  <SelectContent>
+                    {nonInvestorUsers.length === 0 ? (
+                      <SelectItem value="_none" disabled>All users already have investor access</SelectItem>
+                    ) : (
+                      nonInvestorUsers.map((u) => (
+                        <SelectItem key={u.user_id} value={u.user_id}>
+                          {u.full_name || "Unknown"} — {u.email}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setPromoteMode("choose")}>Back</Button>
+                <Button variant="investor" onClick={handlePromoteToInvestor} disabled={promoteLoading || !selectedPromoteUser}>
+                  {promoteLoading ? "Promoting..." : "Activate Investor Role"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {promoteMode === "new" && (
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Full Name</Label>
+                <Input value={newInvestorForm.fullName} onChange={(e) => setNewInvestorForm({ ...newInvestorForm, fullName: e.target.value })} placeholder="Investor full name" />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={newInvestorForm.email} onChange={(e) => setNewInvestorForm({ ...newInvestorForm, email: e.target.value })} placeholder="investor@email.com" />
+              </div>
+              <div>
+                <Label>Password</Label>
+                <Input type="password" value={newInvestorForm.password} onChange={(e) => setNewInvestorForm({ ...newInvestorForm, password: e.target.value })} placeholder="Set a password" />
+              </div>
+              <div>
+                <Label>Phone (optional)</Label>
+                <Input value={newInvestorForm.phone} onChange={(e) => setNewInvestorForm({ ...newInvestorForm, phone: e.target.value })} placeholder="Phone number" />
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setPromoteMode("choose")}>Back</Button>
+                <Button variant="investor" onClick={handleCreateNewInvestor} disabled={promoteLoading || !newInvestorForm.fullName || !newInvestorForm.email || !newInvestorForm.password}>
+                  {promoteLoading ? "Creating..." : "Create Investor Account"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
