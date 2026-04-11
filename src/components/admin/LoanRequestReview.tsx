@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck } from "lucide-react";
+import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -218,6 +218,42 @@ const LoanRequestReview = () => {
     }
   };
 
+  const handleDelete = async (request: LoanRequestRow) => {
+    if (!confirm(`Delete loan request from ${request.borrower_name}? This will clear their loan eligibility for a new request.`)) return;
+    setProcessing(request.id);
+    try {
+      // Delete related guarantors and signatures first
+      await Promise.all([
+        supabase.from("loan_guarantors").delete().eq("loan_request_id", request.id),
+        supabase.from("loan_signatures").delete().eq("loan_request_id", request.id),
+      ]);
+
+      const { error } = await supabase.from("loan_requests").delete().eq("id", request.id);
+      if (error) throw error;
+
+      await logActivity(
+        "loan_request_deleted",
+        `Loan request of £${request.amount.toLocaleString()} by ${request.borrower_name} was deleted by admin.`,
+        "loan_request", request.id
+      );
+
+      await sendNotification(
+        request.borrower_id,
+        "Loan Request Removed",
+        `Your loan request of £${request.amount.toLocaleString()} has been removed. You are now eligible to submit a new request.`,
+        "info", "/dashboard/contributor"
+      );
+
+      toast.success("Loan request deleted. User can now submit a new request.");
+      fetchRequests();
+      setSelectedRequest(null);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete request");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-muted text-muted-foreground",
@@ -336,7 +372,16 @@ const LoanRequestReview = () => {
                     {req.guarantor_status === "approved" && <CheckCircle className="w-3 h-3 text-success" />}
                     {req.guarantor_status === "rejected" && <XCircle className="w-3 h-3 text-destructive" />}
                   </div>
-                  <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-2">
+                    <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                    <button
+                      className="p-1 rounded hover:bg-destructive/10 text-destructive"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(req); }}
+                      title="Delete request"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))

@@ -74,7 +74,7 @@ const InvestorLogin = () => {
       {/* Left Panel */}
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-        style={{ background: "var(--gradient-investor)" }}
+        style={{ background: "linear-gradient(135deg, #111827, #000000)" }}
       >
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 flex flex-col justify-center p-12 xl:p-20">
@@ -117,8 +117,8 @@ const InvestorLogin = () => {
             <span>Back to home</span>
           </Link>
 
-          <div className="lg:hidden w-14 h-14 rounded-xl bg-investor-light flex items-center justify-center mb-6">
-            <TrendingUp className="w-7 h-7 text-investor" />
+          <div className="lg:hidden w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center mb-6">
+            <TrendingUp className="w-7 h-7 text-gray-900" />
           </div>
 
           <h2 className="font-heading text-2xl font-bold text-foreground mb-2">Welcome, Investor</h2>
@@ -164,7 +164,7 @@ const InvestorLogin = () => {
               </div>
             </div>
 
-            <Button type="submit" variant="investor" size="lg" className="w-full" disabled={loading}>
+            <Button type="submit" size="lg" className="w-full bg-gray-900 hover:bg-black text-white" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>

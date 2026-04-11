@@ -101,20 +101,20 @@ const InvestorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border">
+      <header className="sticky top-0 z-50 bg-gray-900 text-white border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-heading font-bold text-foreground text-lg">Investor Dashboard</h1>
-              <p className="text-xs text-muted-foreground">{profile?.full_name || user?.email}</p>
+              <h1 className="font-heading font-bold text-white text-lg">Investor Dashboard</h1>
+              <p className="text-xs text-white/60">{profile?.full_name || user?.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {user && <NotificationBell userId={user.id} variant="light" />}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            {user && <NotificationBell userId={user.id} variant="dark" />}
+            <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" /> Sign Out
             </Button>
           </div>

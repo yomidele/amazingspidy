@@ -17,7 +17,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         contribution: "bg-gradient-to-r from-contribution to-amber-500 text-white shadow-contribution hover:scale-[1.02] hover:shadow-lg",
         travel: "bg-gradient-to-r from-travel to-teal-400 text-white shadow-travel hover:scale-[1.02] hover:shadow-lg",
-        investor: "bg-gradient-to-r from-investor to-blue-400 text-white shadow-investor hover:scale-[1.02] hover:shadow-lg",
+        investor: "bg-gradient-to-r from-gray-900 to-black text-white shadow-lg hover:scale-[1.02] hover:shadow-xl",
         hero: "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-glow hover:scale-[1.02] hover:shadow-xl",
         "hero-outline": "border-2 border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 backdrop-blur-sm",
       },

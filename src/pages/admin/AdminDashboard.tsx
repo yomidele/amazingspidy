@@ -44,6 +44,7 @@ import InvestorManagementPage from "@/components/admin/InvestorManagementPage";
 import LoanRequestReview from "@/components/admin/LoanRequestReview";
 import InvestorRequestsPage from "@/components/admin/InvestorRequestsPage";
 import NotificationBell from "@/components/shared/NotificationBell";
+import AmanaAIAssistant from "@/components/admin/AmanaAIAssistant";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -478,6 +479,9 @@ const AdminDashboardContent = () => {
 
       {/* Tutorial Dialog */}
       <AdminTutorial open={tutorialOpen} onOpenChange={setTutorialOpen} />
+
+      {/* AI Assistant */}
+      <AmanaAIAssistant />
     </div>
   );
 };
