@@ -158,66 +158,176 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
       </CardHeader>
       <CardContent className="space-y-3">
         {requests.map((req) => (
-          <div key={req.id} className="p-4 rounded-xl border bg-muted/30 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold">{req.borrower_name}</p>
-                <p className="text-sm text-muted-foreground">
-                  £{req.amount.toLocaleString()} • {req.duration_months} months
-                </p>
-                {req.purpose && <p className="text-sm mt-1">{req.purpose}</p>}
-              </div>
-              <Badge variant={req.status === "pending" ? "default" : req.status === "approved" ? "outline" : "destructive"}>
-                {req.status}
-              </Badge>
-            </div>
-
-            {req.status === "pending" && (
-              <div className="space-y-2">
-                {respondingId === req.id ? (
-                  <>
-                    <Textarea
-                      placeholder="Add a note (optional)"
-                      value={responseNote}
-                      onChange={(e) => setResponseNote(e.target.value)}
-                      maxLength={300}
-                    />
-                    <SignaturePad
-                      label="Sign to approve this guarantee"
-                      onSave={(data) => setGuarantorSignature(data)}
-                      existingSignature={guarantorSignature}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleRespond(req.id, req.loan_request_id, true)}
-                        className="bg-success hover:bg-success/90"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRespond(req.id, req.loan_request_id, false)}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" /> Reject
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setRespondingId(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setRespondingId(req.id)}>
-                    Respond
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
+          <GuarantorRequestItem
+            key={req.id}
+            req={req}
+            userId={userId}
+            respondingId={respondingId}
+            setRespondingId={setRespondingId}
+            responseNote={responseNote}
+            setResponseNote={setResponseNote}
+            guarantorSignature={guarantorSignature}
+            setGuarantorSignature={setGuarantorSignature}
+            handleRespond={handleRespond}
+            fetchRequests={fetchRequests}
+          />
         ))}
       </CardContent>
     </Card>
+  );
+};
+
+// Sub-component for each guarantor request with late-signing capability
+const GuarantorRequestItem = ({
+  req,
+  userId,
+  respondingId,
+  setRespondingId,
+  responseNote,
+  setResponseNote,
+  guarantorSignature,
+  setGuarantorSignature,
+  handleRespond,
+  fetchRequests,
+}: {
+  req: GuarantorRequest;
+  userId: string;
+  respondingId: string | null;
+  setRespondingId: (id: string | null) => void;
+  responseNote: string;
+  setResponseNote: (note: string) => void;
+  guarantorSignature: string | null;
+  setGuarantorSignature: (sig: string | null) => void;
+  handleRespond: (requestId: string, loanRequestId: string, approve: boolean) => void;
+  fetchRequests: () => void;
+}) => {
+  const [hasSigned, setHasSigned] = useState<boolean | null>(null);
+  const [showLateSign, setShowLateSign] = useState(false);
+  const [lateSignature, setLateSignature] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (req.status === "approved") {
+      checkSignature();
+    }
+  }, [req.id, req.status]);
+
+  const checkSignature = async () => {
+    const { data } = await supabase
+      .from("loan_signatures")
+      .select("id")
+      .eq("loan_request_id", req.loan_request_id)
+      .eq("signer_role", "guarantor");
+    setHasSigned(data && data.length > 0);
+  };
+
+  const handleLateSign = async () => {
+    if (!lateSignature) {
+      toast.error("Please draw your signature first");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("loan_signatures").insert({
+        loan_request_id: req.loan_request_id,
+        signer_id: userId,
+        signer_role: "guarantor",
+        signature_data: lateSignature,
+      });
+      if (error) throw error;
+      toast.success("Signature saved successfully!");
+      setHasSigned(true);
+      setShowLateSign(false);
+      fetchRequests();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save signature");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const needsLateSignature = req.status === "approved" && hasSigned === false;
+
+  return (
+    <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-semibold">{req.borrower_name}</p>
+          <p className="text-sm text-muted-foreground">
+            £{req.amount.toLocaleString()} • {req.duration_months} months
+          </p>
+          {req.purpose && <p className="text-sm mt-1">{req.purpose}</p>}
+        </div>
+        <Badge variant={req.status === "pending" ? "default" : req.status === "approved" ? "outline" : "destructive"}>
+          {req.status}
+        </Badge>
+      </div>
+
+      {/* Late signing for approved requests without signature */}
+      {needsLateSignature && !showLateSign && (
+        <Button size="sm" variant="outline" className="w-full text-xs border-destructive/50 text-destructive" onClick={() => setShowLateSign(true)}>
+          ⚠️ Sign Loan Document (Required)
+        </Button>
+      )}
+      {showLateSign && (
+        <div className="space-y-2 pt-2 border-t">
+          <SignaturePad
+            label="Your Signature (Guarantor)"
+            onSave={(data) => setLateSignature(data)}
+            existingSignature={lateSignature}
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleLateSign} disabled={!lateSignature || saving}>
+              {saving ? "Saving..." : "Submit Signature"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowLateSign(false)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {req.status === "pending" && (
+        <div className="space-y-2">
+          {respondingId === req.id ? (
+            <>
+              <Textarea
+                placeholder="Add a note (optional)"
+                value={responseNote}
+                onChange={(e) => setResponseNote(e.target.value)}
+                maxLength={300}
+              />
+              <SignaturePad
+                label="Sign to approve this guarantee"
+                onSave={(data) => setGuarantorSignature(data)}
+                existingSignature={guarantorSignature}
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleRespond(req.id, req.loan_request_id, true)}
+                  className="bg-success hover:bg-success/90"
+                >
+                  <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleRespond(req.id, req.loan_request_id, false)}
+                >
+                  <XCircle className="w-4 h-4 mr-1" /> Reject
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setRespondingId(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setRespondingId(req.id)}>
+              Respond
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
