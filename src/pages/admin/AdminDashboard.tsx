@@ -425,13 +425,22 @@ const AdminDashboardContent = () => {
                       Alerts{unreadAlerts > 0 ? ` (${unreadAlerts})` : ""}
                     </Button>
                   </AdminTooltip>
-                  <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : "Add a new travel client"}>
+                  <AdminTooltip content={activeModule === "contribution" ? tooltipContent.addContributor : activeModule === "investor" ? "Add a new investor" : "Add a new travel client"}>
                     <Button
-                      variant={activeModule === "contribution" ? "contribution" : "travel"}
+                      variant={activeModule === "contribution" ? "contribution" : activeModule === "investor" ? "investor" : "travel"}
                       size="sm"
                       className="whitespace-nowrap"
+                      onClick={() => {
+                        if (activeModule === "investor") {
+                          setActivePage("investor-management");
+                        } else if (activeModule === "contribution") {
+                          setActivePage("members");
+                        } else {
+                          setActivePage("travel-clients");
+                        }
+                      }}
                     >
-                      + Add {activeModule === "contribution" ? "Member" : "Client"}
+                      + Add {activeModule === "contribution" ? "Member" : activeModule === "investor" ? "Investor" : "Client"}
                     </Button>
                   </AdminTooltip>
                 </div>
