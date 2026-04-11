@@ -99,7 +99,7 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
           .select("id")
           .eq("borrower_id", userId)
           .in("status", ["pending", "awaiting_guarantor", "pending_admin"]),
-        supabase.rpc("get_same_group_guarantors", { _user_id: userId }),
+        supabase.rpc("get_same_group_guarantors" as any, { _user_id: userId }),
       ]);
 
       if (paymentsResult.error) throw paymentsResult.error;
