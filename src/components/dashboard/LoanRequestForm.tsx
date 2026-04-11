@@ -134,7 +134,7 @@ const LoanRequestForm = ({ userId }: LoanRequestFormProps) => {
       });
 
       setFellowContributors(
-        reasons.length === 0 ? ((guarantorsResult.data as FellowContributor[] | null) ?? []) : [],
+        reasons.length === 0 ? ((guarantorsResult.data as unknown as FellowContributor[] | null) ?? []) : [],
       );
     } catch (error) {
       console.error("Error checking eligibility:", error);
