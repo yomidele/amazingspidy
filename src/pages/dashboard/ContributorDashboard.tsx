@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import ContributorTransactionList from "@/components/dashboard/ContributorTransactionList";
 import LoanRequestForm from "@/components/dashboard/LoanRequestForm";
 import GuarantorRequests from "@/components/dashboard/GuarantorRequests";
+import RepaymentSchedule from "@/components/dashboard/RepaymentSchedule";
 
 interface LoanData {
   outstanding_balance: number;
@@ -413,7 +414,12 @@ const ContributorDashboard = () => {
               <GuarantorRequests userId={user?.id || ""} />
             </div>
 
-            {/* Transactions & Beneficiary Status */}
+            {/* Repayment Schedule */}
+            <div className="mb-6">
+              <RepaymentSchedule userId={user?.id || ""} />
+            </div>
+
+
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Transaction History with Receipts */}
               <ContributorTransactionList

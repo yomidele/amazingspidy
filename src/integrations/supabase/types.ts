@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       case_documents: {
         Row: {
           case_id: string
@@ -368,7 +398,9 @@ export type Database = {
       loan_repayments: {
         Row: {
           amount: number
+          amount_due: number | null
           created_at: string
+          due_date: string | null
           id: string
           loan_id: string
           notes: string | null
@@ -377,7 +409,9 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_due?: number | null
           created_at?: string
+          due_date?: string | null
           id?: string
           loan_id: string
           notes?: string | null
@@ -386,7 +420,9 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_due?: number | null
           created_at?: string
+          due_date?: string | null
           id?: string
           loan_id?: string
           notes?: string | null
