@@ -149,7 +149,7 @@ const InvestorInfoPage = () => {
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden">
-        <div className="absolute inset-0 z-0" style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.8) 50%, hsl(var(--accent)/0.6) 100%)" }}>
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-gray-900 via-black to-gray-950">
           <div className="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl" />
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
         </div>
@@ -177,7 +177,7 @@ const InvestorInfoPage = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
-                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                className="bg-white text-black hover:bg-white/90"
                 onClick={() => {
                   setShowForm(true);
                   document.getElementById("apply-section")?.scrollIntoView({ behavior: "smooth" });
@@ -227,8 +227,8 @@ const InvestorInfoPage = () => {
               >
                 <Card className="h-full hover:shadow-lg transition-shadow border-border/50">
                   <CardContent className="p-6">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-                      <b.icon className="w-6 h-6 text-emerald-500" />
+                    <div className="w-12 h-12 rounded-xl bg-gray-900/10 flex items-center justify-center mb-4">
+                      <b.icon className="w-6 h-6 text-gray-900" />
                     </div>
                     <h3 className="font-semibold text-foreground text-lg mb-2">{b.title}</h3>
                     <p className="text-muted-foreground text-sm">{b.description}</p>
@@ -263,7 +263,7 @@ const InvestorInfoPage = () => {
                 transition={{ delay: i * 0.15 }}
                 className="text-center"
               >
-                <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                <div className="w-14 h-14 rounded-full bg-gray-900 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   {step.step}
                 </div>
                 <h3 className="font-semibold text-foreground mb-2">{step.title}</h3>
@@ -344,7 +344,7 @@ const InvestorInfoPage = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Button
               size="lg"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white"
+              className="bg-gray-900 hover:bg-black text-white"
               onClick={() => setShowForm(true)}
             >
               Become an Investor
@@ -413,7 +413,7 @@ const InvestorInfoPage = () => {
                       <Button
                         type="submit"
                         disabled={submitting}
-                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+                        className="w-full bg-gray-900 hover:bg-black text-white"
                       >
                         {submitting ? "Submitting..." : "Submit Application"}
                       </Button>
@@ -429,9 +429,9 @@ const InvestorInfoPage = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
             >
-              <Card className="border-emerald-500/30 bg-emerald-500/5">
+              <Card className="border-gray-900/30 bg-gray-900/5">
                 <CardContent className="p-8 text-center">
-                  <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+                  <CheckCircle2 className="w-16 h-16 text-gray-900 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-foreground mb-2">
                     Application Submitted!
                   </h3>

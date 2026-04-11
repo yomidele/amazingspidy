@@ -241,16 +241,16 @@ const ServicesSection = () => {
             viewport={{ once: true }}
             className="rounded-3xl overflow-hidden shadow-xl"
           >
-            <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-5 sm:p-8 lg:p-10 border border-amber-500/20 rounded-3xl">
+            <div className="bg-gradient-to-br from-gray-900 via-gray-950 to-black p-5 sm:p-8 lg:p-10 border border-gray-800 rounded-3xl text-white">
               <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-400 flex items-center justify-center shadow-lg">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 flex items-center justify-center shadow-lg">
                   <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
+                  <h3 className="font-heading text-xl sm:text-2xl font-bold text-white">
                     Invest With Us
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-white/60">
                     Grow your wealth securely
                   </p>
                 </div>
@@ -272,16 +272,16 @@ const ServicesSection = () => {
                   <motion.div
                     key={feature.title}
                     variants={itemVariants}
-                    className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-card/50 hover:bg-card transition-colors"
+                    className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                   >
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                      <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                      <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm sm:text-base text-foreground">
+                      <h4 className="font-semibold text-sm sm:text-base text-white">
                         {feature.title}
                       </h4>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-white/50">
                         {feature.description}
                       </p>
                     </div>
@@ -291,7 +291,7 @@ const ServicesSection = () => {
 
               <Button
                 size="lg"
-                className="w-full group text-sm sm:text-base bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
+                className="w-full group text-sm sm:text-base bg-white text-black hover:bg-white/90"
                 onClick={() => navigate("/become-investor")}
               >
                 Become an Investor
