@@ -272,6 +272,14 @@ const PaymentRecordingPage = () => {
         );
       }
 
+      // Log activity
+      const memberName = getMemberName(newPayment.user_id);
+      await logActivity(
+        paymentToEdit ? "payment_updated" : "payment_recorded",
+        `${paymentToEdit ? "Updated" : "Recorded"} contribution payment of £${newPayment.amount} for ${memberName}`,
+        "contribution_payment", paymentToEdit?.id || selectedContribution, newPayment.user_id
+      );
+
       toast.success(paymentToEdit ? "Payment updated successfully" : "Payment recorded successfully");
       setIsRecordPaymentOpen(false);
       setPaymentToEdit(null);
