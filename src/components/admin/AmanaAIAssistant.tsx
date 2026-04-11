@@ -12,9 +12,9 @@ type ChatSize = "normal" | "large" | "fullscreen";
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-ai-assistant`;
 
 const sizeClasses: Record<ChatSize, string> = {
-  normal: "fixed bottom-4 right-4 w-[360px] sm:w-[400px] h-[520px]",
-  large: "fixed bottom-4 right-4 w-[500px] sm:w-[600px] h-[680px]",
-  fullscreen: "fixed inset-4",
+  normal: "fixed bottom-0 right-0 left-0 sm:left-auto sm:bottom-4 sm:right-4 w-full sm:w-[400px] h-[85vh] sm:h-[520px]",
+  large: "fixed bottom-0 right-0 left-0 sm:left-auto sm:bottom-4 sm:right-4 w-full sm:w-[600px] h-[90vh] sm:h-[680px]",
+  fullscreen: "fixed inset-0 sm:inset-4",
 };
 
 const AmanaAIAssistant = () => {
@@ -326,7 +326,7 @@ const AmanaAIAssistant = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className={`z-50 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden ${sizeClasses[chatSize]}`}
+            className={`z-50 bg-card border border-border sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden ${sizeClasses[chatSize]}`}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground flex-shrink-0">
