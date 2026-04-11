@@ -287,31 +287,31 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Investors</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Investors</CardTitle>
             <TrendingUp className="w-4 h-4 text-primary" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{investors.length}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold">{investors.length}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Capital</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Capital</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">£{totalCapital.toLocaleString()}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold">£{totalCapital.toLocaleString()}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Owed</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Owed</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-amber-600">£{totalExpectedReturn.toLocaleString()}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-amber-600">£{totalExpectedReturn.toLocaleString()}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Remaining</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Remaining</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-destructive">£{totalRemaining.toLocaleString()}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-destructive">£{totalRemaining.toLocaleString()}</div></CardContent>
         </Card>
       </div>
 

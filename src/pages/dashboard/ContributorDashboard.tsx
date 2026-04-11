@@ -373,7 +373,7 @@ const ContributorDashboard = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
               {stats.map((stat, index) => (
                 <motion.div
                   key={stat.title}
@@ -382,26 +382,26 @@ const ContributorDashboard = () => {
                   transition={{ delay: index * 0.1 }}
                 >
                   <Card className={`card-hover ${stat.showDanger ? 'border-destructive/50 bg-destructive/5' : ''} ${stat.showPaid ? 'border-success/50 bg-success/5' : ''}`}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
-                          <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                          <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
                         </div>
                         {stat.showDanger && (
                           <div className="flex items-center gap-1 text-destructive animate-pulse">
-                            <AlertTriangle className="w-5 h-5" />
-                            <span className="text-xs font-semibold">UNPAID</span>
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="text-[10px] font-semibold">UNPAID</span>
                           </div>
                         )}
                         {stat.showPaid && (
                           <div className="flex items-center gap-1 text-success">
-                            <CheckCircle className="w-5 h-5" />
-                            <span className="text-xs font-semibold">PAID</span>
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-[10px] font-semibold">PAID</span>
                           </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                      <p className={`text-2xl font-bold ${stat.showDanger ? 'text-destructive' : stat.showPaid ? 'text-success' : 'text-foreground'}`}>{stat.value}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">{stat.title}</p>
+                      <p className={`text-lg sm:text-2xl font-bold ${stat.showDanger ? 'text-destructive' : stat.showPaid ? 'text-success' : 'text-foreground'}`}>{stat.value}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
