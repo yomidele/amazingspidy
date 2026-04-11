@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Shield, CheckCircle, XCircle } from "lucide-react";
+import SignaturePad from "@/components/shared/SignaturePad";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +28,7 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
   const [loading, setLoading] = useState(true);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [responseNote, setResponseNote] = useState("");
+  const [guarantorSignature, setGuarantorSignature] = useState<string | null>(null);
 
   useEffect(() => {
     if (userId) fetchRequests();
@@ -84,8 +86,12 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
   };
 
   const handleRespond = async (requestId: string, loanRequestId: string, approve: boolean) => {
+    if (approve && !guarantorSignature) {
+      toast.error("Please sign the document before approving");
+      return;
+    }
+
     try {
-      // Update guarantor record
       const { error: gError } = await supabase
         .from("loan_guarantors")
         .update({
@@ -97,27 +103,32 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
 
       if (gError) throw gError;
 
-      // If approved, update loan request to pending_admin
       if (approve) {
+        // Save guarantor signature
+        await supabase.from("loan_signatures" as any).insert({
+          loan_request_id: loanRequestId,
+          signer_id: userId,
+          signer_role: "guarantor",
+          signature_data: guarantorSignature,
+        });
+
         const { error: lrError } = await supabase
           .from("loan_requests")
           .update({ status: "pending_admin" })
           .eq("id", loanRequestId);
-
         if (lrError) throw lrError;
       } else {
-        // If rejected, update loan request to rejected
         const { error: lrError } = await supabase
           .from("loan_requests")
           .update({ status: "rejected" })
           .eq("id", loanRequestId);
-
         if (lrError) throw lrError;
       }
 
       toast.success(approve ? "Request approved!" : "Request rejected");
       setRespondingId(null);
       setResponseNote("");
+      setGuarantorSignature(null);
       fetchRequests();
     } catch (error: any) {
       console.error("Error responding:", error);
@@ -170,6 +181,11 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
                       value={responseNote}
                       onChange={(e) => setResponseNote(e.target.value)}
                       maxLength={300}
+                    />
+                    <SignaturePad
+                      label="Sign to approve this guarantee"
+                      onSave={(data) => setGuarantorSignature(data)}
+                      existingSignature={guarantorSignature}
                     />
                     <div className="flex gap-2">
                       <Button
