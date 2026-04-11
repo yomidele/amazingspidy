@@ -1,19 +1,16 @@
 import { useState, useEffect } from "react";
 import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck } from "lucide-react";
-import LoanAgreement from "@/components/dashboard/LoanAgreement";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logActivity, sendNotification, checkLiquidity, type LiquidityCheck } from "@/lib/activityLogger";
+import LoanDocumentViewer from "./LoanDocumentViewer";
 
 interface LoanRequestRow {
   id: string;
@@ -36,6 +33,7 @@ const LoanRequestReview = () => {
   const [loading, setLoading] = useState(true);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
   const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
     open: false, request: null, check: null,
   });
@@ -56,7 +54,6 @@ const LoanRequestReview = () => {
       const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p.full_name || "Unknown"]));
       const groupMap = new Map((groupsRes.data || []).map((g) => [g.id, g.name]));
 
-      // Fetch all guarantors in one query
       const requestIds = loanRes.data.map((r) => r.id);
       const { data: allGuarantors } = await supabase
         .from("loan_guarantors")
@@ -122,7 +119,6 @@ const LoanRequestReview = () => {
   };
 
   const handleApproveClick = async (request: LoanRequestRow) => {
-    // Check liquidity before approving
     const check = await checkLiquidity(request.amount);
     if (!check.canApproveLoan) {
       setLiquidityDialog({ open: true, request, check });
@@ -156,7 +152,6 @@ const LoanRequestReview = () => {
 
       await generateRepaymentSchedule(loan.id, request.amount, request.duration_months);
 
-      // Log and notify
       await logActivity(
         "loan_approved",
         `Loan of £${request.amount.toLocaleString()} approved for ${request.borrower_name}. Guarantor: ${request.guarantor_name}. Duration: ${request.duration_months} months.`,
@@ -181,6 +176,7 @@ const LoanRequestReview = () => {
 
       toast.success("Loan approved with repayment schedule!");
       fetchRequests();
+      setSelectedRequest(null);
     } catch (error: any) {
       console.error("Error processing request:", error);
       toast.error(error.message || "Failed to process request");
@@ -214,6 +210,7 @@ const LoanRequestReview = () => {
 
       toast.success("Loan request rejected");
       fetchRequests();
+      setSelectedRequest(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to process request");
     } finally {
@@ -229,8 +226,51 @@ const LoanRequestReview = () => {
       approved: "bg-success/10 text-success border-success",
       rejected: "bg-destructive/10 text-destructive border-destructive",
     };
-    return <Badge variant="outline" className={colors[status] || ""}>{status.replace("_", " ")}</Badge>;
+    return <Badge variant="outline" className={colors[status] || ""}>{status.replace(/_/g, " ")}</Badge>;
   };
+
+  // If viewing a specific loan request document
+  if (selectedRequest) {
+    return (
+      <div className="space-y-4">
+        <LoanDocumentViewer
+          loanRequest={selectedRequest}
+          onBack={() => setSelectedRequest(null)}
+        />
+        {/* Admin actions for pending_admin */}
+        {selectedRequest.status === "pending_admin" && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h3 className="font-semibold text-sm">Admin Decision</h3>
+              <Textarea
+                placeholder="Admin notes (optional)..."
+                className="text-sm"
+                value={adminNotes[selectedRequest.id] || ""}
+                onChange={(e) => setAdminNotes({ ...adminNotes, [selectedRequest.id]: e.target.value })}
+              />
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-success hover:bg-success/90"
+                  disabled={processing === selectedRequest.id}
+                  onClick={() => handleApproveClick(selectedRequest)}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" /> Approve Loan
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  disabled={processing === selectedRequest.id}
+                  onClick={() => handleReject(selectedRequest)}
+                >
+                  <XCircle className="w-4 h-4 mr-2" /> Reject
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -239,10 +279,11 @@ const LoanRequestReview = () => {
         <p className="text-sm text-muted-foreground">Review and approve contributor loan requests</p>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      {/* Stats cards - 2 per row on mobile */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Pending Admin Review</p>
+            <p className="text-xs text-muted-foreground">Pending Review</p>
             <p className="font-bold text-2xl">{requests.filter((r) => r.status === "pending_admin").length}</p>
           </CardContent>
         </Card>
@@ -252,7 +293,7 @@ const LoanRequestReview = () => {
             <p className="font-bold text-2xl">{requests.filter((r) => r.status === "awaiting_guarantor").length}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="col-span-2 sm:col-span-1">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Requests</p>
             <p className="font-bold text-2xl">{requests.length}</p>
@@ -260,91 +301,45 @@ const LoanRequestReview = () => {
         </Card>
       </div>
 
+      {/* Request list as cards for mobile */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <FileCheck className="w-5 h-5" /> All Loan Requests
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           {loading ? (
             <p className="text-center py-8 text-muted-foreground">Loading...</p>
           ) : requests.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No loan requests yet</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Borrower</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Purpose</TableHead>
-                    <TableHead>Guarantor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {requests.map((req) => (
-                    <TableRow key={req.id}>
-                      <TableCell className="font-medium">{req.borrower_name}</TableCell>
-                      <TableCell>£{req.amount.toLocaleString()}</TableCell>
-                      <TableCell>{req.duration_months}m</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{req.purpose || "—"}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          <span>{req.guarantor_name}</span>
-                          {req.guarantor_status === "approved" && <CheckCircle className="w-3 h-3 text-success" />}
-                          {req.guarantor_status === "rejected" && <XCircle className="w-3 h-3 text-destructive" />}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(req.status)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(req.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {req.status === "pending_admin" && (
-                          <div className="space-y-2">
-                            <Textarea
-                              placeholder="Admin notes..."
-                              className="text-xs min-h-[40px]"
-                              value={adminNotes[req.id] || ""}
-                              onChange={(e) => setAdminNotes({ ...adminNotes, [req.id]: e.target.value })}
-                            />
-                            <div className="flex gap-1 justify-end">
-                              <Button size="sm" disabled={processing === req.id}
-                                onClick={() => handleApproveClick(req)}
-                                className="bg-success hover:bg-success/90">
-                                Approve
-                              </Button>
-                              <Button size="sm" variant="destructive"
-                                disabled={processing === req.id}
-                                onClick={() => handleReject(req)}>
-                                Reject
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                        {req.status === "approved" && (
-                          <LoanAgreement
-                            borrowerName={req.borrower_name}
-                            guarantorName={req.guarantor_name}
-                            amount={req.amount}
-                            durationMonths={req.duration_months}
-                            purpose={req.purpose || "General"}
-                            groupName={req.group_name}
-                            date={req.created_at}
-                          />
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            requests.map((req) => (
+              <div
+                key={req.id}
+                className="p-4 rounded-xl border bg-muted/30 cursor-pointer hover:bg-accent/50 transition-colors space-y-2"
+                onClick={() => setSelectedRequest(req)}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-sm">{req.borrower_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      £{req.amount.toLocaleString()} • {req.duration_months}m
+                    </p>
+                  </div>
+                  {getStatusBadge(req.status)}
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    <span>{req.guarantor_name}</span>
+                    {req.guarantor_status === "approved" && <CheckCircle className="w-3 h-3 text-success" />}
+                    {req.guarantor_status === "rejected" && <XCircle className="w-3 h-3 text-destructive" />}
+                  </div>
+                  <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))
           )}
         </CardContent>
       </Card>
@@ -357,7 +352,7 @@ const LoanRequestReview = () => {
               <AlertTriangle className="w-5 h-5" /> Liquidity Warning
             </DialogTitle>
             <DialogDescription>
-              The system does not have sufficient available funds to cover this loan.
+              Insufficient available funds to cover this loan.
             </DialogDescription>
           </DialogHeader>
           {liquidityDialog.check && (
@@ -373,7 +368,7 @@ const LoanRequestReview = () => {
                 </div>
                 <div className="p-3 rounded-lg bg-muted">
                   <p className="text-muted-foreground text-xs">Investor Obligations</p>
-                  <p className="font-bold text-amber-600">£{liquidityDialog.check.totalInvestorObligations.toLocaleString()}</p>
+                  <p className="font-bold">£{liquidityDialog.check.totalInvestorObligations.toLocaleString()}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted">
                   <p className="text-muted-foreground text-xs">Available Funds</p>
@@ -393,7 +388,7 @@ const LoanRequestReview = () => {
               Cancel
             </Button>
             <Button variant="destructive" onClick={() => liquidityDialog.request && executeApproval(liquidityDialog.request)}>
-              <ShieldCheck className="w-4 h-4 mr-2" /> Override & Approve Anyway
+              <ShieldCheck className="w-4 h-4 mr-2" /> Override & Approve
             </Button>
           </DialogFooter>
         </DialogContent>
