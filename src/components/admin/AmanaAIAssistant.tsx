@@ -326,7 +326,7 @@ const AmanaAIAssistant = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className={`z-50 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden ${sizeClasses[chatSize]}`}
+            className={`z-50 bg-card border border-border sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden ${sizeClasses[chatSize]}`}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground flex-shrink-0">
