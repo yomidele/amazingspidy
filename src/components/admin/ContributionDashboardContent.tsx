@@ -221,42 +221,44 @@ const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardConte
         ))}
       </div>
 
-      {/* Charts */}
+      {/* Charts - horizontally scrollable on mobile */}
       {chartData.length > 0 && (
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Contributions (Last 6 Months)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" tickFormatter={(v) => `£${v}`} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="contributions" fill="var(--color-contributions)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+        <div className="overflow-x-auto pb-2 mb-6 -mx-3 px-3 sm:mx-0 sm:px-0">
+          <div className="flex gap-4 sm:grid sm:grid-cols-2 min-w-0">
+            <Card className="min-w-[280px] flex-shrink-0 sm:min-w-0">
+              <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
+                <CardTitle className="text-sm sm:text-base">Contributions (Last 6 Months)</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <ChartContainer config={chartConfig} className="h-[180px] sm:h-[250px] w-full">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 10 }} />
+                    <YAxis className="text-xs" tick={{ fontSize: 10 }} tickFormatter={(v) => `£${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} width={40} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="contributions" fill="var(--color-contributions)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Loans Issued (Last 6 Months)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" tickFormatter={(v) => `£${v}`} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="loans" stroke="var(--color-loans)" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+            <Card className="min-w-[280px] flex-shrink-0 sm:min-w-0">
+              <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
+                <CardTitle className="text-sm sm:text-base">Loans Issued (Last 6 Months)</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <ChartContainer config={chartConfig} className="h-[180px] sm:h-[250px] w-full">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 10 }} />
+                    <YAxis className="text-xs" tick={{ fontSize: 10 }} tickFormatter={(v) => `£${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} width={40} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="loans" stroke="var(--color-loans)" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
