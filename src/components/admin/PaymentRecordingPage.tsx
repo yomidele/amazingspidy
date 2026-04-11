@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { logActivity } from "@/lib/activityLogger";
 import {
   Plus,
   Search,
@@ -270,6 +271,14 @@ const PaymentRecordingPage = () => {
           )
         );
       }
+
+      // Log activity
+      const logMemberName = getMemberName(newPayment.user_id);
+      await logActivity(
+        paymentToEdit ? "payment_updated" : "payment_recorded",
+        `${paymentToEdit ? "Updated" : "Recorded"} contribution payment of £${newPayment.amount} for ${logMemberName}`,
+        "contribution_payment", paymentToEdit?.id || selectedContribution, newPayment.user_id
+      );
 
       toast.success(paymentToEdit ? "Payment updated successfully" : "Payment recorded successfully");
       setIsRecordPaymentOpen(false);

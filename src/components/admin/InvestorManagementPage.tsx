@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activityLogger";
 
 interface Investor {
   user_id: string;
@@ -200,6 +201,7 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       const { error } = await supabase.from("investments").insert(payload);
       if (error) { toast.error("Failed to add investment"); return; }
       toast.success("Investment added");
+      await logActivity("investment_created", `New investment of £${investmentForm.amount} added`, "investment", "new", investmentForm.investor_id);
     }
     setInvestmentOpen(false);
     fetchData();
@@ -226,6 +228,8 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
     });
     if (error) { toast.error("Failed to record payment"); return; }
     toast.success("Payment recorded");
+    const invName = investors.find((i) => i.user_id === paymentForm.investor_id)?.full_name || "Unknown";
+    await logActivity("investor_payment", `Recorded payment of £${paymentForm.amount_paid} to investor ${invName}`, "investor_payment", paymentForm.investment_id, paymentForm.investor_id);
     setPaymentOpen(false);
     setPaymentForm({ investor_id: "", investment_id: "", amount_paid: "", payment_date: new Date().toISOString().split("T")[0], notes: "" });
     fetchData();
