@@ -201,6 +201,7 @@ const InvestorManagementPage = ({ initialTab = "overview" }: Props) => {
       const { error } = await supabase.from("investments").insert(payload);
       if (error) { toast.error("Failed to add investment"); return; }
       toast.success("Investment added");
+      await logActivity("investment_created", `New investment of £${investmentForm.amount} added`, "investment", "new", investmentForm.investor_id);
     }
     setInvestmentOpen(false);
     fetchData();
