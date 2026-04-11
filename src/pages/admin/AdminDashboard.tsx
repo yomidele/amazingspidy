@@ -207,7 +207,12 @@ const AdminDashboardContent = () => {
           );
         case "dashboard":
         default:
-          return <ContributionDashboardContent />;
+          return <ContributionDashboardContent onNavigate={(page) => {
+            if (page.startsWith("investor")) {
+              setActiveModule("investor");
+            }
+            setActivePage(page);
+          }} />;
       }
     } else if (activeModule === "travel") {
       switch (activePage) {
