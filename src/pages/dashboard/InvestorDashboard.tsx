@@ -182,7 +182,7 @@ const InvestorDashboard = () => {
                     </TableHeader>
                     <TableBody>
                       {investments.map((inv) => {
-                        const expected = getExpectedReturn(inv);
+                        const expected = getInvestorReturn(inv);
                         const paid = getTotalPaidForInvestment(inv.id);
                         const balance = expected - paid;
                         return (
