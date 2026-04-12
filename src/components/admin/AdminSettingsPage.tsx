@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useTutorial } from "@/contexts/TutorialContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import AdminTooltip, { tooltipContent } from "./AdminTooltip";
 
 interface AdminSettingsPageProps {
