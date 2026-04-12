@@ -44,6 +44,68 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          investment_id: string | null
+          source: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          investment_id?: string | null
+          source?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          investment_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_earnings_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_settings: {
+        Row: {
+          admin_share_rate: number
+          id: string
+          investor_share_rate: number
+          setting_key: string
+          total_interest_rate: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          admin_share_rate?: number
+          id?: string
+          investor_share_rate?: number
+          setting_key: string
+          total_interest_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          admin_share_rate?: number
+          id?: string
+          investor_share_rate?: number
+          setting_key?: string
+          total_interest_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       case_documents: {
         Row: {
           case_id: string
@@ -277,8 +339,50 @@ export type Database = {
           },
         ]
       }
+      investment_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          investment_id: string | null
+          payout_status: string
+          reference: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          investment_id?: string | null
+          payout_status?: string
+          reference?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          investment_id?: string | null
+          payout_status?: string
+          reference?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_transactions_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investments: {
         Row: {
+          admin_share_rate: number | null
           amount: number
           created_at: string
           duration_months: number
@@ -286,12 +390,15 @@ export type Database = {
           id: string
           interest_rate: number
           investor_id: string
+          investor_share_rate: number | null
           notes: string | null
+          payout_status: string | null
           start_date: string
           status: string
           updated_at: string
         }
         Insert: {
+          admin_share_rate?: number | null
           amount: number
           created_at?: string
           duration_months?: number
@@ -299,12 +406,15 @@ export type Database = {
           id?: string
           interest_rate?: number
           investor_id: string
+          investor_share_rate?: number | null
           notes?: string | null
+          payout_status?: string | null
           start_date?: string
           status?: string
           updated_at?: string
         }
         Update: {
+          admin_share_rate?: number | null
           amount?: number
           created_at?: string
           duration_months?: number
@@ -312,7 +422,9 @@ export type Database = {
           id?: string
           interest_rate?: number
           investor_id?: string
+          investor_share_rate?: number | null
           notes?: string | null
+          payout_status?: string | null
           start_date?: string
           status?: string
           updated_at?: string
