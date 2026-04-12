@@ -11,7 +11,7 @@ import {
 import InterestRateSettings from "./InterestRateSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useTutorial } from "@/contexts/TutorialContext";
