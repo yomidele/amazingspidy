@@ -7,7 +7,6 @@ import {
   Bell,
   HelpCircle,
   TrendingUp,
-  Power,
 } from "lucide-react";
 import InterestRateSettings from "./InterestRateSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
