@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
+import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedScreen";
+import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 
 const InvestorDashboard = () => {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ const InvestorDashboard = () => {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const { status: investorModuleStatus } = useInvestorModuleStatus();
 
   useEffect(() => {
     const init = async () => {
@@ -126,6 +129,9 @@ const InvestorDashboard = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {investorModuleStatus !== "active" ? (
+          <InvestorModuleLockedScreen variant="investor" />
+        ) : (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
@@ -234,6 +240,7 @@ const InvestorDashboard = () => {
             </CardContent>
           </Card>
         </motion.div>
+        )}
       </main>
     </div>
   );

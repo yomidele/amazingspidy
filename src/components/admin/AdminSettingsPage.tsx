@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Settings,
   BookOpen,
@@ -7,6 +7,7 @@ import {
   Bell,
   HelpCircle,
   TrendingUp,
+  Power,
 } from "lucide-react";
 import InterestRateSettings from "./InterestRateSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -235,9 +236,80 @@ const AdminSettingsPage = ({ onOpenTutorial, onOpenManual }: AdminSettingsPagePr
         </Card>
       </div>
 
+      {/* Investor Module Activation */}
+      <InvestorModuleToggle />
+
       {/* Interest Rate Settings */}
       <InterestRateSettings />
     </div>
+  );
+};
+
+const InvestorModuleToggle = () => {
+  const [active, setActive] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("investor_module_status")
+        .eq("setting_key", "investment_interest")
+        .maybeSingle();
+      setActive(data?.investor_module_status === "active");
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const toggle = async () => {
+    const newStatus = active ? "inactive" : "active";
+    setSaving(true);
+    const { error } = await supabase
+      .from("admin_settings")
+      .update({ investor_module_status: newStatus } as any)
+      .eq("setting_key", "investment_interest");
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to update module status");
+      return;
+    }
+    setActive(!active);
+    toast.success(`Investor module ${newStatus === "active" ? "activated" : "deactivated"}`);
+  };
+
+  if (loading) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Power className="w-5 h-5 text-primary" />
+          Investor Module
+        </CardTitle>
+        <CardDescription>
+          Enable or disable the investor module across the platform
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="font-medium">Module Status</Label>
+            <p className="text-sm text-muted-foreground">
+              {active
+                ? "Investor dashboards and management tools are active"
+                : "Investor features are currently disabled for all users"}
+            </p>
+          </div>
+          <Switch
+            checked={active}
+            onCheckedChange={toggle}
+            disabled={saving}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
