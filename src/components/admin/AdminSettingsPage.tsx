@@ -237,8 +237,7 @@ const AdminSettingsPage = ({ onOpenTutorial, onOpenManual }: AdminSettingsPagePr
         </Card>
       </div>
 
-      {/* Investor Module Activation */}
-      <InvestorModuleToggle />
+      {/* Interest Rate Settings */}
 
       {/* Interest Rate Settings */}
       <InterestRateSettings />
