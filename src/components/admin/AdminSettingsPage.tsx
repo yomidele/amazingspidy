@@ -8,6 +8,7 @@ import {
   HelpCircle,
   TrendingUp,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import InterestRateSettings from "./InterestRateSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
