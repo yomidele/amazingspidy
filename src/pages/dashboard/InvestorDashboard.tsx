@@ -188,7 +188,7 @@ const InvestorDashboard = () => {
                         return (
                           <TableRow key={inv.id}>
                             <TableCell className="font-medium">£{Number(inv.amount).toLocaleString()}</TableCell>
-                            <TableCell>{inv.interest_rate}%</TableCell>
+                            <TableCell>{Number(inv.investor_share_rate || inv.interest_rate)}%</TableCell>
                             <TableCell className="text-amber-600 font-medium">£{expected.toLocaleString()}</TableCell>
                             <TableCell className="text-green-600 font-medium">£{paid.toLocaleString()}</TableCell>
                             <TableCell className="text-destructive font-medium">£{balance.toLocaleString()}</TableCell>
