@@ -234,6 +234,9 @@ const AdminSettingsPage = ({ onOpenTutorial, onOpenManual }: AdminSettingsPagePr
           </CardContent>
         </Card>
       </div>
+
+      {/* Interest Rate Settings */}
+      <InterestRateSettings />
     </div>
   );
 };

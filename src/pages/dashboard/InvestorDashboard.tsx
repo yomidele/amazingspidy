@@ -80,12 +80,16 @@ const InvestorDashboard = () => {
     );
   }
 
-  const getExpectedReturn = (inv: any) => Number(inv.amount) * (1 + Number(inv.interest_rate) / 100);
+  // Use investor_share_rate for investor-visible returns (not admin share)
+  const getInvestorReturn = (inv: any) => {
+    const investorRate = Number(inv.investor_share_rate || inv.interest_rate || 0);
+    return Number(inv.amount) * (1 + investorRate / 100);
+  };
   const getTotalPaidForInvestment = (investmentId: string) =>
     payments.filter((p) => p.investment_id === investmentId).reduce((s: number, p: any) => s + Number(p.amount_paid), 0);
 
   const totalInvested = investments.reduce((sum, inv) => sum + Number(inv.amount), 0);
-  const totalExpectedReturn = investments.reduce((sum, inv) => sum + getExpectedReturn(inv), 0);
+  const totalExpectedReturn = investments.reduce((sum, inv) => sum + getInvestorReturn(inv), 0);
   const totalEarnings = totalExpectedReturn - totalInvested;
   const totalPaid = payments.reduce((s: number, p: any) => s + Number(p.amount_paid), 0);
   const remainingBalance = totalExpectedReturn - totalPaid;
