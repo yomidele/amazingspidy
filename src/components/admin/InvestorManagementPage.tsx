@@ -219,7 +219,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
     if (!investmentForm.investor_id || !investmentForm.amount) {
       toast.error("Investor and amount are required"); return;
     }
-    const payload = {
+    const payload: any = {
       investor_id: investmentForm.investor_id,
       amount: Number(investmentForm.amount),
       interest_rate: Number(investmentForm.interest_rate),
@@ -234,10 +234,36 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
       if (error) { toast.error("Failed to update investment"); return; }
       toast.success("Investment updated");
     } else {
-      const { error } = await supabase.from("investments").insert(payload);
+      // Snapshot current admin-configured rates onto the new investment
+      const { data: settings } = await supabase
+        .from("admin_settings" as any)
+        .select("*")
+        .eq("setting_key", "investment_interest")
+        .maybeSingle();
+      if (settings) {
+        const s = settings as any;
+        payload.interest_rate = Number(s.total_interest_rate);
+        payload.investor_share_rate = Number(s.investor_share_rate);
+        payload.admin_share_rate = Number(s.admin_share_rate);
+      }
+
+      const { data: newInv, error } = await supabase.from("investments").insert(payload).select().single();
       if (error) { toast.error("Failed to add investment"); return; }
-      toast.success("Investment added");
-      await logActivity("investment_created", `New investment of £${investmentForm.amount} added`, "investment", "new", investmentForm.investor_id);
+
+      // Create investment transaction record
+      if (newInv) {
+        await supabase.from("investment_transactions" as any).insert({
+          user_id: investmentForm.investor_id,
+          investment_id: (newInv as any).id,
+          type: "investment",
+          amount: Number(investmentForm.amount),
+          reference: `Initial investment of £${investmentForm.amount}`,
+          payout_status: "processed",
+        } as any);
+      }
+
+      toast.success("Investment added with current interest rate snapshot");
+      await logActivity("investment_created", `New investment of £${investmentForm.amount} added (Total: ${payload.interest_rate}%, Investor: ${payload.investor_share_rate}%, Admin: ${payload.admin_share_rate}%)`, "investment", "new", investmentForm.investor_id);
     }
     setInvestmentOpen(false);
     fetchData();

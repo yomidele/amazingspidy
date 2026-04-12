@@ -80,12 +80,16 @@ const InvestorDashboard = () => {
     );
   }
 
-  const getExpectedReturn = (inv: any) => Number(inv.amount) * (1 + Number(inv.interest_rate) / 100);
+  // Use investor_share_rate for investor-visible returns (not admin share)
+  const getInvestorReturn = (inv: any) => {
+    const investorRate = Number(inv.investor_share_rate || inv.interest_rate || 0);
+    return Number(inv.amount) * (1 + investorRate / 100);
+  };
   const getTotalPaidForInvestment = (investmentId: string) =>
     payments.filter((p) => p.investment_id === investmentId).reduce((s: number, p: any) => s + Number(p.amount_paid), 0);
 
   const totalInvested = investments.reduce((sum, inv) => sum + Number(inv.amount), 0);
-  const totalExpectedReturn = investments.reduce((sum, inv) => sum + getExpectedReturn(inv), 0);
+  const totalExpectedReturn = investments.reduce((sum, inv) => sum + getInvestorReturn(inv), 0);
   const totalEarnings = totalExpectedReturn - totalInvested;
   const totalPaid = payments.reduce((s: number, p: any) => s + Number(p.amount_paid), 0);
   const remainingBalance = totalExpectedReturn - totalPaid;
@@ -178,13 +182,13 @@ const InvestorDashboard = () => {
                     </TableHeader>
                     <TableBody>
                       {investments.map((inv) => {
-                        const expected = getExpectedReturn(inv);
+                        const expected = getInvestorReturn(inv);
                         const paid = getTotalPaidForInvestment(inv.id);
                         const balance = expected - paid;
                         return (
                           <TableRow key={inv.id}>
                             <TableCell className="font-medium">£{Number(inv.amount).toLocaleString()}</TableCell>
-                            <TableCell>{inv.interest_rate}%</TableCell>
+                            <TableCell>{Number(inv.investor_share_rate || inv.interest_rate)}%</TableCell>
                             <TableCell className="text-amber-600 font-medium">£{expected.toLocaleString()}</TableCell>
                             <TableCell className="text-green-600 font-medium">£{paid.toLocaleString()}</TableCell>
                             <TableCell className="text-destructive font-medium">£{balance.toLocaleString()}</TableCell>
