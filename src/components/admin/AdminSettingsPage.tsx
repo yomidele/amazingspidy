@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import {
   Settings,
   BookOpen,
-  ToggleLeft,
-  ToggleRight,
   RefreshCcw,
   Shield,
   Bell,
-  Download,
   HelpCircle,
+  TrendingUp,
 } from "lucide-react";
+import InterestRateSettings from "./InterestRateSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
