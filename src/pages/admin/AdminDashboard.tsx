@@ -43,6 +43,8 @@ import UserActivityPage from "@/components/admin/UserActivityPage";
 import InvestorManagementPage from "@/components/admin/InvestorManagementPage";
 import LoanRequestReview from "@/components/admin/LoanRequestReview";
 import InvestorRequestsPage from "@/components/admin/InvestorRequestsPage";
+import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedScreen";
+import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 import NotificationBell from "@/components/shared/NotificationBell";
 import AmanaAIAssistant from "@/components/admin/AmanaAIAssistant";
 
@@ -57,6 +59,7 @@ const AdminDashboardContent = () => {
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [triggerAddInvestor, setTriggerAddInvestor] = useState(false);
+  const { status: investorModuleStatus, loading: investorModuleLoading } = useInvestorModuleStatus();
 
   const { tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial } = useTutorial();
   const location = useLocation();
@@ -241,6 +244,10 @@ const AdminDashboardContent = () => {
           return <TravelDashboardContent />;
       }
     } else {
+      // Gate investor module — only settings is accessible when inactive
+      if (investorModuleStatus !== "active" && activePage !== "investor-settings") {
+        return <InvestorModuleLockedScreen variant="admin" />;
+      }
       switch (activePage) {
         case "investor-management":
           return <InvestorManagementPage triggerAddInvestor={triggerAddInvestor} onAddInvestorHandled={() => setTriggerAddInvestor(false)} />;

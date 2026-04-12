@@ -80,6 +80,7 @@ export type Database = {
         Row: {
           admin_share_rate: number
           id: string
+          investor_module_status: string
           investor_share_rate: number
           setting_key: string
           total_interest_rate: number
@@ -89,6 +90,7 @@ export type Database = {
         Insert: {
           admin_share_rate?: number
           id?: string
+          investor_module_status?: string
           investor_share_rate?: number
           setting_key: string
           total_interest_rate?: number
@@ -98,6 +100,7 @@ export type Database = {
         Update: {
           admin_share_rate?: number
           id?: string
+          investor_module_status?: string
           investor_share_rate?: number
           setting_key?: string
           total_interest_rate?: number

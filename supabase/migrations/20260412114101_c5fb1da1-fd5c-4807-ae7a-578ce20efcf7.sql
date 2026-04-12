@@ -1,0 +1,1 @@
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS investor_module_status text NOT NULL DEFAULT 'inactive';
