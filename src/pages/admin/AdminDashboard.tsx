@@ -47,6 +47,7 @@ import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedS
 import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 import NotificationBell from "@/components/shared/NotificationBell";
 import AmanaAIAssistant from "@/components/admin/AmanaAIAssistant";
+import AccountManagementPage from "@/components/admin/AccountManagementPage";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -163,6 +164,7 @@ const AdminDashboardContent = () => {
   const contributionNavItems = [
     { icon: LayoutDashboard, label: "Dashboard", page: "dashboard", tooltip: tooltipContent.dashboardHome },
     { icon: Users, label: "Members", page: "members", tooltip: tooltipContent.addContributor },
+    { icon: Shield, label: "Accounts", page: "accounts", tooltip: "Approve, lock, and manage user accounts" },
     { icon: Wallet, label: "Contributions", page: "contributions", tooltip: tooltipContent.newMonth },
     { icon: Receipt, label: "Payments", page: "payments", tooltip: tooltipContent.recordPayment },
     { icon: CreditCard, label: "Loans", page: "loans", tooltip: tooltipContent.issueLoan },
@@ -196,6 +198,8 @@ const AdminDashboardContent = () => {
       switch (activePage) {
         case "members":
           return <MemberManagementPage />;
+        case "accounts":
+          return <AccountManagementPage />;
         case "user-detail":
           return <UserActivityPage userId={selectedUserId} />;
         case "contributions":
