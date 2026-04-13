@@ -87,15 +87,14 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error adding contributor role:", roleError);
     }
 
-    // Create profile
+    // Create profile with active status (admin-created members are pre-approved)
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .insert({
-        user_id: userId,
-        full_name: fullName,
-        email: email,
-        phone: phone || null,
-      });
+      .update({
+        account_status: "active",
+        failed_login_attempts: 0,
+      })
+      .eq("user_id", userId);
 
     if (profileError && !profileError.message.includes("duplicate")) {
       console.error("Error creating profile:", profileError);

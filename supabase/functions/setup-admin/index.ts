@@ -122,7 +122,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("User already has admin role");
     }
 
-    // Ensure profile exists
+    // Ensure profile exists and is active
     const { data: existingProfile } = await supabaseAdmin
       .from("profiles")
       .select("*")
@@ -136,11 +136,18 @@ const handler = async (req: Request): Promise<Response> => {
           user_id: userId,
           full_name: fullName || "Administrator",
           email: email,
+          account_status: "active",
         });
 
       if (profileError && !profileError.message.includes("duplicate")) {
         console.error("Error creating profile:", profileError);
       }
+    } else {
+      // Ensure admin account is always active
+      await supabaseAdmin
+        .from("profiles")
+        .update({ account_status: "active", failed_login_attempts: 0 })
+        .eq("user_id", userId);
     }
 
     return new Response(

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { secureLogin } from "@/lib/secureAuth";
 
 const TravelLogin = () => {
   const navigate = useNavigate();
@@ -25,11 +26,8 @@ const TravelLogin = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
-        if (error) throw error;
+        const result = await secureLogin(formData.email, formData.password);
+        if (!result.success) throw new Error(result.error);
         toast.success("Welcome back!");
         navigate("/dashboard/travel");
       } else {
@@ -45,7 +43,7 @@ const TravelLogin = () => {
           },
         });
         if (error) throw error;
-        toast.success("Please check your email to verify your account.");
+        toast.success("Account created! Your account is pending admin approval. You'll be notified once activated.");
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred");

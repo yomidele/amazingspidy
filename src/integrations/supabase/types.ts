@@ -802,31 +802,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
           avatar_url: string | null
           created_at: string
           email: string | null
+          failed_login_attempts: number
           full_name: string | null
           id: string
+          locked_at: string | null
           phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          account_status?: string
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          failed_login_attempts?: number
           full_name?: string | null
           id?: string
+          locked_at?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          account_status?: string
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          failed_login_attempts?: number
           full_name?: string | null
           id?: string
+          locked_at?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { secureLogin } from "@/lib/secureAuth";
 import RoleChooserModal from "@/components/shared/RoleChooserModal";
 
 const InvestorLogin = () => {
@@ -21,11 +22,10 @@ const InvestorLogin = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-      if (error) throw error;
+      const result = await secureLogin(formData.email, formData.password);
+      if (!result.success) throw new Error(result.error);
+
+      const data = result;
 
       // Check user roles
       const { data: roles } = await supabase
