@@ -115,19 +115,36 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     // Send notification to the user
-    if (action === "approve") {
-      await supabaseAdmin.from("notifications").insert({
-        user_id,
+    const notificationMap: Record<string, { title: string; message: string; type: string }> = {
+      approve: {
         title: "Account Approved",
-        message: "Your account has been approved. You can now log in.",
+        message: "Your account has been approved. You can now log in and access all features.",
         type: "success",
-      });
-    } else if (action === "unlock") {
+      },
+      unlock: {
+        title: "Account Unlocked",
+        message: "Your account has been unlocked. You can now log in again.",
+        type: "info",
+      },
+      lock: {
+        title: "Account Locked",
+        message: "Your account has been locked by an administrator. Please contact support for assistance.",
+        type: "warning",
+      },
+      suspend: {
+        title: "Account Suspended",
+        message: "Your account has been suspended by an administrator. Please contact support for more information.",
+        type: "warning",
+      },
+    };
+
+    const notification = notificationMap[action];
+    if (notification) {
       await supabaseAdmin.from("notifications").insert({
         user_id,
-        title: "Account Unlocked",
-        message: "Your account has been unlocked. You can now log in.",
-        type: "info",
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
       });
     }
 
