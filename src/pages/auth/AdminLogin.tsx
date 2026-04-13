@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { secureLogin } from "@/lib/secureAuth";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -22,11 +23,8 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-      if (error) throw error;
+      const result = await secureLogin(formData.email, formData.password);
+      if (!result.success) throw new Error(result.error);
       toast.success("Welcome back, Admin!");
       navigate("/admin");
     } catch (error: any) {
