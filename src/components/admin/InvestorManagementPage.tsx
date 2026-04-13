@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logActivity } from "@/lib/activityLogger";
+import { logActivity, sendNotification } from "@/lib/activityLogger";
 
 interface Investor {
   user_id: string;
@@ -153,6 +153,16 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
         role: "investor" as any,
       });
       if (error) throw error;
+      
+      // Notify the promoted user
+      await sendNotification(
+        selectedPromoteUser,
+        "Investor Role Activated",
+        "Congratulations! You have been granted investor access. You can now log in to the Investor Dashboard to view and manage your investments.",
+        "success",
+        "/investor-dashboard"
+      );
+      
       toast.success("User promoted to investor successfully");
       setPromoteOpen(false);
       setSelectedPromoteUser("");
@@ -196,6 +206,15 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
         .eq("user_id", userId)
         .eq("role", "investor" as any);
       if (error) throw error;
+      
+      // Notify the user about revocation
+      await sendNotification(
+        userId,
+        "Investor Access Revoked",
+        "Your investor access has been revoked by an administrator. If you believe this is an error, please contact the admin.",
+        "warning"
+      );
+      
       toast.success("Investor access revoked");
       fetchData();
     } catch (err: any) {
