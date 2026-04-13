@@ -43,7 +43,7 @@ const TravelLogin = () => {
           },
         });
         if (error) throw error;
-        toast.success("Please check your email to verify your account.");
+        toast.success("Account created! Your account is pending admin approval. You'll be notified once activated.");
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred");
