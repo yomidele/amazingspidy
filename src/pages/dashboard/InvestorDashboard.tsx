@@ -463,13 +463,20 @@ const InvestorDashboard = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {payments.map((p: any) => (
-                              <TableRow key={p.id} className="border-white/5">
-                                <TableCell className="font-medium text-emerald-400">£{Number(p.amount_paid).toLocaleString()}</TableCell>
-                                <TableCell className="text-white/70">{new Date(p.payment_date).toLocaleDateString()}</TableCell>
-                                <TableCell className="text-white/40">{p.notes || "—"}</TableCell>
-                              </TableRow>
-                            ))}
+                             {payments.map((p: any) => (
+                               <TableRow
+                                 key={p.id}
+                                 className="border-white/5 cursor-pointer hover:bg-white/[0.03] transition-colors"
+                                 onClick={() => { setSelectedPayment(p); setPaymentDialogOpen(true); }}
+                               >
+                                 <TableCell className="font-medium text-emerald-400">£{Number(p.amount_paid).toLocaleString()}</TableCell>
+                                 <TableCell className="text-white/70">{new Date(p.payment_date).toLocaleDateString()}</TableCell>
+                                 <TableCell className="text-white/40">{p.notes || "—"}</TableCell>
+                                 <TableCell>
+                                   <Eye className="w-4 h-4 text-white/40" />
+                                 </TableCell>
+                               </TableRow>
+                             ))}
                           </TableBody>
                         </Table>
                       </div>
