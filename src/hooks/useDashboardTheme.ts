@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 type DashboardThemeMode = "dark" | "light";
 
 const STORAGE_KEY = "amana_dashboard_theme";
+const DEFAULT_MODE: DashboardThemeMode = "light";
 
 export const useDashboardTheme = () => {
-  const [mode, setModeState] = useState<DashboardThemeMode>("dark");
+  const [mode, setModeState] = useState<DashboardThemeMode>(DEFAULT_MODE);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
