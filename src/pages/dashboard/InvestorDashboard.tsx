@@ -231,8 +231,8 @@ const InvestorDashboard = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8 min-h-screen">
-          <div className="max-w-6xl mx-auto">
+        <main className="min-w-0 flex-1 p-4 lg:p-8 pt-20 lg:pt-8 min-h-screen">
+          <div className="mx-auto w-full max-w-6xl">
             {/* Welcome + Mobile Tabs */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
               <h1 className="text-2xl lg:text-3xl font-bold mb-1">
@@ -240,18 +240,18 @@ const InvestorDashboard = () => {
               </h1>
               <p className="text-white/40 text-sm">Here's your investment overview</p>
               {/* Mobile tab bar */}
-              <div className="flex lg:hidden gap-2 mt-4">
+              <div className="flex flex-wrap lg:hidden gap-2 mt-4">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+                    className={`min-w-0 flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                       activeTab === tab.id
                         ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
                         : "text-white/40 bg-white/5 border border-white/5"
                     }`}
                   >
-                    {tab.label}
+                    <span className="block truncate">{tab.label}</span>
                   </button>
                 ))}
               </div>
