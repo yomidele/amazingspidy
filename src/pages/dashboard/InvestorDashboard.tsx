@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import NotificationBell from "@/components/shared/NotificationBell";
+import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedScreen";
 import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 
