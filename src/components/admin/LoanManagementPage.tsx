@@ -222,16 +222,25 @@ const LoanManagementPage = () => {
     setIsDeletingLoan(true);
 
     try {
+      // Delete the loan (loan_repayments cascade automatically via FK)
       const { error } = await supabase
         .from("loans")
         .delete()
         .eq("id", deletingLoan.id);
       if (error) throw error;
 
-      toast.success("Loan deleted successfully");
+      // Also delete the matching loan_request (guarantors + signatures cascade via FK)
+      await supabase
+        .from("loan_requests")
+        .delete()
+        .eq("borrower_id", deletingLoan.user_id)
+        .eq("group_id", deletingLoan.group_id)
+        .eq("amount", deletingLoan.principal_amount)
+        .eq("status", "approved");
+
+      toast.success("Loan and all related documents deleted successfully");
       setIsDeleteLoanOpen(false);
       setDeletingLoan(null);
-      // remove from local state immediately
       setLoans((prev) => prev.filter((l) => l.id !== deletingLoan.id));
     } catch (error: any) {
       console.error("Error deleting loan:", error);
