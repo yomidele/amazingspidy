@@ -227,10 +227,13 @@ const InvestorDashboard = () => {
                 <p className="text-xs text-white/40 truncate">{user?.email}</p>
               </div>
             </div>
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200">
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleLogout} className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200">
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+              <DashboardThemeToggle isDark={isDark} onToggle={toggleMode} />
+            </div>
           </div>
         </aside>
 
