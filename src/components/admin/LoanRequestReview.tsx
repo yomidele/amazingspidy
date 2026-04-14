@@ -219,15 +219,20 @@ const LoanRequestReview = () => {
   };
 
   const handleDelete = async (request: LoanRequestRow) => {
-    if (!confirm(`Delete loan request from ${request.borrower_name}? This will clear their loan eligibility for a new request.`)) return;
+    if (!confirm(`Delete loan request from ${request.borrower_name}? This will remove all related documents (signatures, guarantor records, repayments) and clear their loan eligibility.`)) return;
     setProcessing(request.id);
     try {
-      // Delete related guarantors and signatures first
-      await Promise.all([
-        supabase.from("loan_guarantors").delete().eq("loan_request_id", request.id),
-        supabase.from("loan_signatures").delete().eq("loan_request_id", request.id),
-      ]);
+      // If this request was approved, delete the associated loan first (repayments cascade via FK)
+      if (request.status === "approved") {
+        await supabase
+          .from("loans")
+          .delete()
+          .eq("user_id", request.borrower_id)
+          .eq("group_id", request.group_id)
+          .eq("principal_amount", request.amount);
+      }
 
+      // Delete the loan request (guarantors + signatures cascade via FK)
       const { error } = await supabase.from("loan_requests").delete().eq("id", request.id);
       if (error) throw error;
 
