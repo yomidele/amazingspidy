@@ -412,18 +412,25 @@ const InvestorDashboard = () => {
                               const paid = getTotalPaidForInvestment(inv.id);
                               const balance = expected - paid;
                               return (
-                                <TableRow key={inv.id} className="border-white/5">
-                                  <TableCell className="font-medium text-white">£{Number(inv.amount).toLocaleString()}</TableCell>
-                                  <TableCell className="text-white/70">{Number(inv.investor_share_rate || inv.interest_rate)}%</TableCell>
-                                  <TableCell className="text-amber-400 font-medium">£{expected.toLocaleString()}</TableCell>
-                                  <TableCell className="text-emerald-400 font-medium">£{paid.toLocaleString()}</TableCell>
-                                  <TableCell className="text-red-400 font-medium">£{balance.toLocaleString()}</TableCell>
-                                  <TableCell>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor(inv.status)}`}>
-                                      {inv.status?.toUpperCase()}
-                                    </span>
-                                  </TableCell>
-                                </TableRow>
+                                 <TableRow
+                                   key={inv.id}
+                                   className="border-white/5 cursor-pointer hover:bg-white/[0.03] transition-colors"
+                                   onClick={() => { setSelectedInvestment(inv); setInvestmentDialogOpen(true); }}
+                                 >
+                                   <TableCell className="font-medium text-white">£{Number(inv.amount).toLocaleString()}</TableCell>
+                                   <TableCell className="text-white/70">{Number(inv.investor_share_rate || inv.interest_rate)}%</TableCell>
+                                   <TableCell className="text-amber-400 font-medium">£{expected.toLocaleString()}</TableCell>
+                                   <TableCell className="text-emerald-400 font-medium">£{paid.toLocaleString()}</TableCell>
+                                   <TableCell className="text-red-400 font-medium">£{balance.toLocaleString()}</TableCell>
+                                   <TableCell>
+                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor(inv.status)}`}>
+                                       {inv.status?.toUpperCase()}
+                                     </span>
+                                   </TableCell>
+                                   <TableCell>
+                                     <Eye className="w-4 h-4 text-white/40" />
+                                   </TableCell>
+                                 </TableRow>
                               );
                             })}
                           </TableBody>
