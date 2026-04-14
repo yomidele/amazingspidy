@@ -45,6 +45,7 @@ const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
 
 const InvestorDashboard = () => {
   const navigate = useNavigate();
+  const { isDark, toggleMode } = useDashboardTheme();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [investments, setInvestments] = useState<any[]>([]);
