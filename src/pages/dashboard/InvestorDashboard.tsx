@@ -47,6 +47,10 @@ const InvestorDashboard = () => {
   const [isVerified, setIsVerified] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "investments" | "payments">("overview");
+  const [selectedInvestment, setSelectedInvestment] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [investmentDialogOpen, setInvestmentDialogOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const { status: investorModuleStatus, loading: moduleLoading } = useInvestorModuleStatus();
 
   useEffect(() => {
