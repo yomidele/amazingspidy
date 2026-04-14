@@ -632,71 +632,50 @@ const InvestorDashboard = () => {
               {activeTab === "payments" && (
                 <motion.div key="payments" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <GlassCard className="p-5 lg:p-6" delay={0.1}>
-                    <h3 className="font-semibold text-sm mb-4 text-white/70">Payment History</h3>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-base text-white">Payment History</h3>
+                    </div>
+                    {payments.length > 0 && (
+                      <p className="text-xs text-white/40 mb-4">
+                        Total received: <span className="text-emerald-400 font-medium">£{payments.reduce((s: number, p: any) => s + Number(p.amount_paid), 0).toLocaleString()}</span>
+                      </p>
+                    )}
+                    <div className="h-px bg-white/10 mb-4" />
                     {payments.length === 0 ? (
                       <div className="text-center py-8">
                         <Receipt className="w-10 h-10 mx-auto text-white/20 mb-2" />
                         <p className="text-xs text-white/30">No payments received yet.</p>
                       </div>
                     ) : (
-                      <>
-                        <div className="hidden lg:block overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="border-white/10">
-                                <TableHead className="text-white/50">Amount</TableHead>
-                                <TableHead className="text-white/50">Date</TableHead>
-                                <TableHead className="text-white/50">Notes</TableHead>
-                                <TableHead className="text-white/50"></TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {payments.map((p: any) => (
-                                <TableRow
-                                  key={p.id}
-                                  className="border-white/5 cursor-pointer hover:bg-white/[0.03] transition-colors"
-                                  onClick={() => { setSelectedPayment(p); setPaymentDialogOpen(true); }}
-                                >
-                                  <TableCell className="font-medium text-emerald-400">£{Number(p.amount_paid).toLocaleString()}</TableCell>
-                                  <TableCell className="text-white/70">{new Date(p.payment_date).toLocaleDateString()}</TableCell>
-                                  <TableCell className="text-white/40">{p.notes || "—"}</TableCell>
-                                  <TableCell>
-                                    <Eye className="w-4 h-4 text-white/40" />
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-
-                        <div className="space-y-3 lg:hidden">
-                          {payments.map((p: any) => (
-                            <button
-                              key={p.id}
-                              onClick={() => { setSelectedPayment(p); setPaymentDialogOpen(true); }}
-                              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition-colors hover:bg-white/[0.05]"
-                            >
-                              <div className="mb-3 flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="text-[11px] text-white/40">Amount</p>
-                                  <p className="text-lg font-semibold text-emerald-400">£{Number(p.amount_paid).toLocaleString()}</p>
-                                </div>
-                                <Eye className="w-4 h-4 text-white/40 mt-1" />
-                              </div>
-                              <div className="grid grid-cols-1 gap-2 text-sm">
-                                <div>
-                                  <p className="text-[11px] text-white/40">Date</p>
-                                  <p className="text-white/80">{new Date(p.payment_date).toLocaleDateString()}</p>
-                                </div>
-                                <div>
-                                  <p className="text-[11px] text-white/40">Notes</p>
-                                  <p className="text-white/60 break-words">{p.notes || "—"}</p>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </>
+                      <div className="space-y-1">
+                        {payments.map((p: any, idx: number) => (
+                          <button
+                            key={p.id}
+                            onClick={() => { setSelectedPayment(p); setPaymentDialogOpen(true); }}
+                            className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-white/[0.05] active:bg-white/[0.08]"
+                          >
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                              <DollarSign className="w-5 h-5 text-emerald-400" />
+                            </div>
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className="text-sm font-medium text-white truncate">
+                                {p.notes || "Investment Payout"}
+                              </p>
+                              <p className="text-xs text-white/40">
+                                {format(new Date(p.payment_date), "MMM do, HH:mm")}
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0 text-right">
+                              <p className="text-sm font-semibold text-emerald-400">
+                                +£{Number(p.amount_paid).toLocaleString()}
+                              </p>
+                              <Badge className="bg-emerald-500/20 text-emerald-400 border-0 text-[10px] px-1.5 py-0">
+                                Received
+                              </Badge>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </GlassCard>
                 </motion.div>
