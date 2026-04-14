@@ -343,6 +343,144 @@ const InvestorDashboard = () => {
                     ))}
                   </div>
 
+                  {/* Charts Section */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6">
+                    {/* Investment Breakdown Pie */}
+                    <GlassCard className="p-5 lg:p-6" delay={0.25}>
+                      <h3 className="font-semibold text-sm mb-4 text-white/70">Portfolio Breakdown</h3>
+                      {investments.length === 0 ? (
+                        <div className="text-center py-8">
+                          <PieChart className="w-10 h-10 mx-auto text-white/20 mb-2" />
+                          <p className="text-xs text-white/30">No data yet</p>
+                        </div>
+                      ) : (() => {
+                        const PIE_COLORS = ["#f59e0b", "#8b5cf6", "#10b981", "#ef4444", "#3b82f6", "#ec4899"];
+                        const pieData = investments.map((inv, i) => ({
+                          name: `£${Number(inv.amount).toLocaleString()}`,
+                          value: Number(inv.amount),
+                          status: inv.status,
+                        }));
+                        return (
+                          <div className="flex flex-col items-center">
+                            <ResponsiveContainer width="100%" height={200}>
+                              <RechartsPie>
+                                <Pie
+                                  data={pieData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={50}
+                                  outerRadius={80}
+                                  paddingAngle={3}
+                                  dataKey="value"
+                                  stroke="none"
+                                >
+                                  {pieData.map((_, i) => (
+                                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  contentStyle={{ background: "#1e2530", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#fff", fontSize: 12 }}
+                                  formatter={(value: number) => [`£${value.toLocaleString()}`, "Amount"]}
+                                />
+                              </RechartsPie>
+                            </ResponsiveContainer>
+                            <div className="flex flex-wrap gap-3 mt-2 justify-center">
+                              {pieData.map((d, i) => (
+                                <div key={i} className="flex items-center gap-1.5 text-[11px] text-white/50">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                  {d.name}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </GlassCard>
+
+                    {/* Payout Trend Area Chart */}
+                    <GlassCard className="p-5 lg:p-6" delay={0.3}>
+                      <h3 className="font-semibold text-sm mb-4 text-white/70">Payout Trend</h3>
+                      {payments.length === 0 ? (
+                        <div className="text-center py-8">
+                          <BarChart3 className="w-10 h-10 mx-auto text-white/20 mb-2" />
+                          <p className="text-xs text-white/30">No payments yet</p>
+                        </div>
+                      ) : (() => {
+                        const sorted = [...payments].sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
+                        let cumulative = 0;
+                        const trendData = sorted.map((p) => {
+                          cumulative += Number(p.amount_paid);
+                          return {
+                            date: format(new Date(p.payment_date), "dd MMM"),
+                            amount: Number(p.amount_paid),
+                            cumulative,
+                          };
+                        });
+                        return (
+                          <ResponsiveContainer width="100%" height={200}>
+                            <AreaChart data={trendData}>
+                              <defs>
+                                <linearGradient id="payoutGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                              <XAxis dataKey="date" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${v}`} />
+                              <Tooltip
+                                contentStyle={{ background: "#1e2530", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#fff", fontSize: 12 }}
+                                formatter={(value: number, name: string) => [
+                                  `£${value.toLocaleString()}`,
+                                  name === "cumulative" ? "Total Received" : "Payment",
+                                ]}
+                              />
+                              <Area type="monotone" dataKey="cumulative" stroke="#10b981" fill="url(#payoutGrad)" strokeWidth={2} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        );
+                      })()}
+                    </GlassCard>
+                  </div>
+
+                  {/* Investment vs Return Bar Chart */}
+                  {investments.length > 0 && (
+                    <GlassCard className="p-5 lg:p-6 mb-6" delay={0.35}>
+                      <h3 className="font-semibold text-sm mb-4 text-white/70">Investment vs Expected Return</h3>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={investments.map((inv, i) => ({
+                          name: `#${i + 1}`,
+                          invested: Number(inv.amount),
+                          expected: getInvestorReturn(inv),
+                          paid: getTotalPaidForInvestment(inv.id),
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${v}`} />
+                          <Tooltip
+                            contentStyle={{ background: "#1e2530", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#fff", fontSize: 12 }}
+                            formatter={(value: number) => [`£${value.toLocaleString()}`]}
+                          />
+                          <Bar dataKey="invested" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Invested" />
+                          <Bar dataKey="expected" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Expected" />
+                          <Bar dataKey="paid" fill="#10b981" radius={[4, 4, 0, 0]} name="Paid" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <div className="flex gap-4 justify-center mt-3">
+                        {[
+                          { color: "#f59e0b", label: "Invested" },
+                          { color: "#8b5cf6", label: "Expected" },
+                          { color: "#10b981", label: "Paid" },
+                        ].map((l) => (
+                          <div key={l.label} className="flex items-center gap-1.5 text-[11px] text-white/50">
+                            <div className="w-2.5 h-2.5 rounded" style={{ background: l.color }} />
+                            {l.label}
+                          </div>
+                        ))}
+                      </div>
+                    </GlassCard>
+                  )}
+
                   {/* Quick Investment Summary */}
                   <GlassCard className="p-5 lg:p-6" delay={0.3}>
                     <h3 className="font-semibold text-sm mb-4 text-white/70">Recent Investments</h3>
