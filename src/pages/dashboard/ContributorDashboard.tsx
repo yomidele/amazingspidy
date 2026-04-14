@@ -52,6 +52,7 @@ const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
 
 const ContributorDashboard = () => {
   const navigate = useNavigate();
+  const { isDark, toggleMode } = useDashboardTheme();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
