@@ -314,6 +314,152 @@
     color: rgba(255, 255, 255, 0.95);
   }
 
+  /* Dashboard Light Mode Override */
+  .dashboard-light {
+    background: hsl(210 20% 97%) !important;
+    color: hsl(222 47% 11%) !important;
+  }
+
+  .dashboard-light .bg-\[\#0B0F14\],
+  .dashboard-light .bg-\[\#0D1117\] {
+    background: hsl(0 0% 100%) !important;
+  }
+
+  .dashboard-light .bg-\[\#0B0F14\]\/80 {
+    background: hsl(0 0% 100% / 0.85) !important;
+  }
+
+  .dashboard-light .text-white {
+    color: hsl(222 47% 11%) !important;
+  }
+
+  .dashboard-light .text-white\/40,
+  .dashboard-light .text-white\/50 {
+    color: hsl(215 16% 47%) !important;
+  }
+
+  .dashboard-light .text-white\/70,
+  .dashboard-light .text-white\/80 {
+    color: hsl(215 20% 35%) !important;
+  }
+
+  .dashboard-light .border-white\/10,
+  .dashboard-light .border-white\/20 {
+    border-color: hsl(214 32% 91%) !important;
+  }
+
+  .dashboard-light .bg-white\/\[0\.05\],
+  .dashboard-light .bg-white\/\[0\.03\] {
+    background: hsl(0 0% 100%) !important;
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.08);
+  }
+
+  .dashboard-light .bg-white\/5,
+  .dashboard-light .bg-white\/10 {
+    background: hsl(214 32% 96%) !important;
+  }
+
+  .dashboard-light .hover\:bg-white\/\[0\.05\]:hover {
+    background: hsl(214 32% 96%) !important;
+  }
+
+  .dashboard-light .hover\:bg-white\/5:hover,
+  .dashboard-light .hover\:bg-white\/10:hover {
+    background: hsl(214 32% 92%) !important;
+  }
+
+  .dashboard-light .shadow-\[0_8px_32px_rgba\(0\,0\,0\,0\.3\)\] {
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.08), 0 1px 2px hsl(0 0% 0% / 0.06) !important;
+  }
+
+  .dashboard-light .hover\:shadow-\[0_12px_40px_rgba\(0\,0\,0\,0\.4\)\]:hover {
+    box-shadow: 0 4px 6px hsl(0 0% 0% / 0.1) !important;
+  }
+
+  .dashboard-light .backdrop-blur-xl {
+    backdrop-filter: blur(20px);
+  }
+
+  /* Light mode keeps accent colors visible */
+  .dashboard-light .text-emerald-400 {
+    color: hsl(160 84% 39%) !important;
+  }
+
+  .dashboard-light .text-amber-400 {
+    color: hsl(38 92% 40%) !important;
+  }
+
+  .dashboard-light .bg-emerald-500\/15,
+  .dashboard-light .bg-emerald-500\/20 {
+    background: hsl(160 84% 39% / 0.1) !important;
+  }
+
+  .dashboard-light .bg-amber-500\/15,
+  .dashboard-light .bg-amber-500\/20 {
+    background: hsl(38 92% 40% / 0.1) !important;
+  }
+
+  .dashboard-light .border-emerald-500\/20 {
+    border-color: hsl(160 84% 39% / 0.2) !important;
+  }
+
+  .dashboard-light .border-amber-500\/20 {
+    border-color: hsl(38 92% 40% / 0.2) !important;
+  }
+
+  /* Recharts in light mode */
+  .dashboard-light .recharts-text {
+    fill: hsl(215 16% 47%) !important;
+  }
+
+  .dashboard-light .recharts-cartesian-grid line {
+    stroke: hsl(214 32% 91%) !important;
+  }
+
+  /* contributor-dark-override in light mode should revert */
+  .dashboard-light .contributor-dark-override .rounded-lg.border.bg-card {
+    background: hsl(0 0% 100%) !important;
+    border-color: hsl(214 32% 91%) !important;
+    backdrop-filter: none !important;
+  }
+
+  .dashboard-light .contributor-dark-override .text-card-foreground,
+  .dashboard-light .contributor-dark-override h1,
+  .dashboard-light .contributor-dark-override h2,
+  .dashboard-light .contributor-dark-override h3,
+  .dashboard-light .contributor-dark-override h4,
+  .dashboard-light .contributor-dark-override p,
+  .dashboard-light .contributor-dark-override span,
+  .dashboard-light .contributor-dark-override label,
+  .dashboard-light .contributor-dark-override li,
+  .dashboard-light .contributor-dark-override td,
+  .dashboard-light .contributor-dark-override th {
+    color: hsl(222 47% 11%) !important;
+  }
+
+  .dashboard-light .contributor-dark-override .text-muted-foreground {
+    color: hsl(215 16% 47%) !important;
+  }
+
+  .dashboard-light .contributor-dark-override .bg-muted\/50,
+  .dashboard-light .contributor-dark-override .bg-muted\/30,
+  .dashboard-light .contributor-dark-override .bg-muted,
+  .dashboard-light .contributor-dark-override .bg-secondary {
+    background: hsl(214 32% 96%) !important;
+  }
+
+  .dashboard-light .contributor-dark-override .border {
+    border-color: hsl(214 32% 91%) !important;
+  }
+
+  .dashboard-light .contributor-dark-override .bg-white {
+    background: hsl(0 0% 100%) !important;
+  }
+
+  .dashboard-light .contributor-dark-override .font-bold {
+    color: hsl(222 47% 11%) !important;
+  }
+
   /* Scrollbar styling for horizontal scroll areas */
   .scrollbar-thin {
     scrollbar-width: thin;

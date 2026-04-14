@@ -18,6 +18,8 @@ import RepaymentSchedule from "@/components/dashboard/RepaymentSchedule";
 import ContributorCharts from "@/components/dashboard/ContributorCharts";
 import ContributorInsights from "@/components/dashboard/ContributorInsights";
 import NotificationBell from "@/components/shared/NotificationBell";
+import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 interface BeneficiaryInfo {
   name: string;
@@ -50,6 +52,7 @@ const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
 
 const ContributorDashboard = () => {
   const navigate = useNavigate();
+  const { isDark, toggleMode } = useDashboardTheme();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -224,7 +227,7 @@ const ContributorDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0B0F14] text-white overflow-x-hidden">
+    <div className={`min-h-screen bg-[#0B0F14] text-white overflow-x-hidden ${!isDark ? "dashboard-light" : ""}`}>
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0B0F14]/80 backdrop-blur-xl h-16 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
@@ -238,7 +241,8 @@ const ContributorDashboard = () => {
             <span className="font-semibold text-sm">Contributor</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <DashboardThemeToggle isDark={isDark} onToggle={toggleMode} />
           {user && <NotificationBell userId={user.id} variant="glass" />}
           <Button variant="ghost" size="icon" onClick={handleLogout} className="text-white/70 hover:text-white hover:bg-white/10">
             <LogOut className="w-5 h-5" />
@@ -292,10 +296,13 @@ const ContributorDashboard = () => {
                 <p className="text-xs text-white/40 truncate">{user?.email}</p>
               </div>
             </div>
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200">
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleLogout} className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200">
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+              <DashboardThemeToggle isDark={isDark} onToggle={toggleMode} />
+            </div>
           </div>
         </aside>
 
