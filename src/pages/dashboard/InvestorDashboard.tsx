@@ -529,101 +529,60 @@ const InvestorDashboard = () => {
               {activeTab === "investments" && (
                 <motion.div key="investments" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <GlassCard className="p-5 lg:p-6" delay={0.1}>
-                    <h3 className="font-semibold text-sm mb-4 text-white/70">My Investments</h3>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-base text-white">My Investments</h3>
+                    </div>
+                    {investments.length > 0 && (
+                      <p className="text-xs text-white/40 mb-4">
+                        Total invested: <span className="text-amber-400 font-medium">£{investments.reduce((s: number, i: any) => s + Number(i.amount), 0).toLocaleString()}</span>
+                      </p>
+                    )}
+                    <div className="h-px bg-white/10 mb-4" />
                     {investments.length === 0 ? (
                       <div className="text-center py-8">
                         <TrendingUp className="w-10 h-10 mx-auto text-white/20 mb-2" />
                         <p className="text-xs text-white/30">No investments yet. Contact your administrator.</p>
                       </div>
                     ) : (
-                      <>
-                        <div className="hidden lg:block overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="border-white/10">
-                                <TableHead className="text-white/50">Principal</TableHead>
-                                <TableHead className="text-white/50">Rate</TableHead>
-                                <TableHead className="text-white/50">Expected</TableHead>
-                                <TableHead className="text-white/50">Paid</TableHead>
-                                <TableHead className="text-white/50">Balance</TableHead>
-                                <TableHead className="text-white/50">Status</TableHead>
-                                <TableHead className="text-white/50"></TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {investments.map((inv) => {
-                                const expected = getInvestorReturn(inv);
-                                const paid = getTotalPaidForInvestment(inv.id);
-                                const balance = expected - paid;
-                                return (
-                                  <TableRow
-                                    key={inv.id}
-                                    className="border-white/5 cursor-pointer hover:bg-white/[0.03] transition-colors"
-                                    onClick={() => { setSelectedInvestment(inv); setInvestmentDialogOpen(true); }}
-                                  >
-                                    <TableCell className="font-medium text-white">£{Number(inv.amount).toLocaleString()}</TableCell>
-                                    <TableCell className="text-white/70">{Number(inv.investor_share_rate || inv.interest_rate)}%</TableCell>
-                                    <TableCell className="text-amber-400 font-medium">£{expected.toLocaleString()}</TableCell>
-                                    <TableCell className="text-emerald-400 font-medium">£{paid.toLocaleString()}</TableCell>
-                                    <TableCell className="text-red-400 font-medium">£{balance.toLocaleString()}</TableCell>
-                                    <TableCell>
-                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor(inv.status)}`}>
-                                        {inv.status?.toUpperCase()}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Eye className="w-4 h-4 text-white/40" />
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </div>
-
-                        <div className="space-y-3 lg:hidden">
-                          {investments.map((inv) => {
-                            const expected = getInvestorReturn(inv);
-                            const paid = getTotalPaidForInvestment(inv.id);
-                            const balance = expected - paid;
-                            return (
-                              <button
-                                key={inv.id}
-                                onClick={() => { setSelectedInvestment(inv); setInvestmentDialogOpen(true); }}
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition-colors hover:bg-white/[0.05]"
-                              >
-                                <div className="mb-3 flex items-start justify-between gap-3">
-                                  <div>
-                                    <p className="text-[11px] text-white/40">Principal</p>
-                                    <p className="text-lg font-semibold text-white">£{Number(inv.amount).toLocaleString()}</p>
-                                  </div>
-                                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusColor(inv.status)}`}>
-                                    {inv.status?.toUpperCase()}
-                                  </span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                  <div>
-                                    <p className="text-[11px] text-white/40">Rate</p>
-                                    <p className="text-white/80">{Number(inv.investor_share_rate || inv.interest_rate)}%</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[11px] text-white/40">Expected</p>
-                                    <p className="text-amber-400 font-medium">£{expected.toLocaleString()}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[11px] text-white/40">Paid</p>
-                                    <p className="text-emerald-400 font-medium">£{paid.toLocaleString()}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[11px] text-white/40">Balance</p>
-                                    <p className="text-red-400 font-medium">£{balance.toLocaleString()}</p>
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </>
+                      <div className="space-y-1">
+                        {investments.map((inv) => {
+                          const expected = getInvestorReturn(inv);
+                          const paid = getTotalPaidForInvestment(inv.id);
+                          const statusColors: Record<string, string> = {
+                            active: "bg-emerald-500/20 text-emerald-400",
+                            completed: "bg-blue-500/20 text-blue-400",
+                            cancelled: "bg-red-500/20 text-red-400",
+                          };
+                          const sColor = statusColors[inv.status] || "bg-white/10 text-white/60";
+                          return (
+                            <button
+                              key={inv.id}
+                              onClick={() => { setSelectedInvestment(inv); setInvestmentDialogOpen(true); }}
+                              className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-white/[0.05] active:bg-white/[0.08]"
+                            >
+                              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <TrendingUp className="w-5 h-5 text-amber-400" />
+                              </div>
+                              <div className="flex-1 min-w-0 text-left">
+                                <p className="text-sm font-medium text-white truncate">
+                                  £{Number(inv.amount).toLocaleString()} at {Number(inv.investor_share_rate || inv.interest_rate)}%
+                                </p>
+                                <p className="text-xs text-white/40">
+                                  {format(new Date(inv.start_date), "MMM do, yyyy")} · Expected: £{expected.toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <p className="text-sm font-semibold text-emerald-400">
+                                  £{paid.toLocaleString()}
+                                </p>
+                                <Badge className={`${sColor} border-0 text-[10px] px-1.5 py-0`}>
+                                  {inv.status?.charAt(0).toUpperCase() + inv.status?.slice(1)}
+                                </Badge>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
                   </GlassCard>
                 </motion.div>
