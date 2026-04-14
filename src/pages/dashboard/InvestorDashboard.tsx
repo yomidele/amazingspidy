@@ -457,9 +457,10 @@ const InvestorDashboard = () => {
                         <Table>
                           <TableHeader>
                             <TableRow className="border-white/10">
-                              <TableHead className="text-white/50">Amount</TableHead>
-                              <TableHead className="text-white/50">Date</TableHead>
-                              <TableHead className="text-white/50">Notes</TableHead>
+                               <TableHead className="text-white/50">Amount</TableHead>
+                               <TableHead className="text-white/50">Date</TableHead>
+                               <TableHead className="text-white/50">Notes</TableHead>
+                               <TableHead className="text-white/50"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
