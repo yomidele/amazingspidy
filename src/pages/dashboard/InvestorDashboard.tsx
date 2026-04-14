@@ -490,6 +490,124 @@ const InvestorDashboard = () => {
         </main>
       </div>
 
+      {/* Investment Detail Dialog */}
+      <Dialog open={investmentDialogOpen} onOpenChange={setInvestmentDialogOpen}>
+        <DialogContent className="bg-[#161B22] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-400">
+              <TrendingUp className="w-5 h-5" />
+              Investment Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedInvestment && (() => {
+            const inv = selectedInvestment;
+            const expected = getInvestorReturn(inv);
+            const paid = getTotalPaidForInvestment(inv.id);
+            const balance = expected - paid;
+            const invPayments = payments.filter((p) => p.investment_id === inv.id);
+            return (
+              <div className="space-y-5">
+                <div className="bg-amber-500/10 rounded-xl p-4 text-center border border-amber-500/20">
+                  <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Principal Amount</p>
+                  <p className="text-3xl font-bold text-amber-400">£{Number(inv.amount).toLocaleString()}</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { label: "Reference", value: inv.id.slice(0, 8).toUpperCase() },
+                    { label: "Interest Rate", value: `${Number(inv.investor_share_rate || inv.interest_rate)}%` },
+                    { label: "Duration", value: `${inv.duration_months} months` },
+                    { label: "Start Date", value: format(new Date(inv.start_date), "dd MMM yyyy") },
+                    { label: "End Date", value: inv.end_date ? format(new Date(inv.end_date), "dd MMM yyyy") : "Ongoing" },
+                    { label: "Expected Return", value: `£${expected.toLocaleString()}` },
+                    { label: "Total Paid", value: `£${paid.toLocaleString()}` },
+                    { label: "Balance Due", value: `£${balance.toLocaleString()}` },
+                    { label: "Status", value: inv.status?.toUpperCase() },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between py-2 border-b border-white/5">
+                      <span className="text-sm text-white/40">{row.label}</span>
+                      <span className="text-sm font-semibold">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {invPayments.length > 0 && (
+                  <div>
+                    <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Payment History</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {invPayments.map((p: any) => (
+                        <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-white/[0.03] border border-white/5 text-xs">
+                          <span className="text-emerald-400 font-medium">£{Number(p.amount_paid).toLocaleString()}</span>
+                          <span className="text-white/40">{format(new Date(p.payment_date), "dd MMM yyyy")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-center pt-2 border-t border-white/5">
+                  <p className="text-[10px] text-white/30">AMANA MARKET • Investor Portal</p>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Receipt Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="bg-[#161B22] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-400">
+              <Receipt className="w-5 h-5" />
+              Payment Receipt
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPayment && (() => {
+            const p = selectedPayment;
+            const relatedInv = investments.find((inv) => inv.id === p.investment_id);
+            return (
+              <div className="space-y-5">
+                <div className="bg-emerald-500/10 rounded-xl p-4 text-center border border-emerald-500/20">
+                  <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Amount Received</p>
+                  <p className="text-3xl font-bold text-emerald-400">£{Number(p.amount_paid).toLocaleString()}</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { label: "Reference", value: p.id.slice(0, 8).toUpperCase() },
+                    { label: "Payment Date", value: format(new Date(p.payment_date), "dd MMM yyyy") },
+                    { label: "Recipient", value: profile?.full_name || "Investor" },
+                    ...(relatedInv ? [
+                      { label: "Investment Principal", value: `£${Number(relatedInv.amount).toLocaleString()}` },
+                      { label: "Investment Rate", value: `${Number(relatedInv.investor_share_rate || relatedInv.interest_rate)}%` },
+                    ] : []),
+                    { label: "Notes", value: p.notes || "—" },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between py-2 border-b border-white/5">
+                      <span className="text-sm text-white/40">{row.label}</span>
+                      <span className="text-sm font-semibold text-right max-w-[60%]">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-between items-center py-2 bg-white/[0.03] rounded-lg px-3 border border-white/5">
+                  <span className="text-xs text-white/40">Status</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                    COMPLETED
+                  </span>
+                </div>
+
+                <div className="text-center pt-2 border-t border-white/5">
+                  <p className="text-[10px] text-white/30">AMANA MARKET • Investor Portal</p>
+                  <p className="text-[10px] text-white/20 mt-0.5">Generated on {format(new Date(), "dd MMM yyyy, HH:mm")}</p>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
