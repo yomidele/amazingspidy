@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, LogOut, DollarSign, Clock, Receipt, Menu, X,
-  BarChart3, History, Wallet,
+  BarChart3, History, Wallet, Eye, Download, Calendar, ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import NotificationBell from "@/components/shared/NotificationBell";
 import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedScreen";
 import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
