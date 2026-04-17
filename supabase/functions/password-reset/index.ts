@@ -64,17 +64,30 @@ const handler = async (req: Request): Promise<Response> => {
       req.headers.get("cf-connecting-ip") ||
       "unknown";
 
-    // Rate limit: 1 request per 60s per email OR per IP, using activity_logs
+    // Rate limit: 1 request per 60s per email (and per IP when known)
     const since = new Date(Date.now() - RATE_LIMIT_SECONDS * 1000).toISOString();
-    const { data: recent } = await admin
+
+    const { data: recentByEmail } = await admin
       .from("activity_logs")
-      .select("id, description")
+      .select("id")
       .eq("action", "password_reset_requested")
       .gte("created_at", since)
-      .or(`description.ilike.%${email}%,description.ilike.%ip:${ip}%`)
+      .ilike("description", `%for ${email}%`)
       .limit(1);
 
-    if (recent && recent.length > 0) {
+    let recentByIp: { id: string }[] | null = null;
+    if (ip && ip !== "unknown") {
+      const { data } = await admin
+        .from("activity_logs")
+        .select("id")
+        .eq("action", "password_reset_requested")
+        .gte("created_at", since)
+        .ilike("description", `%ip:${ip}%`)
+        .limit(1);
+      recentByIp = data;
+    }
+
+    if ((recentByEmail && recentByEmail.length > 0) || (recentByIp && recentByIp.length > 0)) {
       return new Response(
         JSON.stringify({
           success: false,
