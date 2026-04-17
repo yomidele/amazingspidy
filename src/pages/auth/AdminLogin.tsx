@@ -164,7 +164,11 @@ const AdminLogin = () => {
               </div>
             </div>
 
-            {/* Forgot password disabled — no route exists yet */}
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-sm text-primary font-medium hover:underline">
+                Forgot password?
+              </Link>
+            </div>
 
             <Button
               type="submit"
