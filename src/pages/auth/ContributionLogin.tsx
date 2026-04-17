@@ -238,6 +238,17 @@ const ContributionLogin = () => {
               </div>
             </div>
 
+            {isLogin && (
+              <div className="flex justify-end -mt-2">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-contribution font-medium hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
+
             <Button
               type="submit"
               variant="contribution"
