@@ -26,9 +26,30 @@ const handler = async (req: Request): Promise<Response> => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    const PRODUCTION_DOMAIN = "https://www.amanamarkets.org";
+    const RESET_URL = `${PRODUCTION_DOMAIN}/reset-password`;
+
     const body = await req.json().catch(() => ({}));
     const email = (body?.email ?? "").toString().trim().toLowerCase();
-    const redirectTo: string | undefined = body?.redirectTo;
+
+    // Sanitize: ignore any client-supplied redirect that points to disallowed
+    // domains (vercel.app, lovable.app, or any other host). Always force the
+    // production reset URL.
+    const rawRedirect: string | undefined = body?.redirectTo;
+    let redirectTo = RESET_URL;
+    try {
+      if (rawRedirect) {
+        const u = new URL(rawRedirect);
+        if (
+          u.hostname === "www.amanamarkets.org" &&
+          u.pathname === "/reset-password"
+        ) {
+          redirectTo = RESET_URL;
+        }
+      }
+    } catch {
+      redirectTo = RESET_URL;
+    }
 
     // Always validate input but never reveal existence
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -85,7 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Only send if profile exists and account is not locked/pending
     if (profile && profile.account_status === "active") {
       const { error } = await admin.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectTo || `${new URL(req.url).origin}/reset-password`,
+        redirectTo: RESET_URL,
       });
 
       if (error) {

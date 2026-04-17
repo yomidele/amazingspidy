@@ -27,7 +27,7 @@ const ForgotPassword = () => {
           headers: { "Content-Type": "application/json", apikey: anonKey },
           body: JSON.stringify({
             email,
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: "https://www.amanamarkets.org/reset-password",
           }),
         }
       );
