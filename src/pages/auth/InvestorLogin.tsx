@@ -164,6 +164,12 @@ const InvestorLogin = () => {
               </div>
             </div>
 
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-sm text-gray-700 font-medium hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+
             <Button type="submit" size="lg" className="w-full bg-gray-900 hover:bg-black text-white" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>

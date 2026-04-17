@@ -10,6 +10,8 @@ import ContributionLogin from "./pages/auth/ContributionLogin";
 import TravelLogin from "./pages/auth/TravelLogin";
 import AdminLogin from "./pages/auth/AdminLogin";
 import InvestorLogin from "./pages/auth/InvestorLogin";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import ContributorDashboard from "./pages/dashboard/ContributorDashboard";
 import TravelDashboard from "./pages/dashboard/TravelDashboard";
 import InvestorDashboard from "./pages/dashboard/InvestorDashboard";
@@ -47,6 +49,8 @@ const App = () => (
           <Route path="/login/travel" element={<TravelLogin />} />
           <Route path="/login/admin" element={<AdminLogin />} />
           <Route path="/login/investor" element={<InvestorLogin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* User Dashboards */}
           <Route path="/dashboard/contributor" element={<ContributorDashboard />} />
