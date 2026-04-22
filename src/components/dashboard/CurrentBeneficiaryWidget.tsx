@@ -252,6 +252,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
           </div>
         </motion.div>
       ))}
+      </div>
     </div>
   );
 };
