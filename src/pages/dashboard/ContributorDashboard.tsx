@@ -17,6 +17,7 @@ import GuarantorRequests from "@/components/dashboard/GuarantorRequests";
 import RepaymentSchedule from "@/components/dashboard/RepaymentSchedule";
 import ContributorCharts from "@/components/dashboard/ContributorCharts";
 import ContributorInsights from "@/components/dashboard/ContributorInsights";
+import CurrentBeneficiaryWidget from "@/components/dashboard/CurrentBeneficiaryWidget";
 import NotificationBell from "@/components/shared/NotificationBell";
 import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
