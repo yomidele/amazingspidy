@@ -111,6 +111,14 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
     }
     setSlots(built);
     setLoading(false);
+
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+    } else {
+      setJustUpdated(true);
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+      flashTimer.current = window.setTimeout(() => setJustUpdated(false), 3000);
+    }
   };
 
   // Debounced reloader so a burst of realtime events triggers a single refetch
