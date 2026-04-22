@@ -27,8 +27,11 @@ const monthNames = [
 const CurrentBeneficiaryWidget = ({ userId }: Props) => {
   const [slots, setSlots] = useState<BeneficiarySlot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [justUpdated, setJustUpdated] = useState(false);
+  const isInitialLoad = useRef(true);
   const groupIdsRef = useRef<Set<string>>(new Set());
   const reloadTimer = useRef<number | null>(null);
+  const flashTimer = useRef<number | null>(null);
 
   const load = async () => {
     const today = new Date();
@@ -108,6 +111,14 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
     }
     setSlots(built);
     setLoading(false);
+
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+    } else {
+      setJustUpdated(true);
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+      flashTimer.current = window.setTimeout(() => setJustUpdated(false), 3000);
+    }
   };
 
   // Debounced reloader so a burst of realtime events triggers a single refetch
@@ -161,6 +172,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
 
     return () => {
       if (reloadTimer.current) window.clearTimeout(reloadTimer.current);
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -169,7 +181,21 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
   if (loading || slots.length === 0) return null;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 mb-6">
+    <div className="mb-6">
+      {justUpdated && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[11px] font-medium"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+          </span>
+          Updated just now
+        </motion.div>
+      )}
+      <div className="grid gap-4 md:grid-cols-2">
       {slots.map((s, i) => (
         <motion.div
           key={s.groupId}
@@ -226,6 +252,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
           </div>
         </motion.div>
       ))}
+      </div>
     </div>
   );
 };
