@@ -1,1 +1,4 @@
 project_id = "wwtkejyxzllucfsksypn"
+
+[functions.auto-progress-groups]
+verify_jwt = false

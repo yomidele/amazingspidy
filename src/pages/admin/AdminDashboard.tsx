@@ -20,6 +20,7 @@ import {
   Receipt,
   HelpCircle,
   BookOpen,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,7 @@ import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 import NotificationBell from "@/components/shared/NotificationBell";
 import AmanaAIAssistant from "@/components/admin/AmanaAIAssistant";
 import AccountManagementPage from "@/components/admin/AccountManagementPage";
+import RotationAndSplitsPanel from "@/components/admin/RotationAndSplitsPanel";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -166,6 +168,7 @@ const AdminDashboardContent = () => {
     { icon: Users, label: "Members", page: "members", tooltip: tooltipContent.addContributor },
     { icon: Shield, label: "Accounts", page: "accounts", tooltip: "Approve, lock, and manage user accounts" },
     { icon: Wallet, label: "Contributions", page: "contributions", tooltip: tooltipContent.newMonth },
+    { icon: RefreshCw, label: "Rotation & Splits", page: "rotation", tooltip: "Manage month progression and split contributions" },
     { icon: Receipt, label: "Payments", page: "payments", tooltip: tooltipContent.recordPayment },
     { icon: CreditCard, label: "Loans", page: "loans", tooltip: tooltipContent.issueLoan },
     { icon: FileCheck, label: "Loan Requests", page: "loan-requests", tooltip: "Review and approve loan requests from contributors" },
@@ -204,6 +207,8 @@ const AdminDashboardContent = () => {
           return <UserActivityPage userId={selectedUserId} />;
         case "contributions":
           return <ContributionSetupPage />;
+        case "rotation":
+          return <RotationAndSplitsPanel />;
         case "payments":
           return <PaymentRecordingPage />;
         case "loans":

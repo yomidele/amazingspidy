@@ -240,28 +240,43 @@ export type Database = {
         Row: {
           contribution_amount: number
           created_at: string
+          current_month: number
           description: string | null
           id: string
           is_active: boolean | null
+          last_progressed_at: string | null
           name: string
+          progression_mode: string
+          rotation_start_date: string | null
+          total_months: number
           updated_at: string
         }
         Insert: {
           contribution_amount?: number
           created_at?: string
+          current_month?: number
           description?: string | null
           id?: string
           is_active?: boolean | null
+          last_progressed_at?: string | null
           name: string
+          progression_mode?: string
+          rotation_start_date?: string | null
+          total_months?: number
           updated_at?: string
         }
         Update: {
           contribution_amount?: number
           created_at?: string
+          current_month?: number
           description?: string | null
           id?: string
           is_active?: boolean | null
+          last_progressed_at?: string | null
           name?: string
+          progression_mode?: string
+          rotation_start_date?: string | null
+          total_months?: number
           updated_at?: string
         }
         Relationships: []
@@ -300,6 +315,50 @@ export type Database = {
             columns: ["monthly_contribution_id"]
             isOneToOne: false
             referencedRelation: "monthly_contributions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contribution_splits: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_paid: boolean
+          month: number
+          split_amount: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_paid?: boolean
+          month: number
+          split_amount: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_paid?: boolean
+          month?: number
+          split_amount?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribution_splits_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "contribution_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -922,6 +981,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_group_month: { Args: { _group_id: string }; Returns: Json }
       get_same_group_guarantors: {
         Args: { _user_id: string }
         Returns: {
@@ -949,6 +1009,7 @@ export type Database = {
         Args: { _loan_request_id: string; _user_id: string }
         Returns: boolean
       }
+      v_month_name_from_int: { Args: { _m: number }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "contributor" | "travel_client" | "investor"
