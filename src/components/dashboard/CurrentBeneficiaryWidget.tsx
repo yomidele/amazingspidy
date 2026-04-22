@@ -1,14 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Crown, Building2, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Group {
-  id: string;
-  name: string;
-  contribution_amount: number;
-  current_month: number;
-}
 
 interface BeneficiarySlot {
   groupId: string;
@@ -34,58 +27,72 @@ const monthNames = [
 const CurrentBeneficiaryWidget = ({ userId }: Props) => {
   const [slots, setSlots] = useState<BeneficiarySlot[]>([]);
   const [loading, setLoading] = useState(true);
+  const groupIdsRef = useRef<Set<string>>(new Set());
+  const reloadTimer = useRef<number | null>(null);
 
   const load = async () => {
-    setLoading(true);
+    const today = new Date();
+    const m = today.getMonth() + 1;
+    const y = today.getFullYear();
+
+    // 1. memberships
     const { data: memberships } = await supabase
       .from("group_memberships")
       .select("group_id")
       .eq("user_id", userId)
       .eq("is_active", true);
 
-    const groupIds = (memberships || []).map((m) => m.group_id);
+    const groupIds = (memberships || []).map((x) => x.group_id);
+    groupIdsRef.current = new Set(groupIds);
+
     if (groupIds.length === 0) {
       setSlots([]);
       setLoading(false);
       return;
     }
 
-    const { data: groups } = await supabase
-      .from("contribution_groups")
-      .select("id, name, contribution_amount, current_month")
-      .in("id", groupIds);
+    // 2-4. parallel batched fetches
+    const [groupsRes, mcRes, splitsRes] = await Promise.all([
+      supabase
+        .from("contribution_groups")
+        .select("id, name, contribution_amount, current_month")
+        .in("id", groupIds),
+      supabase
+        .from("monthly_contributions")
+        .select("group_id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number")
+        .in("group_id", groupIds)
+        .eq("month", m)
+        .eq("year", y),
+      supabase
+        .from("contribution_splits")
+        .select("group_id, split_amount")
+        .in("group_id", groupIds)
+        .eq("month", m)
+        .eq("year", y)
+        .eq("user_id", userId),
+    ]);
 
-    const today = new Date();
-    const m = today.getMonth() + 1;
-    const y = today.getFullYear();
+    const mcByGroup = new Map((mcRes.data || []).map((r) => [r.group_id, r]));
+    const splitByGroup = new Map((splitsRes.data || []).map((r) => [r.group_id, Number(r.split_amount)]));
+
+    // 5. one profiles query for all beneficiaries
+    const beneficiaryIds = Array.from(
+      new Set((mcRes.data || []).map((r) => r.beneficiary_user_id).filter(Boolean) as string[])
+    );
+
+    const profilesById = new Map<string, string>();
+    if (beneficiaryIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", beneficiaryIds);
+      (profiles || []).forEach((p) => profilesById.set(p.user_id, p.full_name || "Unknown member"));
+    }
 
     const built: BeneficiarySlot[] = [];
-
-    for (const g of (groups as Group[]) || []) {
-      const { data: mc } = await supabase
-        .from("monthly_contributions")
-        .select("beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number, month, year")
-        .eq("group_id", g.id)
-        .eq("month", m)
-        .eq("year", y)
-        .maybeSingle();
-
+    for (const g of groupsRes.data || []) {
+      const mc = mcByGroup.get(g.id);
       if (!mc?.beneficiary_user_id) continue;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", mc.beneficiary_user_id)
-        .maybeSingle();
-
-      const { data: mySplit } = await supabase
-        .from("contribution_splits")
-        .select("split_amount")
-        .eq("group_id", g.id)
-        .eq("month", m)
-        .eq("year", y)
-        .eq("user_id", userId)
-        .maybeSingle();
 
       built.push({
         groupId: g.id,
@@ -93,29 +100,69 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
         contributionAmount: Number(g.contribution_amount),
         monthLabel: `${monthNames[m - 1]} ${y}`,
         monthNumber: g.current_month || 0,
-        beneficiaryName: profile?.full_name || "Unknown member",
+        beneficiaryName: profilesById.get(mc.beneficiary_user_id) || "Unknown member",
         bankName: mc.beneficiary_bank_name,
         accountNumber: mc.beneficiary_account_number,
-        mySplitAmount: mySplit ? Number(mySplit.split_amount) : null,
+        mySplitAmount: splitByGroup.get(g.id) ?? null,
       });
     }
     setSlots(built);
     setLoading(false);
   };
 
+  // Debounced reloader so a burst of realtime events triggers a single refetch
+  const scheduleReload = () => {
+    if (reloadTimer.current) window.clearTimeout(reloadTimer.current);
+    reloadTimer.current = window.setTimeout(() => {
+      reloadTimer.current = null;
+      load();
+    }, 200);
+  };
+
+  // Only reload if the changed row belongs to one of the user's groups (and current month for mc/splits)
+  const isRelevantGroupRow = (payload: any) => {
+    const gid = payload?.new?.group_id ?? payload?.old?.group_id ?? payload?.new?.id ?? payload?.old?.id;
+    return gid && groupIdsRef.current.has(gid);
+  };
+
+  const isRelevantMonthRow = (payload: any) => {
+    if (!isRelevantGroupRow(payload)) return false;
+    const today = new Date();
+    const m = today.getMonth() + 1;
+    const y = today.getFullYear();
+    const row = payload?.new ?? payload?.old;
+    return row?.month === m && row?.year === y;
+  };
+
   useEffect(() => {
     if (!userId) return;
+    setLoading(true);
     load();
 
-    // Realtime: refresh when current month/beneficiary or splits change
     const channel = supabase
       .channel(`beneficiary-widget-${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "monthly_contributions" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_groups" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_splits", filter: `user_id=eq.${userId}` }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "monthly_contributions" }, (p) => {
+        if (isRelevantMonthRow(p)) scheduleReload();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_groups" }, (p) => {
+        if (isRelevantGroupRow(p)) scheduleReload();
+      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "contribution_splits", filter: `user_id=eq.${userId}` },
+        (p) => { if (isRelevantMonthRow(p)) scheduleReload(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_memberships", filter: `user_id=eq.${userId}` },
+        () => scheduleReload()
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (reloadTimer.current) window.clearTimeout(reloadTimer.current);
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
