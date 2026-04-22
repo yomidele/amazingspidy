@@ -27,8 +27,11 @@ const monthNames = [
 const CurrentBeneficiaryWidget = ({ userId }: Props) => {
   const [slots, setSlots] = useState<BeneficiarySlot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [justUpdated, setJustUpdated] = useState(false);
+  const isInitialLoad = useRef(true);
   const groupIdsRef = useRef<Set<string>>(new Set());
   const reloadTimer = useRef<number | null>(null);
+  const flashTimer = useRef<number | null>(null);
 
   const load = async () => {
     const today = new Date();
