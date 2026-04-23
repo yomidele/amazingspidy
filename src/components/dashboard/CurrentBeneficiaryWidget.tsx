@@ -65,7 +65,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
         .in("id", groupIds),
       supabase
         .from("monthly_contributions")
-        .select("group_id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number")
+        .select("group_id, beneficiary_user_id, beneficiary_account_name, beneficiary_bank_name, beneficiary_account_number, beneficiary_sort_code")
         .in("group_id", groupIds)
         .eq("month", m)
         .eq("year", y),
@@ -107,8 +107,10 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
         monthLabel: `${monthNames[m - 1]} ${y}`,
         monthNumber: g.current_month || 0,
         beneficiaryName: profilesById.get(mc.beneficiary_user_id) || "Unknown member",
+        accountName: (mc as any).beneficiary_account_name || null,
         bankName: mc.beneficiary_bank_name,
         accountNumber: mc.beneficiary_account_number,
+        sortCode: (mc as any).beneficiary_sort_code || null,
         mySplitAmount: splitByGroup.get(g.id) ?? null,
       });
     }
