@@ -19,6 +19,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManualPage from "./pages/admin/AdminManualPage";
 import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
 import InvestorInfoPage from "./pages/InvestorInfoPage";
+import NotificationsPage from "./pages/dashboard/NotificationsPage";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/dashboard/contributor" element={<ContributorDashboard />} />
           <Route path="/dashboard/travel" element={<TravelDashboard />} />
           <Route path="/investor-dashboard" element={<InvestorDashboard />} />
+          <Route path="/dashboard/notifications" element={<NotificationsPage />} />
           
           {/* Admin Dashboard */}
           <Route path="/admin/*" element={<AdminDashboard />} />
