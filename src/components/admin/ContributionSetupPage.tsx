@@ -742,53 +742,21 @@ const ContributionSetupPage = () => {
             </Button>
           </div>
 
-        {/* Selected Contribution Details */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <UserCheck className="w-5 h-5" />
-              Contribution Details
-            </CardTitle>
-            {selectedContribution && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditDetails({ ...selectedContribution });
-                  setIsEditDetailsOpen(true);
-                }}
-              >
-                <Edit2 className="w-4 h-4 mr-1" /> Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {selectedContribution ? (
+          {/* Selected Contribution Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <UserCheck className="w-5 h-5" />
+                {monthNames[selectedContribution.month - 1]} {selectedContribution.year} — {getGroupName(selectedContribution.group_id)}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-6">
-                {/* Group Info */}
-                <div className="p-3 rounded-lg bg-muted/50 border">
-                  <p className="text-xs text-muted-foreground">Contribution Group</p>
-                  <p className="font-semibold text-contribution">{getGroupName(selectedContribution.group_id)}</p>
-                </div>
-
                 {/* Beneficiary Info */}
                 <div className="p-4 rounded-xl bg-contribution-light border border-contribution/20">
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    Beneficiary for {monthNames[selectedContribution.month - 1]} {selectedContribution.year}
-                    {/* inline edit icon next to beneficiary info */}
-                    {selectedContribution && (
-                      <button
-                        onClick={() => {
-                          setEditDetails({ ...selectedContribution });
-                          setIsEditDetailsOpen(true);
-                        }}
-                        className="ml-auto p-1 rounded hover:bg-muted/20 focus:outline-none"
-                        title="Edit beneficiary details"
-                      >
-                        <Edit2 className="w-4 h-4 text-primary" />
-                      </button>
-                    )}
+                    Beneficiary
                   </h4>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     <div>
@@ -884,10 +852,7 @@ const ContributionSetupPage = () => {
                   ) : (
                     <div className="space-y-2">
                       {payments.map((payment) => (
-                        <div
-                          key={payment.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                        >
+                        <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-contribution-light flex items-center justify-center">
                               <span className="font-semibold text-contribution text-sm">
@@ -902,7 +867,7 @@ const ContributionSetupPage = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-semibold">${payment.amount}</span>
+                            <span className="font-semibold">£{payment.amount}</span>
                             <Select
                               value={payment.status}
                               onValueChange={(v) => handleUpdatePaymentStatus(payment.id, v)}
@@ -926,18 +891,10 @@ const ContributionSetupPage = () => {
                   )}
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <Calendar className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg mb-2">Select a Month</h3>
-                <p className="text-muted-foreground">
-                  Choose a monthly period from the list to view details and manage payments
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
