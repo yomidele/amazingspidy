@@ -61,8 +61,10 @@ interface MonthlyContribution {
   year: number;
   group_id: string;
   beneficiary_user_id: string | null;
+  beneficiary_account_name?: string | null;
   beneficiary_account_number: string | null;
   beneficiary_bank_name: string | null;
+  beneficiary_sort_code?: string | null;
   total_expected: number | null;
   total_collected: number | null;
   is_finalized: boolean;
@@ -93,9 +95,21 @@ const ContributionSetupPage = () => {
     year: new Date().getFullYear(),
     group_id: "",
     beneficiary_user_id: "",
+    beneficiary_account_name: "",
     beneficiary_account_number: "",
     beneficiary_bank_name: "",
+    beneficiary_sort_code: "",
   });
+
+  // Helpers: sort code XX-XX-XX auto-format and account number digits-only
+  const formatSortCode = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 6);
+    const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 6)].filter(Boolean);
+    return parts.join("-");
+  };
+  const onlyDigits = (raw: string, max = 10) => raw.replace(/\D/g, "").slice(0, max);
+  const isValidAccountNumber = (v: string) => !v || /^[0-9]{6,10}$/.test(v);
+  const isValidSortCode = (v: string) => !v || /^[0-9]{2}-[0-9]{2}-[0-9]{2}$/.test(v);
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
