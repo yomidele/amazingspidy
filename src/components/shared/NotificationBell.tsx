@@ -205,6 +205,17 @@ const NotificationBell = ({ userId, variant = "light" }: NotificationBellProps) 
               ))
             )}
           </div>
+
+          {/* Footer with link to full page */}
+          <div className={cn("px-4 py-2.5 border-t", dividerColor)}>
+            <button
+              onClick={() => { setIsOpen(false); navigate("/dashboard/notifications"); }}
+              className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              See all notifications
+              <ExternalLink className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       )}
     </div>

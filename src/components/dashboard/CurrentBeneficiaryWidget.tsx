@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Crown, Building2, CreditCard } from "lucide-react";
+import { Crown, Building2, CreditCard, Copy, User, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface BeneficiarySlot {
   groupId: string;
@@ -10,8 +11,10 @@ interface BeneficiarySlot {
   monthLabel: string;
   monthNumber: number;
   beneficiaryName: string;
+  accountName: string | null;
   bankName: string | null;
   accountNumber: string | null;
+  sortCode: string | null;
   mySplitAmount: number | null;
 }
 
