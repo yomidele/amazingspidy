@@ -775,8 +775,10 @@ export type Database = {
       }
       monthly_contributions: {
         Row: {
+          beneficiary_account_name: string | null
           beneficiary_account_number: string | null
           beneficiary_bank_name: string | null
+          beneficiary_sort_code: string | null
           beneficiary_user_id: string | null
           created_at: string
           group_id: string
@@ -789,8 +791,10 @@ export type Database = {
           year: number
         }
         Insert: {
+          beneficiary_account_name?: string | null
           beneficiary_account_number?: string | null
           beneficiary_bank_name?: string | null
+          beneficiary_sort_code?: string | null
           beneficiary_user_id?: string | null
           created_at?: string
           group_id: string
@@ -803,8 +807,10 @@ export type Database = {
           year: number
         }
         Update: {
+          beneficiary_account_name?: string | null
           beneficiary_account_number?: string | null
           beneficiary_bank_name?: string | null
+          beneficiary_sort_code?: string | null
           beneficiary_user_id?: string | null
           created_at?: string
           group_id?: string

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Crown, Building2, CreditCard } from "lucide-react";
+import { Crown, Building2, CreditCard, Copy, User, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface BeneficiarySlot {
   groupId: string;
@@ -10,8 +11,10 @@ interface BeneficiarySlot {
   monthLabel: string;
   monthNumber: number;
   beneficiaryName: string;
+  accountName: string | null;
   bankName: string | null;
   accountNumber: string | null;
+  sortCode: string | null;
   mySplitAmount: number | null;
 }
 
@@ -62,7 +65,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
         .in("id", groupIds),
       supabase
         .from("monthly_contributions")
-        .select("group_id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number")
+        .select("group_id, beneficiary_user_id, beneficiary_account_name, beneficiary_bank_name, beneficiary_account_number, beneficiary_sort_code")
         .in("group_id", groupIds)
         .eq("month", m)
         .eq("year", y),
@@ -104,8 +107,10 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
         monthLabel: `${monthNames[m - 1]} ${y}`,
         monthNumber: g.current_month || 0,
         beneficiaryName: profilesById.get(mc.beneficiary_user_id) || "Unknown member",
+        accountName: (mc as any).beneficiary_account_name || null,
         bankName: mc.beneficiary_bank_name,
         accountNumber: mc.beneficiary_account_number,
+        sortCode: (mc as any).beneficiary_sort_code || null,
         mySplitAmount: splitByGroup.get(g.id) ?? null,
       });
     }
@@ -221,13 +226,20 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
             )}
           </div>
 
-          <h3 className="text-xl font-bold mb-3 text-white">{s.beneficiaryName}</h3>
+          <h3 className="text-xl font-bold mb-1 text-white">{s.beneficiaryName}</h3>
+          <p className="text-[11px] text-white/40 uppercase tracking-wider mb-3">Group member</p>
 
           <div className="space-y-2 text-sm">
+            {s.accountName && (
+              <div className="flex items-center gap-2 text-white/70">
+                <User className="w-4 h-4 text-white/40" />
+                <span className="truncate">{s.accountName}</span>
+              </div>
+            )}
             {s.bankName && (
               <div className="flex items-center gap-2 text-white/70">
                 <Building2 className="w-4 h-4 text-white/40" />
-                <span>{s.bankName}</span>
+                <span className="truncate">{s.bankName}</span>
               </div>
             )}
             {s.accountNumber && (
@@ -236,7 +248,32 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
                 <span className="font-mono">{s.accountNumber}</span>
               </div>
             )}
+            {s.sortCode && (
+              <div className="flex items-center gap-2 text-white/70">
+                <Hash className="w-4 h-4 text-white/40" />
+                <span className="font-mono">{s.sortCode}</span>
+              </div>
+            )}
           </div>
+
+          {(s.accountName || s.bankName || s.accountNumber || s.sortCode) && (
+            <button
+              onClick={() => {
+                const lines = [
+                  s.accountName && `Account name: ${s.accountName}`,
+                  s.bankName && `Bank: ${s.bankName}`,
+                  s.accountNumber && `Account number: ${s.accountNumber}`,
+                  s.sortCode && `Sort code: ${s.sortCode}`,
+                ].filter(Boolean).join("\n");
+                navigator.clipboard.writeText(lines);
+                toast.success("Bank details copied");
+              }}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 transition-colors"
+            >
+              <Copy className="w-3 h-3" />
+              Copy bank details
+            </button>
+          )}
 
           <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
             <div>
