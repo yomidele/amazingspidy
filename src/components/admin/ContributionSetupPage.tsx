@@ -433,21 +433,50 @@ const ContributionSetupPage = () => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Beneficiary Bank Name</Label>
-                <Input
-                  placeholder="Enter bank name"
-                  value={newContribution.beneficiary_bank_name}
-                  onChange={(e) => setNewContribution({ ...newContribution, beneficiary_bank_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Beneficiary Account Number</Label>
-                <Input
-                  placeholder="Enter account number"
-                  value={newContribution.beneficiary_account_number}
-                  onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_number: e.target.value })}
-                />
+              <div className="rounded-lg border border-border p-3 space-y-3 bg-muted/20">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bank details</p>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Account name must match the bank account holder name, not necessarily the member's name.
+                </p>
+
+                <div className="space-y-2">
+                  <Label>Bank Name *</Label>
+                  <Input
+                    placeholder="e.g. Barclays"
+                    value={newContribution.beneficiary_bank_name}
+                    onChange={(e) => setNewContribution({ ...newContribution, beneficiary_bank_name: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Account Name *</Label>
+                  <Input
+                    placeholder="Bank account holder name"
+                    value={newContribution.beneficiary_account_name}
+                    onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_name: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Account Number *</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="6–10 digits"
+                      value={newContribution.beneficiary_account_number}
+                      onChange={(e) => setNewContribution({ ...newContribution, beneficiary_account_number: onlyDigits(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Sort Code</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="XX-XX-XX"
+                      value={newContribution.beneficiary_sort_code}
+                      onChange={(e) => setNewContribution({ ...newContribution, beneficiary_sort_code: formatSortCode(e.target.value) })}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Show contribution amount from selected group */}
