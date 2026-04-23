@@ -673,9 +673,9 @@ const ContributionSetupPage = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Contributions List */}
-        <Card className="lg:col-span-1">
+      {!selectedContribution ? (
+        /* LIST VIEW — full width, click a card to open details */
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Calendar className="w-5 h-5" />
@@ -683,28 +683,24 @@ const ContributionSetupPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : contributions.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">No contributions yet</p>
-                  <p className="text-xs text-muted-foreground">Create your first monthly contribution</p>
-                </div>
-              ) : (
-                contributions.map((contrib) => (
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading...</p>
+            ) : contributions.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground">No contributions yet</p>
+                <p className="text-xs text-muted-foreground">Create your first monthly contribution</p>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {contributions.map((contrib) => (
                   <button
                     key={contrib.id}
                     onClick={() => handleSelectContribution(contrib)}
-                    className={`w-full p-3 rounded-lg text-left transition-colors ${
-                      selectedContribution?.id === contrib.id
-                        ? "bg-contribution-light border-2 border-contribution"
-                        : "bg-muted/50 hover:bg-muted"
-                    }`}
+                    className="group p-4 rounded-lg text-left transition-all bg-muted/40 hover:bg-contribution-light border-2 border-transparent hover:border-contribution"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-sm">
                         {monthNames[contrib.month - 1]} {contrib.year}
                       </span>
                       {contrib.is_finalized ? (
@@ -713,23 +709,38 @@ const ContributionSetupPage = () => {
                         <Badge variant="outline">Open</Badge>
                       )}
                     </div>
-                    <p className="text-xs font-medium text-contribution mb-1">
+                    <p className="text-xs font-medium text-contribution mb-2">
                       {getGroupName(contrib.group_id)}
                     </p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>
-                        Collected: £{contrib.total_collected || 0}
-                      </span>
-                      <span>
-                        Expected: £{contrib.total_expected || 0}
-                      </span>
+                      <span>£{contrib.total_collected || 0} / £{contrib.total_expected || 0}</span>
+                      <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                     </div>
                   </button>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
+      ) : (
+        /* DETAIL VIEW — full width with back button */
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedContribution(null)}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to periods
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditDetails({ ...selectedContribution });
+                setIsEditDetailsOpen(true);
+              }}
+            >
+              <Edit2 className="w-4 h-4 mr-1" /> Edit details
+            </Button>
+          </div>
 
         {/* Selected Contribution Details */}
         <Card className="lg:col-span-2">
