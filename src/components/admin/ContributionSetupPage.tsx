@@ -614,14 +614,24 @@ const ContributionSetupPage = () => {
                   // The newer columns (beneficiary_account_name, beneficiary_sort_code, per_member_amount)
                   // are defined in migrations but may not be deployed yet to your Supabase instance.
                   // Only update the core fields that exist in the base schema to avoid schema cache errors.
+                  if (!isValidAccountNumber(editDetails.beneficiary_account_number || "")) {
+                    toast.error("Account number must be 6–10 digits");
+                    return;
+                  }
+                  if (!isValidSortCode((editDetails as any).beneficiary_sort_code || "")) {
+                    toast.error("Sort code must be in format XX-XX-XX");
+                    return;
+                  }
                   const { error } = await supabase
                     .from("monthly_contributions")
                     .update({
                       beneficiary_user_id: editDetails.beneficiary_user_id || null,
                       beneficiary_bank_name: editDetails.beneficiary_bank_name || null,
+                      beneficiary_account_name: (editDetails as any).beneficiary_account_name || null,
                       beneficiary_account_number: editDetails.beneficiary_account_number || null,
+                      beneficiary_sort_code: (editDetails as any).beneficiary_sort_code || null,
                       total_expected: editDetails.total_expected || null,
-                    })
+                    } as any)
                     .eq("id", selectedContribution.id);
                   
                   if (error) throw error;
@@ -767,13 +777,19 @@ const ContributionSetupPage = () => {
                       </button>
                     )}
                   </h4>
-                  <div className="grid sm:grid-cols-3 gap-4 text-sm">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Name</p>
+                      <p className="text-muted-foreground">Member</p>
                       <p className="font-medium">
                         {selectedContribution.beneficiary_user_id
                           ? getMemberName(selectedContribution.beneficiary_user_id)
                           : "Not assigned"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Account Name</p>
+                      <p className="font-medium">
+                        {(selectedContribution as any).beneficiary_account_name || "Not set"}
                       </p>
                     </div>
                     <div>
@@ -784,10 +800,18 @@ const ContributionSetupPage = () => {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Account Number</p>
-                      <p className="font-medium">
+                      <p className="font-medium font-mono">
                         {selectedContribution.beneficiary_account_number || "Not set"}
                       </p>
                     </div>
+                    {(selectedContribution as any).beneficiary_sort_code && (
+                      <div>
+                        <p className="text-muted-foreground">Sort Code</p>
+                        <p className="font-medium font-mono">
+                          {(selectedContribution as any).beneficiary_sort_code}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

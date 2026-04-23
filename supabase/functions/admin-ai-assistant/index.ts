@@ -93,7 +93,8 @@ RULES:
 - You know everything about the platform: contributions, loans, investors, members.
 - When listing members or investors, use the data from context.
 - For creating contribution months, you MUST ask for the group, beneficiary, month and year if not provided.
-- Use British Pounds (£) for currency.`;
+- Use British Pounds (£) for currency.
+- CRITICAL: NEVER show internal IDs (user_id, group_id, request_id, UUID values) in your replies to the admin. Always resolve IDs to human-readable names from the context. IDs are for internal action payloads only — strip them from all visible text.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
