@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Plus, Trash2, Users, Settings2 } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Users, Settings2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -157,6 +157,36 @@ const RotationAndSplitsPanel = () => {
           Manage month progression mode and split contribution slots per group.
         </p>
       </div>
+
+      {/* How it works */}
+      <Card className="border-contribution/30 bg-contribution-light/40">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-contribution" />
+            <p className="font-semibold text-sm text-foreground">How rotation & splits work</p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4 text-xs text-muted-foreground">
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">🔁 Rotation</p>
+              <p>Each group runs for a fixed number of months. Every month one member becomes the beneficiary and receives the pooled contribution.</p>
+              <ul className="list-disc list-inside space-y-0.5 pl-1">
+                <li><b>Manual mode:</b> click <i>Next month</i> to advance after you've recorded payments.</li>
+                <li><b>Auto mode:</b> the system advances on the 1st of each month automatically.</li>
+                <li>Use <i>Total</i> to change the cycle length (e.g. 12 months for 12 members).</li>
+              </ul>
+            </div>
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">➗ Split contributions</p>
+              <p>Use splits when two members share a single slot — e.g. each pays half of one full contribution.</p>
+              <ul className="list-disc list-inside space-y-0.5 pl-1">
+                <li>Click <i>Manage splits</i> on a group, then <i>Add split</i>.</li>
+                <li>Pick the month/year, the member, and the amount they pay.</li>
+                <li>Add a second member for the same month so the two amounts equal the group's full contribution.</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Groups list with progression controls */}
       <div className="grid gap-4 md:grid-cols-2">
