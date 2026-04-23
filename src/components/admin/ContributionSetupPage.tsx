@@ -233,21 +233,33 @@ const ContributionSetupPage = () => {
     const groupMembers = getGroupMembers(newContribution.group_id);
 
     try {
+      // Validate bank fields
+      if (!isValidAccountNumber(newContribution.beneficiary_account_number)) {
+        toast.error("Account number must be 6–10 digits");
+        return;
+      }
+      if (!isValidSortCode(newContribution.beneficiary_sort_code)) {
+        toast.error("Sort code must be in format XX-XX-XX");
+        return;
+      }
+
       const perMember = selectedGroup.contribution_amount;
       const { error } = await supabase.from("monthly_contributions").insert({
         month: newContribution.month,
         year: newContribution.year,
         beneficiary_user_id: newContribution.beneficiary_user_id || null,
+        beneficiary_account_name: newContribution.beneficiary_account_name || null,
         beneficiary_account_number: newContribution.beneficiary_account_number || null,
         beneficiary_bank_name: newContribution.beneficiary_bank_name || null,
+        beneficiary_sort_code: newContribution.beneficiary_sort_code || null,
         total_expected: groupMembers.length * perMember,
         total_collected: 0,
         is_finalized: false,
         group_id: newContribution.group_id,
-      });
+      } as any);
 
       if (error) throw error;
-      
+
       toast.success("Monthly contribution created successfully");
       setIsCreateDialogOpen(false);
       // Reset form
@@ -256,8 +268,10 @@ const ContributionSetupPage = () => {
         year: new Date().getFullYear(),
         group_id: groups[0]?.id || "",
         beneficiary_user_id: "",
+        beneficiary_account_name: "",
         beneficiary_account_number: "",
         beneficiary_bank_name: "",
+        beneficiary_sort_code: "",
       });
       fetchData();
     } catch (error: any) {
