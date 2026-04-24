@@ -6,6 +6,76 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Tools the AI is allowed to PROPOSE. Execution still requires admin click.
+const TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "update_beneficiary",
+      description: "Change the beneficiary member for an existing monthly contribution period in a group.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string", description: "Name of the contribution group" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          new_beneficiary_name: { type: "string", description: "Full name (or email) of the new beneficiary member" },
+        },
+        required: ["group_name", "month", "year", "new_beneficiary_name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "advance_group_month",
+      description: "Advance a contribution group to its next rotation month.",
+      parameters: {
+        type: "object",
+        properties: { group_name: { type: "string" } },
+        required: ["group_name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_monthly_period",
+      description: "Create a single new monthly contribution period for a group with a beneficiary.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          beneficiary_name: { type: "string" },
+        },
+        required: ["group_name", "month", "year", "beneficiary_name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_contribution_finalized",
+      description: "Mark a monthly contribution period as finalized (closed for payments).",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+        },
+        required: ["group_name", "month", "year"],
+        additionalProperties: false,
+      },
+    },
+  },
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -17,7 +87,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify the caller is an admin
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
@@ -29,67 +98,105 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .eq("role", "admin")
       .maybeSingle();
-
     if (!roleData) throw new Error("Admin access required");
 
-    const { messages } = await req.json();
+    const body = await req.json();
 
-    // Get dashboard context for the AI
+    // ===== EXECUTE MODE =====
+    // Admin clicked "Confirm" on a previously proposed action.
+    if (body.execute && body.proposal) {
+      const result = await executeProposal(supabase, body.proposal, user.id);
+      return new Response(JSON.stringify(result), {
+        status: result.success ? 200 : 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ===== PLAN MODE =====
+    const { messages } = body;
     const context = await getDashboardContext(supabase);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are Amana, the AI planning assistant for the Amana Market admin dashboard. You answer questions and help the admin plan actions — but you NEVER execute actions. The admin uses dedicated UI panels (Members, Loans, Rotation Builder, Payments) to confirm and run anything.
+    const systemPrompt = `You are Amana, an AI co-pilot for the Amana Market admin.
 
-You have access to the following real-time data:
-${JSON.stringify(context, null, 2)}
+You have TWO modes of response:
+1. **Conversational answer** — for questions about data ("how much was contributed?", "who is the beneficiary in May?"). Just reply in plain markdown.
+2. **Action proposal** — when the admin asks you to DO something (change a beneficiary, advance a month, create a period, finalize a contribution), call the appropriate tool. Do NOT also write JSON code blocks. Just call the tool — the system will render a confirm card for the admin.
 
-RULES:
-- You are READ-ONLY. Do NOT emit JSON action blocks, code fences with action payloads, or anything resembling a backend command. NEVER write \`\`\`action.
-- If the admin asks you to "create", "delete", "approve", "reject", or "issue" something, do NOT pretend to do it. Reply with a short plan and tell them which panel to use:
-  • Create monthly contribution / rotation → "Rotation" tab → Rotation Builder
-  • Approve/reject loans → "Loans" tab
-  • Delete users → "Members" tab → Delete
-  • Record payments → "Payments" tab
-- Keep replies concise, friendly, and human-readable. Use British Pounds (£).
-- Never expose internal IDs (UUIDs, user_id, group_id, request_id). Always use names from the context.
-- For data questions (totals, lists, status), answer directly from the context.`;
+You can ONLY propose actions for tools you have. If the admin asks for something not covered (deleting users, approving loans, recording payments, creating rotations), politely tell them which dashboard panel to use:
+- Create rotations → Rotation Builder panel
+- Approve/reject loans → Loans tab
+- Record payments → Payments tab
+- Create/delete members → Members tab
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+Use British Pounds (£). Never expose UUIDs — use names from the context.
+
+REAL-TIME DASHBOARD DATA:
+${JSON.stringify(context, null, 2)}`;
+
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
         ],
-        stream: true,
+        tools: TOOLS,
+        tool_choice: "auto",
       }),
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    if (!aiResp.ok) {
+      if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited. Please try again shortly." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+      if (aiResp.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      const t = await aiResp.text();
+      console.error("AI gateway error:", aiResp.status, t);
       throw new Error("AI gateway error");
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    const aiData = await aiResp.json();
+    const choice = aiData.choices?.[0];
+    const msg = choice?.message;
+    const toolCall = msg?.tool_calls?.[0];
+
+    let proposal: any = null;
+    let reply: string = msg?.content || "";
+
+    if (toolCall?.function?.name) {
+      try {
+        const args = JSON.parse(toolCall.function.arguments || "{}");
+        proposal = {
+          tool: toolCall.function.name,
+          args,
+          summary: summarizeProposal(toolCall.function.name, args),
+        };
+        if (!reply) {
+          reply = `I'd like to **${proposal.summary}**. Review and confirm below.`;
+        }
+      } catch (e) {
+        console.error("Tool call parse error:", e);
+      }
+    }
+
+    if (!reply && !proposal) reply = "I didn't catch that — could you rephrase?";
+
+    return new Response(JSON.stringify({ reply, proposal }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("admin-ai-assistant error:", e);
@@ -99,77 +206,176 @@ RULES:
   }
 });
 
+function summarizeProposal(tool: string, args: any): string {
+  const monthName = (m: number) =>
+    new Date(2000, m - 1, 1).toLocaleString("en-GB", { month: "long" });
+  switch (tool) {
+    case "update_beneficiary":
+      return `change ${monthName(args.month)} ${args.year} beneficiary in "${args.group_name}" to ${args.new_beneficiary_name}`;
+    case "advance_group_month":
+      return `advance group "${args.group_name}" to its next month`;
+    case "create_monthly_period":
+      return `create ${monthName(args.month)} ${args.year} period in "${args.group_name}" with ${args.beneficiary_name} as beneficiary`;
+    case "mark_contribution_finalized":
+      return `finalize ${monthName(args.month)} ${args.year} in "${args.group_name}"`;
+    default:
+      return tool;
+  }
+}
+
+// ===== Helpers =====
+async function findGroup(supabase: any, name: string) {
+  const { data } = await supabase
+    .from("contribution_groups")
+    .select("id, name, contribution_amount")
+    .ilike("name", `%${name}%`)
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+async function findMember(supabase: any, name: string, groupId?: string) {
+  let q = supabase.from("profiles").select("user_id, full_name, email").or(`full_name.ilike.%${name}%,email.ilike.%${name}%`);
+  const { data } = await q.limit(5);
+  if (!data?.length) return null;
+  if (!groupId) return data[0];
+  // Prefer one in the group
+  const { data: members } = await supabase
+    .from("group_memberships")
+    .select("user_id")
+    .eq("group_id", groupId)
+    .eq("is_active", true)
+    .in("user_id", data.map((d: any) => d.user_id));
+  const inGroup = data.find((d: any) => members?.some((m: any) => m.user_id === d.user_id));
+  return inGroup || data[0];
+}
+
+async function executeProposal(supabase: any, proposal: any, adminId: string): Promise<{ success: boolean; message: string }> {
+  const { tool, args } = proposal;
+  try {
+    if (tool === "update_beneficiary") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const member = await findMember(supabase, args.new_beneficiary_name, grp.id);
+      if (!member) return { success: false, message: `Member "${args.new_beneficiary_name}" not found.` };
+      const { data: mc, error: e1 } = await supabase
+        .from("monthly_contributions")
+        .select("id")
+        .eq("group_id", grp.id)
+        .eq("month", args.month)
+        .eq("year", args.year)
+        .maybeSingle();
+      if (e1 || !mc) return { success: false, message: `No period for ${args.month}/${args.year} in "${grp.name}".` };
+      const { error } = await supabase
+        .from("monthly_contributions")
+        .update({ beneficiary_user_id: member.user_id })
+        .eq("id", mc.id);
+      if (error) return { success: false, message: error.message };
+      await supabase.from("activity_logs").insert({
+        action: "ai_update_beneficiary",
+        description: `Admin updated beneficiary for ${args.month}/${args.year} in ${grp.name} to ${member.full_name || member.email} (via AI assistant)`,
+        entity_type: "monthly_contribution",
+        entity_id: mc.id,
+        user_id: adminId,
+      });
+      return { success: true, message: `✅ Beneficiary updated to ${member.full_name || member.email} for ${args.month}/${args.year}.` };
+    }
+
+    if (tool === "advance_group_month") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const { data, error } = await supabase.rpc("advance_group_month", { _group_id: grp.id });
+      if (error) return { success: false, message: error.message };
+      if (!data?.success) return { success: false, message: data?.reason || "Could not advance month." };
+      return { success: true, message: `✅ ${grp.name} advanced to month ${data.current_month} (${data.period}).` };
+    }
+
+    if (tool === "create_monthly_period") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const member = await findMember(supabase, args.beneficiary_name, grp.id);
+      if (!member) return { success: false, message: `Member "${args.beneficiary_name}" not found.` };
+      const { count } = await supabase
+        .from("group_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("group_id", grp.id)
+        .eq("is_active", true);
+      const totalExpected = (count || 0) * Number(grp.contribution_amount);
+      const { data, error } = await supabase
+        .from("monthly_contributions")
+        .insert({
+          group_id: grp.id,
+          month: args.month,
+          year: args.year,
+          beneficiary_user_id: member.user_id,
+          total_expected: totalExpected,
+        })
+        .select("id")
+        .single();
+      if (error) return { success: false, message: error.message.includes("unique") ? `Period ${args.month}/${args.year} already exists for this group.` : error.message };
+      await supabase.from("activity_logs").insert({
+        action: "ai_create_period",
+        description: `Admin created period ${args.month}/${args.year} in ${grp.name} for ${member.full_name || member.email} (via AI assistant)`,
+        entity_type: "monthly_contribution",
+        entity_id: data.id,
+        user_id: adminId,
+      });
+      return { success: true, message: `✅ Created ${args.month}/${args.year} period for ${member.full_name || member.email}.` };
+    }
+
+    if (tool === "mark_contribution_finalized") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const { error } = await supabase
+        .from("monthly_contributions")
+        .update({ is_finalized: true })
+        .eq("group_id", grp.id)
+        .eq("month", args.month)
+        .eq("year", args.year);
+      if (error) return { success: false, message: error.message };
+      return { success: true, message: `✅ ${args.month}/${args.year} finalized.` };
+    }
+
+    return { success: false, message: `Unknown action: ${tool}` };
+  } catch (e: any) {
+    console.error("Execute error:", e);
+    return { success: false, message: e?.message || "Execution failed." };
+  }
+}
+
 async function getDashboardContext(supabase: any) {
-  const [
-    membersRes, groupsRes, loansRes, loanRequestsRes,
-    investmentsRes, investorPaymentsRes, contributionPaymentsRes,
-    monthlyContribRes, profilesRes, membershipRes
-  ] = await Promise.all([
-    supabase.from("profiles").select("user_id, full_name, email, phone"),
-    supabase.from("contribution_groups").select("id, name, contribution_amount, is_active"),
-    supabase.from("loans").select("id, user_id, principal_amount, outstanding_balance, status"),
-    supabase.from("loan_requests").select("id, borrower_id, amount, duration_months, purpose, status, group_id, created_at"),
-    supabase.from("investments").select("id, investor_id, amount, interest_rate, duration_months, status, start_date"),
-    supabase.from("investor_payments").select("id, investor_id, investment_id, amount_paid, payment_date"),
-    supabase.from("contribution_payments").select("amount, status, user_id").eq("status", "paid"),
-    supabase.from("monthly_contributions").select("id, group_id, month, year, beneficiary_user_id, is_finalized"),
-    supabase.from("profiles").select("user_id, full_name"),
-    supabase.from("group_memberships").select("user_id, group_id, is_active").eq("is_active", true),
+  const [groupsRes, profilesRes, mcRes, loansRes, loanReqRes] = await Promise.all([
+    supabase.from("contribution_groups").select("id, name, contribution_amount, current_month, total_months, is_active").eq("is_active", true),
+    supabase.from("profiles").select("user_id, full_name, email"),
+    supabase.from("monthly_contributions").select("group_id, month, year, beneficiary_user_id, total_collected, total_expected, is_finalized").order("year", { ascending: false }).order("month", { ascending: false }).limit(40),
+    supabase.from("loans").select("id, user_id, outstanding_balance, status").eq("status", "active"),
+    supabase.from("loan_requests").select("id, status").in("status", ["pending", "awaiting_guarantor", "pending_admin"]),
   ]);
 
   const profileMap: Record<string, string> = {};
-  for (const p of profilesRes.data || []) {
-    profileMap[p.user_id] = p.full_name || "Unknown";
-  }
+  for (const p of profilesRes.data || []) profileMap[p.user_id] = p.full_name || p.email || "Unknown";
 
-  // Get roles for context
-  const { data: rolesData } = await supabase.from("user_roles").select("user_id, role");
-  const userRoles: Record<string, string[]> = {};
-  for (const r of rolesData || []) {
-    if (!userRoles[r.user_id]) userRoles[r.user_id] = [];
-    userRoles[r.user_id].push(r.role);
-  }
-
-  const members = (membersRes.data || []).map((m: any) => ({
-    ...m,
-    full_name: m.full_name || "Unknown",
-    roles: userRoles[m.user_id] || [],
-  }));
-
-  const totalContributions = (contributionPaymentsRes.data || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
-  const totalActiveLoans = (loansRes.data || []).filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + Number(l.outstanding_balance), 0);
-
-  const loanRequests = (loanRequestsRes.data || []).map((lr: any) => ({
-    ...lr,
-    borrower_name: profileMap[lr.borrower_id] || "Unknown",
-  }));
-
-  const investors = (investmentsRes.data || []).map((inv: any) => ({
-    ...inv,
-    investor_name: profileMap[inv.investor_id] || "Unknown",
-    total_paid: (investorPaymentsRes.data || [])
-      .filter((p: any) => p.investment_id === inv.id)
-      .reduce((s: number, p: any) => s + Number(p.amount_paid), 0),
-    expected_return: Number(inv.amount) * (1 + Number(inv.interest_rate) / 100),
-  }));
+  const groupMap: Record<string, string> = {};
+  for (const g of groupsRes.data || []) groupMap[g.id] = g.name;
 
   return {
-    summary: {
-      totalMembers: members.filter((m: any) => m.roles.includes("contributor")).length,
-      totalInvestors: members.filter((m: any) => m.roles.includes("investor")).length,
-      totalContributions,
-      totalActiveLoans,
-      pendingLoanRequests: loanRequests.filter((lr: any) => lr.status === "pending_admin" || lr.status === "awaiting_guarantor").length,
-    },
-    groups: groupsRes.data || [],
-    members: members.slice(0, 50),
-    loanRequests,
-    investments: investors,
-    recentContributionMonths: (monthlyContribRes.data || []).slice(0, 10),
-    memberships: (membershipRes.data || []).slice(0, 100),
+    groups: (groupsRes.data || []).map((g: any) => ({
+      name: g.name,
+      contribution_amount: g.contribution_amount,
+      current_month: g.current_month,
+      total_months: g.total_months,
+    })),
+    recent_periods: (mcRes.data || []).map((mc: any) => ({
+      group: groupMap[mc.group_id] || "Unknown",
+      month: mc.month,
+      year: mc.year,
+      beneficiary: mc.beneficiary_user_id ? profileMap[mc.beneficiary_user_id] : null,
+      collected: mc.total_collected,
+      expected: mc.total_expected,
+      finalized: mc.is_finalized,
+    })),
+    members: (profilesRes.data || []).slice(0, 100).map((p: any) => ({ name: p.full_name, email: p.email })),
+    active_loans_count: loansRes.data?.length || 0,
+    pending_loan_requests: loanReqRes.data?.length || 0,
   };
 }
-
-// Note: action execution has been removed. The AI is planner-only.
-// All admin actions are performed via dedicated UI panels (Rotation Builder, Loans, Members, Payments).
-

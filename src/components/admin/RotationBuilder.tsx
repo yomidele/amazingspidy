@@ -51,6 +51,8 @@ const RotationBuilder = () => {
   const [existingMonths, setExistingMonths] = useState<Set<string>>(new Set()); // "YYYY-MM"
   const [stage, setStage] = useState<"build" | "preview" | "done">("build");
   const [doneSummary, setDoneSummary] = useState<{ created: number; period: string } | null>(null);
+  // Inline per-month overrides: index in plan -> user_id (replaces sequential assignment for that slot only)
+  const [overrides, setOverrides] = useState<Record<number, string>>({});
 
   // Load groups
   useEffect(() => {
@@ -120,6 +122,7 @@ const RotationBuilder = () => {
       setSelected(Object.fromEntries(ms.map((m) => [m.user_id, true])));
       setOrder(ms.map((m) => m.user_id));
       setStage("build");
+      setOverrides({});
       setLoadingMembers(false);
     })();
   }, [groupId]);
@@ -127,17 +130,17 @@ const RotationBuilder = () => {
   const selectedOrder = useMemo(() => order.filter((id) => selected[id]), [order, selected]);
   const memberById = useMemo(() => Object.fromEntries(members.map((m) => [m.user_id, m])), [members]);
 
-  // Plan = list of {month, year, user_id}
+  // Plan = list of {month, year, user_id}, with optional per-slot overrides
   const plan = useMemo(() => {
     const out: { month: number; year: number; user_id: string }[] = [];
     let m = startMonth, y = startYear;
-    for (const uid of selectedOrder) {
-      out.push({ month: m, year: y, user_id: uid });
+    selectedOrder.forEach((uid, i) => {
+      out.push({ month: m, year: y, user_id: overrides[i] || uid });
       m += 1;
       if (m > 12) { m = 1; y += 1; }
-    }
+    });
     return out;
-  }, [selectedOrder, startMonth, startYear]);
+  }, [selectedOrder, startMonth, startYear, overrides]);
 
   // Validation
   const validation = useMemo(() => {
@@ -433,33 +436,71 @@ const RotationBuilder = () => {
           {plan.length === 0 ? (
             <p className="text-xs text-muted-foreground">Select members to see the preview.</p>
           ) : (
-            <div className="rounded-lg border divide-y max-h-80 overflow-y-auto">
-              {plan.map((p, i) => {
-                const m = memberById[p.user_id];
-                const dupKey = `${p.year}-${String(p.month).padStart(2, "0")}`;
-                const dup = existingMonths.has(dupKey);
-                return (
-                  <div key={i} className={`flex items-center justify-between gap-3 p-2.5 text-sm ${dup ? "bg-destructive/5" : ""}`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Badge variant="outline" className="w-7 justify-center">{i + 1}</Badge>
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{monthName(p.month)} {p.year} — {m?.full_name || m?.email || "Unknown"}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {m?.account_number ? `${m.bank_name || "Bank"} · ${m.account_number}` : "no bank details"}
-                        </p>
+            <>
+              <p className="text-[11px] text-muted-foreground">
+                Tip: change the dropdown on any row to swap that month's beneficiary without rebuilding the order.
+              </p>
+              <div className="rounded-lg border divide-y max-h-96 overflow-y-auto">
+                {plan.map((p, i) => {
+                  const m = memberById[p.user_id];
+                  const dupKey = `${p.year}-${String(p.month).padStart(2, "0")}`;
+                  const dup = existingMonths.has(dupKey);
+                  const isOverridden = overrides[i] !== undefined;
+                  return (
+                    <div key={i} className={`flex items-center gap-2 p-2.5 text-sm ${dup ? "bg-destructive/5" : ""}`}>
+                      <Badge variant="outline" className="w-7 justify-center flex-shrink-0">{i + 1}</Badge>
+                      <div className="w-24 flex-shrink-0">
+                        <p className="font-medium text-xs">{monthName(p.month).slice(0, 3)} {p.year}</p>
+                        {m?.account_number ? (
+                          <p className="text-[10px] text-muted-foreground truncate">{m.account_number}</p>
+                        ) : (
+                          <p className="text-[10px] text-amber-600">no bank</p>
+                        )}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <Select
+                          value={p.user_id}
+                          onValueChange={(v) => setOverrides((prev) => ({ ...prev, [i]: v }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {members.map((mem) => (
+                              <SelectItem key={mem.user_id} value={mem.user_id} className="text-xs">
+                                {mem.full_name || mem.email}{!mem.account_number && " ⚠"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {isOverridden && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 flex-shrink-0"
+                          title="Reset this month"
+                          onClick={() => setOverrides((prev) => {
+                            const next = { ...prev };
+                            delete next[i];
+                            return next;
+                          })}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      {dup && <Badge variant="destructive" className="text-[10px] flex-shrink-0">Exists</Badge>}
                     </div>
-                    {dup && <Badge variant="destructive" className="text-[10px]">Already exists</Badge>}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 justify-end pt-2 border-t">
-          <Button variant="outline" onClick={() => { setOrder(members.map((m) => m.user_id)); }}>
+          <Button variant="outline" onClick={() => { setOrder(members.map((m) => m.user_id)); setOverrides({}); }}>
             <RefreshCw className="w-4 h-4 mr-1" /> Reset order
           </Button>
           <Button
