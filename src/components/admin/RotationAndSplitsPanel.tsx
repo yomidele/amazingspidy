@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import RotationBuilder from "./RotationBuilder";
 
 interface Group {
   id: string;
@@ -157,6 +158,9 @@ const RotationAndSplitsPanel = () => {
           Manage month progression mode and split contribution slots per group.
         </p>
       </div>
+
+      {/* Rotation builder (preview → confirm flow) */}
+      <RotationBuilder />
 
       {/* How it works */}
       <Card className="border-contribution/30 bg-contribution-light/40">

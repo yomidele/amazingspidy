@@ -32,15 +32,7 @@ serve(async (req) => {
 
     if (!roleData) throw new Error("Admin access required");
 
-    const { messages, action } = await req.json();
-
-    // If this is an action execution request
-    if (action) {
-      const result = await executeAction(supabase, action, user.id);
-      return new Response(JSON.stringify({ result }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { messages } = await req.json();
 
     // Get dashboard context for the AI
     const context = await getDashboardContext(supabase);
@@ -48,53 +40,21 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are Amana, the AI assistant for the Amana Market admin dashboard. You help administrators manage their platform efficiently.
+    const systemPrompt = `You are Amana, the AI planning assistant for the Amana Market admin dashboard. You answer questions and help the admin plan actions — but you NEVER execute actions. The admin uses dedicated UI panels (Members, Loans, Rotation Builder, Payments) to confirm and run anything.
 
 You have access to the following real-time data:
 ${JSON.stringify(context, null, 2)}
 
-You can help the admin with these tasks by responding with a JSON action block when they ask you to perform an action:
-
-AVAILABLE ACTIONS (respond with JSON wrapped in \`\`\`action ... \`\`\` block):
-
-1. Create monthly contribution:
-\`\`\`action
-{"type":"create_contribution_month","group_id":"...","month":1-12,"year":2024-2030,"beneficiary_user_id":"...","beneficiary_bank_name":"...","beneficiary_account_number":"..."}
-\`\`\`
-
-2. Delete a user (contributor/investor):
-\`\`\`action
-{"type":"delete_user","user_id":"...","user_name":"..."}
-\`\`\`
-
-3. Approve a loan request:
-\`\`\`action
-{"type":"approve_loan","request_id":"..."}
-\`\`\`
-
-4. Reject a loan request:
-\`\`\`action
-{"type":"reject_loan","request_id":"...","reason":"..."}
-\`\`\`
-
-5. Delete a loan request:
-\`\`\`action
-{"type":"delete_loan_request","request_id":"..."}
-\`\`\`
-
 RULES:
-- When asked to create a monthly contribution, ask for: which group, which month/year, beneficiary details (name, bank, account number). Use the context data to match names to IDs.
-- When checking investment balances, use the context data to provide accurate figures.
-- When asked about loan applications, list them from the context data.
-- Always confirm before executing destructive actions (delete).
-- Be concise, professional, and helpful.
-- If the admin says something casual, respond naturally.
-- Address the admin as "Admin" or by name if known.
-- You know everything about the platform: contributions, loans, investors, members.
-- When listing members or investors, use the data from context.
-- For creating contribution months, you MUST ask for the group, beneficiary, month and year if not provided.
-- Use British Pounds (£) for currency.
-- CRITICAL: NEVER show internal IDs (user_id, group_id, request_id, UUID values) in your replies to the admin. Always resolve IDs to human-readable names from the context. IDs are for internal action payloads only — strip them from all visible text.`;
+- You are READ-ONLY. Do NOT emit JSON action blocks, code fences with action payloads, or anything resembling a backend command. NEVER write \`\`\`action.
+- If the admin asks you to "create", "delete", "approve", "reject", or "issue" something, do NOT pretend to do it. Reply with a short plan and tell them which panel to use:
+  • Create monthly contribution / rotation → "Rotation" tab → Rotation Builder
+  • Approve/reject loans → "Loans" tab
+  • Delete users → "Members" tab → Delete
+  • Record payments → "Payments" tab
+- Keep replies concise, friendly, and human-readable. Use British Pounds (£).
+- Never expose internal IDs (UUIDs, user_id, group_id, request_id). Always use names from the context.
+- For data questions (totals, lists, status), answer directly from the context.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -210,104 +170,6 @@ async function getDashboardContext(supabase: any) {
   };
 }
 
-async function executeAction(supabase: any, action: any, adminUserId: string) {
-  switch (action.type) {
-    case "create_contribution_month": {
-      const { group_id, month, year, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_number } = action;
+// Note: action execution has been removed. The AI is planner-only.
+// All admin actions are performed via dedicated UI panels (Rotation Builder, Loans, Members, Payments).
 
-      // Count active members in group
-      const { data: members } = await supabase
-        .from("group_memberships")
-        .select("user_id")
-        .eq("group_id", group_id)
-        .eq("is_active", true);
-
-      const { data: group } = await supabase
-        .from("contribution_groups")
-        .select("contribution_amount")
-        .eq("id", group_id)
-        .single();
-
-      const totalExpected = (members?.length || 0) * (group?.contribution_amount || 0);
-
-      const { data, error } = await supabase.from("monthly_contributions").insert({
-        group_id,
-        month,
-        year,
-        beneficiary_user_id: beneficiary_user_id || null,
-        beneficiary_bank_name: beneficiary_bank_name || null,
-        beneficiary_account_number: beneficiary_account_number || null,
-        total_expected: totalExpected,
-      }).select().single();
-
-      if (error) throw error;
-      return { success: true, message: `Monthly contribution created for ${month}/${year}. Total expected: £${totalExpected}` };
-    }
-
-    case "approve_loan": {
-      const { request_id } = action;
-      const { data: lr } = await supabase.from("loan_requests").select("*").eq("id", request_id).single();
-      if (!lr) throw new Error("Loan request not found");
-
-      await supabase.from("loan_requests").update({ status: "approved" }).eq("id", request_id);
-
-      const { data: loan } = await supabase.from("loans").insert({
-        user_id: lr.borrower_id,
-        group_id: lr.group_id,
-        principal_amount: lr.amount,
-        outstanding_balance: lr.amount,
-        monthly_repayment: Math.ceil((lr.amount / lr.duration_months) * 100) / 100,
-        status: "active",
-      }).select("id").single();
-
-      // Notify borrower
-      await supabase.from("notifications").insert({
-        user_id: lr.borrower_id,
-        title: "Loan Approved ✅",
-        message: `Your loan of £${lr.amount.toLocaleString()} has been approved!`,
-        type: "success",
-      });
-
-      return { success: true, message: `Loan of £${lr.amount} approved and issued.` };
-    }
-
-    case "reject_loan": {
-      const { request_id, reason } = action;
-      await supabase.from("loan_requests").update({ status: "rejected", admin_notes: reason }).eq("id", request_id);
-      return { success: true, message: "Loan request rejected." };
-    }
-
-    case "delete_loan_request": {
-      const { request_id } = action;
-      await supabase.from("loan_guarantors").delete().eq("loan_request_id", request_id);
-      await supabase.from("loan_signatures").delete().eq("loan_request_id", request_id);
-      await supabase.from("loan_requests").delete().eq("id", request_id);
-      return { success: true, message: "Loan request deleted. User can now apply again." };
-    }
-
-    case "delete_user": {
-      // Call the existing delete-member edge function logic
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-      const resp = await fetch(`${supabaseUrl}/functions/v1/delete-member`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ memberId: action.user_id }),
-      });
-
-      if (!resp.ok) {
-        const errText = await resp.text();
-        throw new Error(`Failed to delete user: ${errText}`);
-      }
-
-      return { success: true, message: `User ${action.user_name || ""} has been deleted.` };
-    }
-
-    default:
-      throw new Error(`Unknown action: ${action.type}`);
-  }
-}
