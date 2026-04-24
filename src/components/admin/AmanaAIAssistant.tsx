@@ -178,38 +178,10 @@ const AmanaAIAssistant = () => {
         }
       }
 
-      // Execute action blocks
+      // Strip any stray ```action``` blocks if the model regresses (planner-only mode)
       if (assistantSoFar.includes("```action")) {
-        const actionMatch = assistantSoFar.match(/```action\s*([\s\S]*?)```/);
-        if (actionMatch) {
-          try {
-            const action = JSON.parse(actionMatch[1].trim());
-            const { data: { session: s } } = await supabase.auth.getSession();
-            const actionResp = await fetch(CHAT_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${s!.access_token}`,
-              },
-              body: JSON.stringify({ action }),
-            });
-            const actionResult = await actionResp.json();
-            if (actionResult.result?.success) {
-              setMessages((prev) => [...prev, {
-                role: "assistant",
-                content: `✅ **Action completed:** ${actionResult.result.message}`,
-              }]);
-              toast.success(actionResult.result.message);
-            } else {
-              setMessages((prev) => [...prev, {
-                role: "assistant",
-                content: `❌ **Action failed:** ${actionResult.error || "Unknown error"}`,
-              }]);
-            }
-          } catch (e) {
-            console.error("Action parse error:", e);
-          }
-        }
+        const cleaned = assistantSoFar.replace(/```action[\s\S]*?```/g, "_(use the dashboard panels to perform this action)_");
+        setMessages((prev) => prev.map((m, i) => i === prev.length - 1 ? { ...m, content: cleaned } : m));
       }
     } catch (error: any) {
       console.error("Chat error:", error);
