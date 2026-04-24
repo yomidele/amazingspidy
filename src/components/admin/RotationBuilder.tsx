@@ -122,6 +122,7 @@ const RotationBuilder = () => {
       setSelected(Object.fromEntries(ms.map((m) => [m.user_id, true])));
       setOrder(ms.map((m) => m.user_id));
       setStage("build");
+      setOverrides({});
       setLoadingMembers(false);
     })();
   }, [groupId]);
