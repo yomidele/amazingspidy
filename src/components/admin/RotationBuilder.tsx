@@ -499,7 +499,7 @@ const RotationBuilder = () => {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 justify-end pt-2 border-t">
-          <Button variant="outline" onClick={() => { setOrder(members.map((m) => m.user_id)); }}>
+          <Button variant="outline" onClick={() => { setOrder(members.map((m) => m.user_id)); setOverrides({}); }}>
             <RefreshCw className="w-4 h-4 mr-1" /> Reset order
           </Button>
           <Button
