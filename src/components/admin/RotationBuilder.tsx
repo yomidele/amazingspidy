@@ -51,6 +51,8 @@ const RotationBuilder = () => {
   const [existingMonths, setExistingMonths] = useState<Set<string>>(new Set()); // "YYYY-MM"
   const [stage, setStage] = useState<"build" | "preview" | "done">("build");
   const [doneSummary, setDoneSummary] = useState<{ created: number; period: string } | null>(null);
+  // Inline per-month overrides: index in plan -> user_id (replaces sequential assignment for that slot only)
+  const [overrides, setOverrides] = useState<Record<number, string>>({});
 
   // Load groups
   useEffect(() => {
