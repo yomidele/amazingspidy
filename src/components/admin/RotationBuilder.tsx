@@ -129,17 +129,17 @@ const RotationBuilder = () => {
   const selectedOrder = useMemo(() => order.filter((id) => selected[id]), [order, selected]);
   const memberById = useMemo(() => Object.fromEntries(members.map((m) => [m.user_id, m])), [members]);
 
-  // Plan = list of {month, year, user_id}
+  // Plan = list of {month, year, user_id}, with optional per-slot overrides
   const plan = useMemo(() => {
     const out: { month: number; year: number; user_id: string }[] = [];
     let m = startMonth, y = startYear;
-    for (const uid of selectedOrder) {
-      out.push({ month: m, year: y, user_id: uid });
+    selectedOrder.forEach((uid, i) => {
+      out.push({ month: m, year: y, user_id: overrides[i] || uid });
       m += 1;
       if (m > 12) { m = 1; y += 1; }
-    }
+    });
     return out;
-  }, [selectedOrder, startMonth, startYear]);
+  }, [selectedOrder, startMonth, startYear, overrides]);
 
   // Validation
   const validation = useMemo(() => {
