@@ -32,15 +32,7 @@ serve(async (req) => {
 
     if (!roleData) throw new Error("Admin access required");
 
-    const { messages, action } = await req.json();
-
-    // If this is an action execution request
-    if (action) {
-      const result = await executeAction(supabase, action, user.id);
-      return new Response(JSON.stringify({ result }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { messages } = await req.json();
 
     // Get dashboard context for the AI
     const context = await getDashboardContext(supabase);
@@ -48,53 +40,21 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are Amana, the AI assistant for the Amana Market admin dashboard. You help administrators manage their platform efficiently.
+    const systemPrompt = `You are Amana, the AI planning assistant for the Amana Market admin dashboard. You answer questions and help the admin plan actions — but you NEVER execute actions. The admin uses dedicated UI panels (Members, Loans, Rotation Builder, Payments) to confirm and run anything.
 
 You have access to the following real-time data:
 ${JSON.stringify(context, null, 2)}
 
-You can help the admin with these tasks by responding with a JSON action block when they ask you to perform an action:
-
-AVAILABLE ACTIONS (respond with JSON wrapped in \`\`\`action ... \`\`\` block):
-
-1. Create monthly contribution:
-\`\`\`action
-{"type":"create_contribution_month","group_id":"...","month":1-12,"year":2024-2030,"beneficiary_user_id":"...","beneficiary_bank_name":"...","beneficiary_account_number":"..."}
-\`\`\`
-
-2. Delete a user (contributor/investor):
-\`\`\`action
-{"type":"delete_user","user_id":"...","user_name":"..."}
-\`\`\`
-
-3. Approve a loan request:
-\`\`\`action
-{"type":"approve_loan","request_id":"..."}
-\`\`\`
-
-4. Reject a loan request:
-\`\`\`action
-{"type":"reject_loan","request_id":"...","reason":"..."}
-\`\`\`
-
-5. Delete a loan request:
-\`\`\`action
-{"type":"delete_loan_request","request_id":"..."}
-\`\`\`
-
 RULES:
-- When asked to create a monthly contribution, ask for: which group, which month/year, beneficiary details (name, bank, account number). Use the context data to match names to IDs.
-- When checking investment balances, use the context data to provide accurate figures.
-- When asked about loan applications, list them from the context data.
-- Always confirm before executing destructive actions (delete).
-- Be concise, professional, and helpful.
-- If the admin says something casual, respond naturally.
-- Address the admin as "Admin" or by name if known.
-- You know everything about the platform: contributions, loans, investors, members.
-- When listing members or investors, use the data from context.
-- For creating contribution months, you MUST ask for the group, beneficiary, month and year if not provided.
-- Use British Pounds (£) for currency.
-- CRITICAL: NEVER show internal IDs (user_id, group_id, request_id, UUID values) in your replies to the admin. Always resolve IDs to human-readable names from the context. IDs are for internal action payloads only — strip them from all visible text.`;
+- You are READ-ONLY. Do NOT emit JSON action blocks, code fences with action payloads, or anything resembling a backend command. NEVER write \`\`\`action.
+- If the admin asks you to "create", "delete", "approve", "reject", or "issue" something, do NOT pretend to do it. Reply with a short plan and tell them which panel to use:
+  • Create monthly contribution / rotation → "Rotation" tab → Rotation Builder
+  • Approve/reject loans → "Loans" tab
+  • Delete users → "Members" tab → Delete
+  • Record payments → "Payments" tab
+- Keep replies concise, friendly, and human-readable. Use British Pounds (£).
+- Never expose internal IDs (UUIDs, user_id, group_id, request_id). Always use names from the context.
+- For data questions (totals, lists, status), answer directly from the context.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
