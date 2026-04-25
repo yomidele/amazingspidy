@@ -82,6 +82,22 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "update_group_contribution_amount",
+      description: "Update the monthly contribution amount (in £) for a contribution group. Recalculates total_expected for all non-finalized monthly periods. Requires admin confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string", description: "Name of the contribution group" },
+          new_amount: { type: "number", minimum: 1, description: "New monthly contribution amount in GBP" },
+        },
+        required: ["group_name", "new_amount"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
@@ -155,6 +171,11 @@ You have TWO modes of response:
 - Sort code (if provided) must be in XX-XX-XX format.
 - Only include the bank fields the admin explicitly mentioned in the args — do not pad with empty values. The system will only overwrite fields you provide.
 - The confirm card IS the confirmation step. Don't ask the admin to type "CONFIRM" — they click the button.
+
+🔐 STRICT RULES FOR GROUP CONTRIBUTION AMOUNT UPDATES (update_group_contribution_amount):
+- Use when the admin says things like "change Team B's monthly contribution to £750", "set the contribution amount for Group A to 1000".
+- Require BOTH a clear group name AND a numeric amount in £. If either is missing, ASK — do not guess.
+- This will recalculate total_expected for all non-finalized monthly periods of that group based on current active member count.
 
 You can ONLY propose actions for tools you have. For anything else (deleting users, approving loans, recording payments, creating rotations), point to the right panel:
 - Create rotations → Rotation Builder panel
@@ -249,6 +270,8 @@ function summarizeProposal(tool: string, args: any): string {
       return `create ${monthName(args.month)} ${args.year} period in "${args.group_name}" with ${args.beneficiary_name} as beneficiary`;
     case "mark_contribution_finalized":
       return `finalize ${monthName(args.month)} ${args.year} in "${args.group_name}"`;
+    case "update_group_contribution_amount":
+      return `change "${args.group_name}" monthly contribution amount to £${args.new_amount}`;
     case "update_beneficiary_bank_details": {
       const fields = [
         args.bank_name && `bank → ${args.bank_name}`,
@@ -374,6 +397,54 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
         .eq("year", args.year);
       if (error) return { success: false, message: error.message };
       return { success: true, message: `✅ ${args.month}/${args.year} finalized.` };
+    }
+
+    if (tool === "update_group_contribution_amount") {
+      const newAmount = Number(args.new_amount);
+      if (!Number.isFinite(newAmount) || newAmount <= 0) {
+        return { success: false, message: "Invalid amount — must be a positive number." };
+      }
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const oldAmount = Number(grp.contribution_amount);
+      if (oldAmount === newAmount) {
+        return { success: false, message: `"${grp.name}" is already set to £${newAmount}.` };
+      }
+
+      const { error: upErr } = await supabase
+        .from("contribution_groups")
+        .update({ contribution_amount: newAmount })
+        .eq("id", grp.id);
+      if (upErr) return { success: false, message: upErr.message };
+
+      // Recompute total_expected for non-finalized periods using current active member count
+      const { count: memberCount } = await supabase
+        .from("group_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("group_id", grp.id)
+        .eq("is_active", true);
+      const newExpected = (memberCount || 0) * newAmount;
+
+      const { data: updatedRows, error: mcErr } = await supabase
+        .from("monthly_contributions")
+        .update({ total_expected: newExpected })
+        .eq("group_id", grp.id)
+        .eq("is_finalized", false)
+        .select("id");
+      if (mcErr) return { success: false, message: `Group amount updated but failed to recompute periods: ${mcErr.message}` };
+
+      await supabase.from("activity_logs").insert({
+        action: "ai_update_group_contribution_amount",
+        description: `Admin changed "${grp.name}" contribution amount: £${oldAmount} → £${newAmount}. Recomputed ${updatedRows?.length || 0} non-finalized periods (new expected: £${newExpected}) via AI assistant.`,
+        entity_type: "contribution_group",
+        entity_id: grp.id,
+        user_id: adminId,
+      });
+
+      return {
+        success: true,
+        message: `✅ "${grp.name}" contribution amount updated to £${newAmount}. Recalculated expected total for ${updatedRows?.length || 0} open period(s).`,
+      };
     }
 
     if (tool === "update_beneficiary_bank_details") {
