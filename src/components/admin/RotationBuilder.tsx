@@ -115,16 +115,20 @@ const RotationBuilder = () => {
         }
       }
 
-      const ms: Member[] = (memberRes.data || []).map((row: any) => {
-        const p = row.profiles;
-        const bank = bankByUser.get(p.user_id);
-        return {
-          user_id: p.user_id,
-          full_name: p.full_name,
-          email: p.email,
-          ...(bank || {}),
-        };
-      }).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+      const ms: Member[] = (memberRes.data || [])
+        .map((row: any) => {
+          const p = profilesById.get(row.user_id);
+          if (!p) return null;
+          const bank = bankByUser.get(p.user_id);
+          return {
+            user_id: p.user_id,
+            full_name: p.full_name,
+            email: p.email,
+            ...(bank || {}),
+          } as Member;
+        })
+        .filter(Boolean)
+        .sort((a: any, b: any) => (a.full_name || "").localeCompare(b.full_name || "")) as Member[];
 
       setMembers(ms);
       const existing = new Set<string>();
