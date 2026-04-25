@@ -60,6 +60,28 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "update_beneficiary_bank_details",
+      description: "Update the beneficiary BANK DETAILS (bank name, account name, account number, sort code) for a monthly contribution period. Only updates the fields explicitly provided. Account number must be 6-10 digits. Sort code (optional) must be in XX-XX-XX format. Requires admin confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string", description: "Name of the contribution group" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          member_name: { type: "string", description: "Full name (or email) of the beneficiary member whose bank details are being updated" },
+          bank_name: { type: "string", description: "New bank name (optional - only include if changing)" },
+          account_name: { type: "string", description: "New account holder name (optional - can differ from member name)" },
+          account_number: { type: "string", description: "New account number, 6-10 digits only (optional)" },
+          sort_code: { type: "string", description: "New UK sort code in XX-XX-XX format (optional)" },
+        },
+        required: ["group_name", "month", "year", "member_name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
@@ -119,13 +141,22 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are Amana, an AI co-pilot for the Amana Market admin.
+    const systemPrompt = `You are Amana, a strict and precise AI co-pilot for the Amana Market admin. The caller has already been verified as ADMIN by the system.
 
 You have TWO modes of response:
 1. **Conversational answer** — for questions about data ("how much was contributed?", "who is the beneficiary in May?"). Just reply in plain markdown.
-2. **Action proposal** — when the admin asks you to DO something (change a beneficiary, advance a month, create a period, finalize a contribution), call the appropriate tool. Do NOT also write JSON code blocks. Just call the tool — the system will render a confirm card for the admin.
+2. **Action proposal** — when the admin asks you to DO something, call the appropriate tool. Do NOT also write JSON code blocks. The system will render a confirm card; the admin must click "Confirm & run" before anything executes.
 
-You can ONLY propose actions for tools you have. If the admin asks for something not covered (deleting users, approving loans, recording payments, creating rotations), politely tell them which dashboard panel to use:
+🔐 STRICT RULES FOR BENEFICIARY BANK DETAIL UPDATES (update_beneficiary_bank_details):
+- ONLY propose this tool when the admin gives a CLEAR, DIRECT instruction (e.g. "update beneficiary bank details for John Doe in May 2026", "change John's account number to 0123456789").
+- If the request is unclear or missing critical fields (member name, group, month/year), DO NOT call the tool. Ask for clarification first.
+- NEVER guess or auto-fill missing bank details. If the admin says "update the account number" but doesn't give one, ASK for it.
+- Account number must be numeric, 6–10 digits.
+- Sort code (if provided) must be in XX-XX-XX format.
+- Only include the bank fields the admin explicitly mentioned in the args — do not pad with empty values. The system will only overwrite fields you provide.
+- The confirm card IS the confirmation step. Don't ask the admin to type "CONFIRM" — they click the button.
+
+You can ONLY propose actions for tools you have. For anything else (deleting users, approving loans, recording payments, creating rotations), point to the right panel:
 - Create rotations → Rotation Builder panel
 - Approve/reject loans → Loans tab
 - Record payments → Payments tab
@@ -218,6 +249,15 @@ function summarizeProposal(tool: string, args: any): string {
       return `create ${monthName(args.month)} ${args.year} period in "${args.group_name}" with ${args.beneficiary_name} as beneficiary`;
     case "mark_contribution_finalized":
       return `finalize ${monthName(args.month)} ${args.year} in "${args.group_name}"`;
+    case "update_beneficiary_bank_details": {
+      const fields = [
+        args.bank_name && `bank → ${args.bank_name}`,
+        args.account_name && `account name → ${args.account_name}`,
+        args.account_number && `account # → ${args.account_number}`,
+        args.sort_code && `sort code → ${args.sort_code}`,
+      ].filter(Boolean).join(", ");
+      return `update ${args.member_name}'s bank details for ${monthName(args.month)} ${args.year} in "${args.group_name}" (${fields || "no fields specified"})`;
+    }
     default:
       return tool;
   }
@@ -334,6 +374,78 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
         .eq("year", args.year);
       if (error) return { success: false, message: error.message };
       return { success: true, message: `✅ ${args.month}/${args.year} finalized.` };
+    }
+
+    if (tool === "update_beneficiary_bank_details") {
+      const updates: Record<string, any> = {};
+      const oldFields: Record<string, any> = {};
+
+      if (args.bank_name !== undefined) {
+        const v = String(args.bank_name).trim();
+        if (!v) return { success: false, message: "Bank name cannot be empty." };
+        updates.beneficiary_bank_name = v;
+      }
+      if (args.account_name !== undefined) {
+        const v = String(args.account_name).trim();
+        if (!v) return { success: false, message: "Account name cannot be empty." };
+        updates.beneficiary_account_name = v;
+      }
+      if (args.account_number !== undefined) {
+        const v = String(args.account_number).trim();
+        if (!/^[0-9]{6,10}$/.test(v)) {
+          return { success: false, message: "Invalid account format — account number must be 6–10 digits." };
+        }
+        updates.beneficiary_account_number = v;
+      }
+      if (args.sort_code !== undefined && args.sort_code !== null && args.sort_code !== "") {
+        const v = String(args.sort_code).trim();
+        if (!/^[0-9]{2}-[0-9]{2}-[0-9]{2}$/.test(v)) {
+          return { success: false, message: "Invalid sort code — must be in XX-XX-XX format." };
+        }
+        updates.beneficiary_sort_code = v;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return { success: false, message: "No bank fields provided to update." };
+      }
+
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+
+      const member = await findMember(supabase, args.member_name, grp.id);
+      if (!member) return { success: false, message: `Member "${args.member_name}" not found.` };
+
+      const { data: mc, error: e1 } = await supabase
+        .from("monthly_contributions")
+        .select("id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_name, beneficiary_account_number, beneficiary_sort_code")
+        .eq("group_id", grp.id)
+        .eq("month", args.month)
+        .eq("year", args.year)
+        .maybeSingle();
+      if (e1 || !mc) return { success: false, message: `No period for ${args.month}/${args.year} in "${grp.name}".` };
+
+      if (mc.beneficiary_user_id && mc.beneficiary_user_id !== member.user_id) {
+        return { success: false, message: `${member.full_name || member.email} is not the beneficiary for ${args.month}/${args.year}. Change the beneficiary first before editing their bank details.` };
+      }
+
+      for (const k of Object.keys(updates)) oldFields[k] = (mc as any)[k] ?? null;
+
+      const { error } = await supabase
+        .from("monthly_contributions")
+        .update(updates)
+        .eq("id", mc.id);
+      if (error) return { success: false, message: error.message };
+
+      const diff = Object.keys(updates).map((k) => `${k}: "${oldFields[k] ?? "—"}" → "${updates[k]}"`).join("; ");
+      await supabase.from("activity_logs").insert({
+        action: "ai_update_beneficiary_bank",
+        description: `Admin updated beneficiary bank details for ${args.month}/${args.year} in ${grp.name} (${member.full_name || member.email}) via AI assistant. Changes: ${diff}`,
+        entity_type: "monthly_contribution",
+        entity_id: mc.id,
+        user_id: adminId,
+      });
+
+      return { success: true, message: `✅ Beneficiary details updated successfully for ${member.full_name || member.email} (${args.month}/${args.year}).` };
     }
 
     return { success: false, message: `Unknown action: ${tool}` };
