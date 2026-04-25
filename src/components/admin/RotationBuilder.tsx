@@ -370,7 +370,10 @@ const RotationBuilder = () => {
           {loadingMembers ? (
             <p className="text-sm text-muted-foreground">Loading members…</p>
           ) : members.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No active members in this group.</p>
+            <div className="rounded-lg border border-dashed p-4 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">No active members found in this group.</p>
+              <p className="text-[11px] text-muted-foreground">Add members from the Member Management page, then return here.</p>
+            </div>
           ) : (
             <div className="rounded-lg border divide-y max-h-80 overflow-y-auto">
               {order.map((uid, idx) => {
