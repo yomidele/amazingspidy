@@ -249,6 +249,15 @@ function summarizeProposal(tool: string, args: any): string {
       return `create ${monthName(args.month)} ${args.year} period in "${args.group_name}" with ${args.beneficiary_name} as beneficiary`;
     case "mark_contribution_finalized":
       return `finalize ${monthName(args.month)} ${args.year} in "${args.group_name}"`;
+    case "update_beneficiary_bank_details": {
+      const fields = [
+        args.bank_name && `bank → ${args.bank_name}`,
+        args.account_name && `account name → ${args.account_name}`,
+        args.account_number && `account # → ${args.account_number}`,
+        args.sort_code && `sort code → ${args.sort_code}`,
+      ].filter(Boolean).join(", ");
+      return `update ${args.member_name}'s bank details for ${monthName(args.month)} ${args.year} in "${args.group_name}" (${fields || "no fields specified"})`;
+    }
     default:
       return tool;
   }
