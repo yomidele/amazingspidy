@@ -265,6 +265,8 @@ function summarizeProposal(tool: string, args: any): string {
       return `create ${monthName(args.month)} ${args.year} period in "${args.group_name}" with ${args.beneficiary_name} as beneficiary`;
     case "mark_contribution_finalized":
       return `finalize ${monthName(args.month)} ${args.year} in "${args.group_name}"`;
+    case "update_group_contribution_amount":
+      return `change "${args.group_name}" monthly contribution amount to £${args.new_amount}`;
     case "update_beneficiary_bank_details": {
       const fields = [
         args.bank_name && `bank → ${args.bank_name}`,
