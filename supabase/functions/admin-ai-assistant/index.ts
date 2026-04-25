@@ -472,6 +472,64 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
       };
     }
 
+    if (tool === "update_monthly_expected_amount") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+
+      const { data: mc, error: e1 } = await supabase
+        .from("monthly_contributions")
+        .select("id, total_expected, is_finalized")
+        .eq("group_id", grp.id)
+        .eq("month", args.month)
+        .eq("year", args.year)
+        .maybeSingle();
+      if (e1 || !mc) return { success: false, message: `No period for ${args.month}/${args.year} in "${grp.name}". Create it first.` };
+      if (mc.is_finalized) return { success: false, message: `${args.month}/${args.year} is finalized and cannot be changed.` };
+
+      let newExpected: number;
+      let detail: string;
+      if (args.total_expected != null) {
+        newExpected = Number(args.total_expected);
+        if (!Number.isFinite(newExpected) || newExpected <= 0) {
+          return { success: false, message: "Invalid total_expected — must be a positive number." };
+        }
+        detail = `lump-sum total £${newExpected}`;
+      } else if (args.per_member_amount != null) {
+        const per = Number(args.per_member_amount);
+        if (!Number.isFinite(per) || per <= 0) {
+          return { success: false, message: "Invalid per_member_amount — must be a positive number." };
+        }
+        const { count } = await supabase
+          .from("group_memberships")
+          .select("*", { count: "exact", head: true })
+          .eq("group_id", grp.id)
+          .eq("is_active", true);
+        newExpected = (count || 0) * per;
+        detail = `£${per} × ${count || 0} members = £${newExpected}`;
+      } else {
+        return { success: false, message: "Provide either per_member_amount or total_expected." };
+      }
+
+      const { error } = await supabase
+        .from("monthly_contributions")
+        .update({ total_expected: newExpected })
+        .eq("id", mc.id);
+      if (error) return { success: false, message: error.message };
+
+      await supabase.from("activity_logs").insert({
+        action: "ai_update_monthly_expected",
+        description: `Admin overrode expected amount for ${args.month}/${args.year} in ${grp.name}: £${mc.total_expected ?? "—"} → £${newExpected} (${detail}). Group base amount unchanged. Via AI assistant.`,
+        entity_type: "monthly_contribution",
+        entity_id: mc.id,
+        user_id: adminId,
+      });
+
+      return {
+        success: true,
+        message: `✅ ${args.month}/${args.year} expected amount set to £${newExpected} (${detail}). Group base contribution amount unchanged.`,
+      };
+    }
+
     if (tool === "update_beneficiary_bank_details") {
       const updates: Record<string, any> = {};
       const oldFields: Record<string, any> = {};
