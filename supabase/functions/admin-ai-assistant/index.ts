@@ -60,6 +60,28 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "update_beneficiary_bank_details",
+      description: "Update the beneficiary BANK DETAILS (bank name, account name, account number, sort code) for a monthly contribution period. Only updates the fields explicitly provided. Account number must be 6-10 digits. Sort code (optional) must be in XX-XX-XX format. Requires admin confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string", description: "Name of the contribution group" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          member_name: { type: "string", description: "Full name (or email) of the beneficiary member whose bank details are being updated" },
+          bank_name: { type: "string", description: "New bank name (optional - only include if changing)" },
+          account_name: { type: "string", description: "New account holder name (optional - can differ from member name)" },
+          account_number: { type: "string", description: "New account number, 6-10 digits only (optional)" },
+          sort_code: { type: "string", description: "New UK sort code in XX-XX-XX format (optional)" },
+        },
+        required: ["group_name", "month", "year", "member_name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
