@@ -291,6 +291,12 @@ function summarizeProposal(tool: string, args: any): string {
       return `finalize ${monthName(args.month)} ${args.year} in "${args.group_name}"`;
     case "update_group_contribution_amount":
       return `change "${args.group_name}" monthly contribution amount to £${args.new_amount}`;
+    case "update_monthly_expected_amount": {
+      const part = args.per_member_amount != null
+        ? `per member → £${args.per_member_amount}`
+        : `total expected → £${args.total_expected}`;
+      return `override ${monthName(args.month)} ${args.year} in "${args.group_name}" (${part}) — this month only`;
+    }
     case "update_beneficiary_bank_details": {
       const fields = [
         args.bank_name && `bank → ${args.bank_name}`,
