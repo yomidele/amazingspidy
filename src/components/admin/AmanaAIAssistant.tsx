@@ -204,26 +204,43 @@ const AmanaAIAssistant = () => {
     <>
       <AnimatePresence>
         {!open && (
-          <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            onClick={() => {
-              setOpen(true);
-              if (messages.length === 0) {
-                setMessages([{
-                  role: "assistant",
-                  content: "Hello Admin! 👋 I'm **Amana**. Ask me anything about the dashboard, or tell me what to do — I'll propose an action and you confirm before I run it.\n\nTry: *\"Change the May 2026 beneficiary in Group A to Oluwadara\"* or *\"Advance Group A to next month\"*.",
-                }]);
-              }
-            }}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl flex items-center justify-center transition-shadow"
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-2"
           >
-            <Bot className="w-6 h-6" />
             {wakeWordActive && (
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full animate-pulse" />
+              <motion.span
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="hidden sm:inline-flex items-center gap-1.5 bg-card border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-full shadow-md"
+              >
+                <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
+                Say <span className="font-semibold text-primary">"Hi Amana"</span>
+              </motion.span>
             )}
-          </motion.button>
+            <button
+              onClick={() => {
+                setOpen(true);
+                if (messages.length === 0) {
+                  setMessages([{
+                    role: "assistant",
+                    content: "Hello Admin! 👋 I'm **Amana**. Ask me anything about the dashboard, or tell me what to do — I'll propose an action and you confirm before I run it.\n\nTry: *\"Change the May 2026 beneficiary in Group A to Oluwadara\"* or *\"Advance Group A to next month\"*.",
+                  }]);
+                }
+              }}
+              aria-label='Open Amana AI assistant — say "Hi Amana"'
+              title='Say "Hi Amana" to activate'
+              className="relative w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl flex items-center justify-center transition-shadow"
+            >
+              <Bot className="w-6 h-6" />
+              {wakeWordActive && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full animate-pulse" />
+              )}
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 
