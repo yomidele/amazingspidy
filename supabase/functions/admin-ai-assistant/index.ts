@@ -394,6 +394,54 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
       return { success: true, message: `✅ ${args.month}/${args.year} finalized.` };
     }
 
+    if (tool === "update_group_contribution_amount") {
+      const newAmount = Number(args.new_amount);
+      if (!Number.isFinite(newAmount) || newAmount <= 0) {
+        return { success: false, message: "Invalid amount — must be a positive number." };
+      }
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const oldAmount = Number(grp.contribution_amount);
+      if (oldAmount === newAmount) {
+        return { success: false, message: `"${grp.name}" is already set to £${newAmount}.` };
+      }
+
+      const { error: upErr } = await supabase
+        .from("contribution_groups")
+        .update({ contribution_amount: newAmount })
+        .eq("id", grp.id);
+      if (upErr) return { success: false, message: upErr.message };
+
+      // Recompute total_expected for non-finalized periods using current active member count
+      const { count: memberCount } = await supabase
+        .from("group_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("group_id", grp.id)
+        .eq("is_active", true);
+      const newExpected = (memberCount || 0) * newAmount;
+
+      const { data: updatedRows, error: mcErr } = await supabase
+        .from("monthly_contributions")
+        .update({ total_expected: newExpected })
+        .eq("group_id", grp.id)
+        .eq("is_finalized", false)
+        .select("id");
+      if (mcErr) return { success: false, message: `Group amount updated but failed to recompute periods: ${mcErr.message}` };
+
+      await supabase.from("activity_logs").insert({
+        action: "ai_update_group_contribution_amount",
+        description: `Admin changed "${grp.name}" contribution amount: £${oldAmount} → £${newAmount}. Recomputed ${updatedRows?.length || 0} non-finalized periods (new expected: £${newExpected}) via AI assistant.`,
+        entity_type: "contribution_group",
+        entity_id: grp.id,
+        user_id: adminId,
+      });
+
+      return {
+        success: true,
+        message: `✅ "${grp.name}" contribution amount updated to £${newAmount}. Recalculated expected total for ${updatedRows?.length || 0} open period(s).`,
+      };
+    }
+
     if (tool === "update_beneficiary_bank_details") {
       const updates: Record<string, any> = {};
       const oldFields: Record<string, any> = {};
