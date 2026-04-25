@@ -98,6 +98,25 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "update_monthly_expected_amount",
+      description: "Override the expected contribution amount for ONE specific month/year of a group (without changing the group's base contribution amount). Use when admin says e.g. 'set May 2026 expected to £8000 in Team B' or 'this month only, contributors pay £600'. Accepts EITHER a per_member amount (which is multiplied by active members) OR a total_expected lump sum.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          per_member_amount: { type: "number", minimum: 1, description: "Per-member contribution for this month only (£). Will be multiplied by current active member count." },
+          total_expected: { type: "number", minimum: 1, description: "Lump-sum total expected for this month (£). Use this when admin gives a single overall figure." },
+        },
+        required: ["group_name", "month", "year"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
