@@ -306,21 +306,25 @@ const AdminDashboardContent = () => {
       <div className="flex">
         {/* Sidebar */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground transform transition-transform duration-300 lg:translate-x-0 ${
+          className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground transform transition-transform duration-300 lg:translate-x-0 flex flex-col ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+          {/* Header (fixed) */}
+          <div className="px-6 pt-6 pb-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
                 <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div>
-                <h2 className="font-semibold text-sidebar-primary">AMANA MARKET</h2>
-                <p className="text-xs text-sidebar-foreground/60">Admin Portal</p>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-sidebar-primary truncate">AMANA MARKET</h2>
+                <p className="text-xs text-sidebar-foreground/60 truncate">Admin Portal</p>
               </div>
             </div>
+          </div>
 
+          {/* Scrollable middle: module switcher + nav */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
             {/* Module Switcher */}
             <div className="mb-6 p-1 rounded-xl bg-sidebar-accent/50">
               <div className="grid grid-cols-3 gap-1">
@@ -378,17 +382,18 @@ const AdminDashboardContent = () => {
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                   >
-                    <item.icon className="w-5 h-5 mr-3" />
-                    {item.label}
+                    <item.icon className="w-5 h-5 mr-3 shrink-0" />
+                    <span className="truncate">{item.label}</span>
                   </Button>
                 </AdminTooltip>
               ))}
             </nav>
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-sidebar-border">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center">
+          {/* Footer (fixed at bottom, no overlap) */}
+          <div className="shrink-0 p-4 border-t border-sidebar-border bg-sidebar">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full bg-sidebar-accent flex items-center justify-center shrink-0">
                 <span className="font-semibold text-sm">
                   {user?.email?.charAt(0).toUpperCase() || "A"}
                 </span>
@@ -400,7 +405,7 @@ const AdminDashboardContent = () => {
             </div>
             <AdminTooltip content={tooltipContent.logout}>
               <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80" onClick={handleLogout}>
-                <LogOut className="w-5 h-5 mr-3" />
+                <LogOut className="w-5 h-5 mr-3 shrink-0" />
                 Sign Out
               </Button>
             </AdminTooltip>
