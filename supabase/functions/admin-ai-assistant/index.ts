@@ -82,6 +82,22 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "update_group_contribution_amount",
+      description: "Update the monthly contribution amount (in £) for a contribution group. Recalculates total_expected for all non-finalized monthly periods. Requires admin confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string", description: "Name of the contribution group" },
+          new_amount: { type: "number", minimum: 1, description: "New monthly contribution amount in GBP" },
+        },
+        required: ["group_name", "new_amount"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
