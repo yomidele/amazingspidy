@@ -376,6 +376,78 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
       return { success: true, message: `✅ ${args.month}/${args.year} finalized.` };
     }
 
+    if (tool === "update_beneficiary_bank_details") {
+      const updates: Record<string, any> = {};
+      const oldFields: Record<string, any> = {};
+
+      if (args.bank_name !== undefined) {
+        const v = String(args.bank_name).trim();
+        if (!v) return { success: false, message: "Bank name cannot be empty." };
+        updates.beneficiary_bank_name = v;
+      }
+      if (args.account_name !== undefined) {
+        const v = String(args.account_name).trim();
+        if (!v) return { success: false, message: "Account name cannot be empty." };
+        updates.beneficiary_account_name = v;
+      }
+      if (args.account_number !== undefined) {
+        const v = String(args.account_number).trim();
+        if (!/^[0-9]{6,10}$/.test(v)) {
+          return { success: false, message: "Invalid account format — account number must be 6–10 digits." };
+        }
+        updates.beneficiary_account_number = v;
+      }
+      if (args.sort_code !== undefined && args.sort_code !== null && args.sort_code !== "") {
+        const v = String(args.sort_code).trim();
+        if (!/^[0-9]{2}-[0-9]{2}-[0-9]{2}$/.test(v)) {
+          return { success: false, message: "Invalid sort code — must be in XX-XX-XX format." };
+        }
+        updates.beneficiary_sort_code = v;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return { success: false, message: "No bank fields provided to update." };
+      }
+
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+
+      const member = await findMember(supabase, args.member_name, grp.id);
+      if (!member) return { success: false, message: `Member "${args.member_name}" not found.` };
+
+      const { data: mc, error: e1 } = await supabase
+        .from("monthly_contributions")
+        .select("id, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_name, beneficiary_account_number, beneficiary_sort_code")
+        .eq("group_id", grp.id)
+        .eq("month", args.month)
+        .eq("year", args.year)
+        .maybeSingle();
+      if (e1 || !mc) return { success: false, message: `No period for ${args.month}/${args.year} in "${grp.name}".` };
+
+      if (mc.beneficiary_user_id && mc.beneficiary_user_id !== member.user_id) {
+        return { success: false, message: `${member.full_name || member.email} is not the beneficiary for ${args.month}/${args.year}. Change the beneficiary first before editing their bank details.` };
+      }
+
+      for (const k of Object.keys(updates)) oldFields[k] = (mc as any)[k] ?? null;
+
+      const { error } = await supabase
+        .from("monthly_contributions")
+        .update(updates)
+        .eq("id", mc.id);
+      if (error) return { success: false, message: error.message };
+
+      const diff = Object.keys(updates).map((k) => `${k}: "${oldFields[k] ?? "—"}" → "${updates[k]}"`).join("; ");
+      await supabase.from("activity_logs").insert({
+        action: "ai_update_beneficiary_bank",
+        description: `Admin updated beneficiary bank details for ${args.month}/${args.year} in ${grp.name} (${member.full_name || member.email}) via AI assistant. Changes: ${diff}`,
+        entity_type: "monthly_contribution",
+        entity_id: mc.id,
+        user_id: adminId,
+      });
+
+      return { success: true, message: `✅ Beneficiary details updated successfully for ${member.full_name || member.email} (${args.month}/${args.year}).` };
+    }
+
     return { success: false, message: `Unknown action: ${tool}` };
   } catch (e: any) {
     console.error("Execute error:", e);
