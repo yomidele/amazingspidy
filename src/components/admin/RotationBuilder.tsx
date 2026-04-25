@@ -76,7 +76,7 @@ const RotationBuilder = () => {
       const [memberRes, mcRes] = await Promise.all([
         supabase
           .from("group_memberships")
-          .select("user_id, profiles!inner(user_id, full_name, email)")
+          .select("user_id")
           .eq("group_id", groupId)
           .eq("is_active", true),
         supabase
@@ -84,6 +84,20 @@ const RotationBuilder = () => {
           .select("month, year, beneficiary_user_id, beneficiary_bank_name, beneficiary_account_name, beneficiary_account_number, beneficiary_sort_code")
           .eq("group_id", groupId),
       ]);
+
+      // Fetch profiles separately (no FK between group_memberships.user_id and profiles.user_id)
+      const memberIds = (memberRes.data || []).map((r: any) => r.user_id);
+      let profilesById = new Map<string, { user_id: string; full_name: string | null; email: string | null }>();
+      if (memberIds.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", memberIds);
+        for (const p of profs || []) profilesById.set(p.user_id, p as any);
+      }
+
+      // Debug aid
+      console.log("[RotationBuilder] group:", groupId, "memberships:", memberRes.data?.length, "profiles:", profilesById.size);
 
       // Build last-known bank cache from monthly_contributions (most recent first)
       const bankByUser = new Map<string, any>();
