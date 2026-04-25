@@ -98,6 +98,25 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "update_monthly_expected_amount",
+      description: "Override the expected contribution amount for ONE specific month/year of a group (without changing the group's base contribution amount). Use when admin says e.g. 'set May 2026 expected to £8000 in Team B' or 'this month only, contributors pay £600'. Accepts EITHER a per_member amount (which is multiplied by active members) OR a total_expected lump sum.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          per_member_amount: { type: "number", minimum: 1, description: "Per-member contribution for this month only (£). Will be multiplied by current active member count." },
+          total_expected: { type: "number", minimum: 1, description: "Lump-sum total expected for this month (£). Use this when admin gives a single overall figure." },
+        },
+        required: ["group_name", "month", "year"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
@@ -176,6 +195,13 @@ You have TWO modes of response:
 - Use when the admin says things like "change Team B's monthly contribution to £750", "set the contribution amount for Group A to 1000".
 - Require BOTH a clear group name AND a numeric amount in £. If either is missing, ASK — do not guess.
 - This will recalculate total_expected for all non-finalized monthly periods of that group based on current active member count.
+
+🔐 RULES FOR ONE-MONTH-ONLY EXPECTED OVERRIDE (update_monthly_expected_amount):
+- Use when the admin wants to change the expected amount for a SPECIFIC month only, without touching the group's base contribution amount.
+- Examples: "for May 2026 in Team B set expected to £8000", "this month only, contributors pay £600 in Group A".
+- Need group_name + month + year + EITHER per_member_amount OR total_expected. If admin gave a per-person figure, use per_member_amount; if they gave a single overall figure, use total_expected. Don't pass both.
+- Period must already exist and not be finalized.
+- DISTINGUISH: if the admin says "change the contribution amount for Team B" without naming a month, that's update_group_contribution_amount. If they specify a month, it's update_monthly_expected_amount.
 
 You can ONLY propose actions for tools you have. For anything else (deleting users, approving loans, recording payments, creating rotations), point to the right panel:
 - Create rotations → Rotation Builder panel
@@ -272,6 +298,12 @@ function summarizeProposal(tool: string, args: any): string {
       return `finalize ${monthName(args.month)} ${args.year} in "${args.group_name}"`;
     case "update_group_contribution_amount":
       return `change "${args.group_name}" monthly contribution amount to £${args.new_amount}`;
+    case "update_monthly_expected_amount": {
+      const part = args.per_member_amount != null
+        ? `per member → £${args.per_member_amount}`
+        : `total expected → £${args.total_expected}`;
+      return `override ${monthName(args.month)} ${args.year} in "${args.group_name}" (${part}) — this month only`;
+    }
     case "update_beneficiary_bank_details": {
       const fields = [
         args.bank_name && `bank → ${args.bank_name}`,
@@ -444,6 +476,64 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
       return {
         success: true,
         message: `✅ "${grp.name}" contribution amount updated to £${newAmount}. Recalculated expected total for ${updatedRows?.length || 0} open period(s).`,
+      };
+    }
+
+    if (tool === "update_monthly_expected_amount") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+
+      const { data: mc, error: e1 } = await supabase
+        .from("monthly_contributions")
+        .select("id, total_expected, is_finalized")
+        .eq("group_id", grp.id)
+        .eq("month", args.month)
+        .eq("year", args.year)
+        .maybeSingle();
+      if (e1 || !mc) return { success: false, message: `No period for ${args.month}/${args.year} in "${grp.name}". Create it first.` };
+      if (mc.is_finalized) return { success: false, message: `${args.month}/${args.year} is finalized and cannot be changed.` };
+
+      let newExpected: number;
+      let detail: string;
+      if (args.total_expected != null) {
+        newExpected = Number(args.total_expected);
+        if (!Number.isFinite(newExpected) || newExpected <= 0) {
+          return { success: false, message: "Invalid total_expected — must be a positive number." };
+        }
+        detail = `lump-sum total £${newExpected}`;
+      } else if (args.per_member_amount != null) {
+        const per = Number(args.per_member_amount);
+        if (!Number.isFinite(per) || per <= 0) {
+          return { success: false, message: "Invalid per_member_amount — must be a positive number." };
+        }
+        const { count } = await supabase
+          .from("group_memberships")
+          .select("*", { count: "exact", head: true })
+          .eq("group_id", grp.id)
+          .eq("is_active", true);
+        newExpected = (count || 0) * per;
+        detail = `£${per} × ${count || 0} members = £${newExpected}`;
+      } else {
+        return { success: false, message: "Provide either per_member_amount or total_expected." };
+      }
+
+      const { error } = await supabase
+        .from("monthly_contributions")
+        .update({ total_expected: newExpected })
+        .eq("id", mc.id);
+      if (error) return { success: false, message: error.message };
+
+      await supabase.from("activity_logs").insert({
+        action: "ai_update_monthly_expected",
+        description: `Admin overrode expected amount for ${args.month}/${args.year} in ${grp.name}: £${mc.total_expected ?? "—"} → £${newExpected} (${detail}). Group base amount unchanged. Via AI assistant.`,
+        entity_type: "monthly_contribution",
+        entity_id: mc.id,
+        user_id: adminId,
+      });
+
+      return {
+        success: true,
+        message: `✅ ${args.month}/${args.year} expected amount set to £${newExpected} (${detail}). Group base contribution amount unchanged.`,
       };
     }
 
