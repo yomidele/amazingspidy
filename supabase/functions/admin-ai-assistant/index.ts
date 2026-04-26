@@ -654,6 +654,111 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
       return { success: true, message: `✅ Beneficiary details updated successfully for ${member.full_name || member.email} (${args.month}/${args.year}).` };
     }
 
+    if (tool === "notify_group_members") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const title = String(args.title || "").trim().slice(0, 120);
+      const message = String(args.message || "").trim();
+      if (!title || !message) return { success: false, message: "Title and message are required." };
+      const { data: members } = await supabase
+        .from("group_memberships").select("user_id").eq("group_id", grp.id).eq("is_active", true);
+      if (!members?.length) return { success: false, message: `No active members in "${grp.name}".` };
+      const rows = members.map((m: any) => ({
+        user_id: m.user_id, title, message, type: "info", link: args.link || "/dashboard/contributor",
+      }));
+      const { error } = await supabase.from("notifications").insert(rows);
+      if (error) return { success: false, message: error.message };
+      await supabase.from("activity_logs").insert({
+        action: "ai_notify_group", description: `Admin sent notification "${title}" to ${rows.length} members of ${grp.name} via AI assistant.`,
+        entity_type: "contribution_group", entity_id: grp.id, user_id: adminId,
+      });
+      return { success: true, message: `📤 Sent "${title}" to ${rows.length} member(s) of ${grp.name}.` };
+    }
+
+    if (tool === "run_monthly_workflow") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const steps: string[] = [];
+      const errors: string[] = [];
+
+      // Ensure period exists
+      let { data: mc } = await supabase
+        .from("monthly_contributions")
+        .select("id, beneficiary_user_id, total_expected, is_finalized")
+        .eq("group_id", grp.id).eq("month", args.month).eq("year", args.year).maybeSingle();
+
+      if (!mc) {
+        const { count } = await supabase.from("group_memberships")
+          .select("*", { count: "exact", head: true }).eq("group_id", grp.id).eq("is_active", true);
+        const totalExp = (count || 0) * Number(grp.contribution_amount);
+        const { data: created, error: cErr } = await supabase.from("monthly_contributions")
+          .insert({ group_id: grp.id, month: args.month, year: args.year, total_expected: totalExp })
+          .select("id, beneficiary_user_id, total_expected, is_finalized").single();
+        if (cErr) return { success: false, message: `Could not create period: ${cErr.message}` };
+        mc = created;
+        steps.push(`📅 Created ${args.month}/${args.year} period (expected £${totalExp})`);
+      }
+      if (mc.is_finalized) return { success: false, message: `${args.month}/${args.year} is finalized — cannot modify.` };
+
+      // Beneficiary
+      if (args.beneficiary_name) {
+        const member = await findMember(supabase, args.beneficiary_name, grp.id);
+        if (!member) errors.push(`beneficiary "${args.beneficiary_name}" not found`);
+        else {
+          const { error } = await supabase.from("monthly_contributions")
+            .update({ beneficiary_user_id: member.user_id }).eq("id", mc.id);
+          if (error) errors.push(`beneficiary update: ${error.message}`);
+          else steps.push(`👤 Beneficiary → ${member.full_name || member.email}`);
+        }
+      }
+
+      // Expected amount override
+      if (args.total_expected != null || args.per_member_amount != null) {
+        let newExp: number;
+        if (args.total_expected != null) newExp = Number(args.total_expected);
+        else {
+          const { count } = await supabase.from("group_memberships")
+            .select("*", { count: "exact", head: true }).eq("group_id", grp.id).eq("is_active", true);
+          newExp = (count || 0) * Number(args.per_member_amount);
+        }
+        if (Number.isFinite(newExp) && newExp > 0) {
+          const { error } = await supabase.from("monthly_contributions")
+            .update({ total_expected: newExp }).eq("id", mc.id);
+          if (error) errors.push(`expected update: ${error.message}`);
+          else steps.push(`💰 Expected → £${newExp}`);
+        }
+      }
+
+      // Notify
+      if (args.notify) {
+        const { data: members } = await supabase.from("group_memberships")
+          .select("user_id").eq("group_id", grp.id).eq("is_active", true);
+        if (members?.length) {
+          const monthLabel = new Date(2000, args.month - 1, 1).toLocaleString("en-GB", { month: "long" });
+          const body = String(args.notify_message || "").trim() ||
+            `Update for ${monthLabel} ${args.year} in ${grp.name}: ${steps.join(" • ") || "details refreshed"}.`;
+          const rows = members.map((m: any) => ({
+            user_id: m.user_id, title: `${grp.name} — ${monthLabel} ${args.year}`,
+            message: body, type: "info", link: "/dashboard/contributor",
+          }));
+          const { error } = await supabase.from("notifications").insert(rows);
+          if (error) errors.push(`notify: ${error.message}`);
+          else steps.push(`📤 Notified ${rows.length} member(s)`);
+        }
+      }
+
+      await supabase.from("activity_logs").insert({
+        action: "ai_run_monthly_workflow",
+        description: `Admin ran monthly workflow for ${args.month}/${args.year} in ${grp.name} via AI: ${steps.join("; ") || "no-op"}${errors.length ? ` | errors: ${errors.join("; ")}` : ""}`,
+        entity_type: "monthly_contribution", entity_id: mc.id, user_id: adminId,
+      });
+
+      const success = steps.length > 0 && errors.length === 0;
+      const summary = (steps.length ? `✅ ${steps.join("\n")}` : "No changes were applied.") +
+        (errors.length ? `\n⚠️ ${errors.join("; ")}` : "");
+      return { success, message: summary };
+    }
+
     return { success: false, message: `Unknown action: ${tool}` };
   } catch (e: any) {
     console.error("Execute error:", e);
