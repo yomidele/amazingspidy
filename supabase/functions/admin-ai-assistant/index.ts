@@ -347,6 +347,17 @@ function summarizeProposal(tool: string, args: any): string {
       ].filter(Boolean).join(", ");
       return `update ${args.member_name}'s bank details for ${monthName(args.month)} ${args.year} in "${args.group_name}" (${fields || "no fields specified"})`;
     }
+    case "notify_group_members":
+      return `notify all members of "${args.group_name}" — "${args.title}"`;
+    case "run_monthly_workflow": {
+      const steps: string[] = [];
+      if (args.beneficiary_name) steps.push(`set beneficiary → ${args.beneficiary_name}`);
+      if (args.per_member_amount != null) steps.push(`per-member £${args.per_member_amount}`);
+      if (args.total_expected != null) steps.push(`total £${args.total_expected}`);
+      if (args.notify) steps.push("notify members");
+      const s = steps.length ? ` (${steps.join(", ")})` : "";
+      return `run monthly workflow for ${monthName(args.month)} ${args.year} in "${args.group_name}"${s}`;
+    }
     default:
       return tool;
   }
