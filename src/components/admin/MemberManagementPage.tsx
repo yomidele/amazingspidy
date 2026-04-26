@@ -53,6 +53,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import GroupNotificationsPanel from "./GroupNotificationsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
