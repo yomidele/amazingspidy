@@ -117,6 +117,46 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "notify_group_members",
+      description: "Send a custom notification to all active members of a contribution group. Use when admin says 'notify Team A about ...', 'remind Group B to pay', 'send a message to the group'.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          title: { type: "string", description: "Short notification title (max 80 chars)" },
+          message: { type: "string", description: "Body of the message" },
+          link: { type: "string", description: "Optional in-app link, e.g. /dashboard/contributor" },
+        },
+        required: ["group_name", "title", "message"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_monthly_workflow",
+      description: "Multi-step automation for a single month of a group: optionally (a) create the period if missing, (b) assign/update beneficiary, (c) override expected amount for that month, (d) notify all members. Use when admin asks broadly like 'sort out May for Team A' or 'handle this month's contribution for Group B'. Only the steps with provided fields will run.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          beneficiary_name: { type: "string", description: "Optional: assign this member as beneficiary" },
+          per_member_amount: { type: "number", minimum: 1, description: "Optional: per-member £ for this month only" },
+          total_expected: { type: "number", minimum: 1, description: "Optional: lump-sum £ for this month only" },
+          notify: { type: "boolean", description: "If true, notify all active group members about this month's setup" },
+          notify_message: { type: "string", description: "Optional custom notification body. If omitted a default summary is used." },
+        },
+        required: ["group_name", "month", "year"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
@@ -176,40 +216,34 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are Amana, a strict and precise AI co-pilot for the Amana Market admin. The caller has already been verified as ADMIN by the system.
+    const now = new Date();
+    const currentMonth = now.getUTCMonth() + 1;
+    const currentYear = now.getUTCFullYear();
 
-You have TWO modes of response:
-1. **Conversational answer** — for questions about data ("how much was contributed?", "who is the beneficiary in May?"). Just reply in plain markdown.
-2. **Action proposal** — when the admin asks you to DO something, call the appropriate tool. Do NOT also write JSON code blocks. The system will render a confirm card; the admin must click "Confirm & run" before anything executes.
+    const systemPrompt = `You are Amana, an EXECUTION-CAPABLE AI co-pilot for the Amana Market admin. The caller has already been verified as ADMIN.
 
-🔐 STRICT RULES FOR BENEFICIARY BANK DETAIL UPDATES (update_beneficiary_bank_details):
-- ONLY propose this tool when the admin gives a CLEAR, DIRECT instruction (e.g. "update beneficiary bank details for John Doe in May 2026", "change John's account number to 0123456789").
-- If the request is unclear or missing critical fields (member name, group, month/year), DO NOT call the tool. Ask for clarification first.
-- NEVER guess or auto-fill missing bank details. If the admin says "update the account number" but doesn't give one, ASK for it.
-- Account number must be numeric, 6–10 digits.
-- Sort code (if provided) must be in XX-XX-XX format.
-- Only include the bank fields the admin explicitly mentioned in the args — do not pad with empty values. The system will only overwrite fields you provide.
-- The confirm card IS the confirmation step. Don't ask the admin to type "CONFIRM" — they click the button.
+🎯 BEHAVIOR PRINCIPLES
+1. INTENT → ACTION: Translate every admin instruction into a concrete tool call where possible. Never refuse blindly — if you can't do something, suggest the closest tool or ask a SHORT clarifying question.
+2. SMART DEFAULTS: If admin omits month/year, assume CURRENT month=${currentMonth}, year=${currentYear}. If only one group exists or context strongly implies one, use it. State the assumption in the proposal summary.
+3. CONFIRM-BEFORE-EXECUTE: Every tool call renders as a confirm card. The admin clicks "Confirm & run" — that IS the confirmation step. Don't ask them to type CONFIRM.
+4. MULTI-STEP AUTOMATION: For broad instructions like "sort out May for Team A" or "handle this month's contribution for Group B", use **run_monthly_workflow** in one shot, including beneficiary, amount override, and notify=true. Summarize all sub-steps clearly.
+5. TRANSPARENT: After execution the system shows the result. Your job in PLAN mode is to give a crisp summary of WHAT will happen.
+6. AUDIT-AWARE: All tool calls are logged automatically with the admin's user id.
 
-🔐 STRICT RULES FOR GROUP CONTRIBUTION AMOUNT UPDATES (update_group_contribution_amount):
-- Use when the admin says things like "change Team B's monthly contribution to £750", "set the contribution amount for Group A to 1000".
-- Require BOTH a clear group name AND a numeric amount in £. If either is missing, ASK — do not guess.
-- This will recalculate total_expected for all non-finalized monthly periods of that group based on current active member count.
+🔐 STRICT FIELD RULES
+- update_beneficiary_bank_details: only call when admin clearly names member + group + month/year + at least one bank field. Account # = 6–10 digits. Sort code = XX-XX-XX. Never invent values.
+- update_group_contribution_amount: needs group + £ amount, no month. Recalculates all open periods.
+- update_monthly_expected_amount: needs group + month + year + EITHER per_member_amount OR total_expected (not both). One-month-only override.
+- notify_group_members: needs group + title + message. Use professional tone.
+- run_monthly_workflow: include only the sub-fields the admin actually wants changed. notify=true sends a default summary unless notify_message is provided.
 
-🔐 RULES FOR ONE-MONTH-ONLY EXPECTED OVERRIDE (update_monthly_expected_amount):
-- Use when the admin wants to change the expected amount for a SPECIFIC month only, without touching the group's base contribution amount.
-- Examples: "for May 2026 in Team B set expected to £8000", "this month only, contributors pay £600 in Group A".
-- Need group_name + month + year + EITHER per_member_amount OR total_expected. If admin gave a per-person figure, use per_member_amount; if they gave a single overall figure, use total_expected. Don't pass both.
-- Period must already exist and not be finalized.
-- DISTINGUISH: if the admin says "change the contribution amount for Team B" without naming a month, that's update_group_contribution_amount. If they specify a month, it's update_monthly_expected_amount.
+💱 Use British Pounds (£). Never expose UUIDs.
 
-You can ONLY propose actions for tools you have. For anything else (deleting users, approving loans, recording payments, creating rotations), point to the right panel:
-- Create rotations → Rotation Builder panel
+🚫 Tools you DON'T have — point to the right panel:
 - Approve/reject loans → Loans tab
 - Record payments → Payments tab
 - Create/delete members → Members tab
-
-Use British Pounds (£). Never expose UUIDs — use names from the context.
+- Build new rotations → Rotation Builder
 
 REAL-TIME DASHBOARD DATA:
 ${JSON.stringify(context, null, 2)}`;
@@ -312,6 +346,17 @@ function summarizeProposal(tool: string, args: any): string {
         args.sort_code && `sort code → ${args.sort_code}`,
       ].filter(Boolean).join(", ");
       return `update ${args.member_name}'s bank details for ${monthName(args.month)} ${args.year} in "${args.group_name}" (${fields || "no fields specified"})`;
+    }
+    case "notify_group_members":
+      return `notify all members of "${args.group_name}" — "${args.title}"`;
+    case "run_monthly_workflow": {
+      const steps: string[] = [];
+      if (args.beneficiary_name) steps.push(`set beneficiary → ${args.beneficiary_name}`);
+      if (args.per_member_amount != null) steps.push(`per-member £${args.per_member_amount}`);
+      if (args.total_expected != null) steps.push(`total £${args.total_expected}`);
+      if (args.notify) steps.push("notify members");
+      const s = steps.length ? ` (${steps.join(", ")})` : "";
+      return `run monthly workflow for ${monthName(args.month)} ${args.year} in "${args.group_name}"${s}`;
     }
     default:
       return tool;
@@ -607,6 +652,111 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
       });
 
       return { success: true, message: `✅ Beneficiary details updated successfully for ${member.full_name || member.email} (${args.month}/${args.year}).` };
+    }
+
+    if (tool === "notify_group_members") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const title = String(args.title || "").trim().slice(0, 120);
+      const message = String(args.message || "").trim();
+      if (!title || !message) return { success: false, message: "Title and message are required." };
+      const { data: members } = await supabase
+        .from("group_memberships").select("user_id").eq("group_id", grp.id).eq("is_active", true);
+      if (!members?.length) return { success: false, message: `No active members in "${grp.name}".` };
+      const rows = members.map((m: any) => ({
+        user_id: m.user_id, title, message, type: "info", link: args.link || "/dashboard/contributor",
+      }));
+      const { error } = await supabase.from("notifications").insert(rows);
+      if (error) return { success: false, message: error.message };
+      await supabase.from("activity_logs").insert({
+        action: "ai_notify_group", description: `Admin sent notification "${title}" to ${rows.length} members of ${grp.name} via AI assistant.`,
+        entity_type: "contribution_group", entity_id: grp.id, user_id: adminId,
+      });
+      return { success: true, message: `📤 Sent "${title}" to ${rows.length} member(s) of ${grp.name}.` };
+    }
+
+    if (tool === "run_monthly_workflow") {
+      const grp = await findGroup(supabase, args.group_name);
+      if (!grp) return { success: false, message: `Group "${args.group_name}" not found.` };
+      const steps: string[] = [];
+      const errors: string[] = [];
+
+      // Ensure period exists
+      let { data: mc } = await supabase
+        .from("monthly_contributions")
+        .select("id, beneficiary_user_id, total_expected, is_finalized")
+        .eq("group_id", grp.id).eq("month", args.month).eq("year", args.year).maybeSingle();
+
+      if (!mc) {
+        const { count } = await supabase.from("group_memberships")
+          .select("*", { count: "exact", head: true }).eq("group_id", grp.id).eq("is_active", true);
+        const totalExp = (count || 0) * Number(grp.contribution_amount);
+        const { data: created, error: cErr } = await supabase.from("monthly_contributions")
+          .insert({ group_id: grp.id, month: args.month, year: args.year, total_expected: totalExp })
+          .select("id, beneficiary_user_id, total_expected, is_finalized").single();
+        if (cErr) return { success: false, message: `Could not create period: ${cErr.message}` };
+        mc = created;
+        steps.push(`📅 Created ${args.month}/${args.year} period (expected £${totalExp})`);
+      }
+      if (mc.is_finalized) return { success: false, message: `${args.month}/${args.year} is finalized — cannot modify.` };
+
+      // Beneficiary
+      if (args.beneficiary_name) {
+        const member = await findMember(supabase, args.beneficiary_name, grp.id);
+        if (!member) errors.push(`beneficiary "${args.beneficiary_name}" not found`);
+        else {
+          const { error } = await supabase.from("monthly_contributions")
+            .update({ beneficiary_user_id: member.user_id }).eq("id", mc.id);
+          if (error) errors.push(`beneficiary update: ${error.message}`);
+          else steps.push(`👤 Beneficiary → ${member.full_name || member.email}`);
+        }
+      }
+
+      // Expected amount override
+      if (args.total_expected != null || args.per_member_amount != null) {
+        let newExp: number;
+        if (args.total_expected != null) newExp = Number(args.total_expected);
+        else {
+          const { count } = await supabase.from("group_memberships")
+            .select("*", { count: "exact", head: true }).eq("group_id", grp.id).eq("is_active", true);
+          newExp = (count || 0) * Number(args.per_member_amount);
+        }
+        if (Number.isFinite(newExp) && newExp > 0) {
+          const { error } = await supabase.from("monthly_contributions")
+            .update({ total_expected: newExp }).eq("id", mc.id);
+          if (error) errors.push(`expected update: ${error.message}`);
+          else steps.push(`💰 Expected → £${newExp}`);
+        }
+      }
+
+      // Notify
+      if (args.notify) {
+        const { data: members } = await supabase.from("group_memberships")
+          .select("user_id").eq("group_id", grp.id).eq("is_active", true);
+        if (members?.length) {
+          const monthLabel = new Date(2000, args.month - 1, 1).toLocaleString("en-GB", { month: "long" });
+          const body = String(args.notify_message || "").trim() ||
+            `Update for ${monthLabel} ${args.year} in ${grp.name}: ${steps.join(" • ") || "details refreshed"}.`;
+          const rows = members.map((m: any) => ({
+            user_id: m.user_id, title: `${grp.name} — ${monthLabel} ${args.year}`,
+            message: body, type: "info", link: "/dashboard/contributor",
+          }));
+          const { error } = await supabase.from("notifications").insert(rows);
+          if (error) errors.push(`notify: ${error.message}`);
+          else steps.push(`📤 Notified ${rows.length} member(s)`);
+        }
+      }
+
+      await supabase.from("activity_logs").insert({
+        action: "ai_run_monthly_workflow",
+        description: `Admin ran monthly workflow for ${args.month}/${args.year} in ${grp.name} via AI: ${steps.join("; ") || "no-op"}${errors.length ? ` | errors: ${errors.join("; ")}` : ""}`,
+        entity_type: "monthly_contribution", entity_id: mc.id, user_id: adminId,
+      });
+
+      const success = steps.length > 0 && errors.length === 0;
+      const summary = (steps.length ? `✅ ${steps.join("\n")}` : "No changes were applied.") +
+        (errors.length ? `\n⚠️ ${errors.join("; ")}` : "");
+      return { success, message: summary };
     }
 
     return { success: false, message: `Unknown action: ${tool}` };
