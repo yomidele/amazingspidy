@@ -520,17 +520,41 @@ const RotationBuilder = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 justify-end pt-2 border-t">
-          <Button variant="outline" onClick={() => { setOrder(members.map((m) => m.user_id)); setOverrides({}); }}>
-            <RefreshCw className="w-4 h-4 mr-1" /> Reset order
-          </Button>
-          <Button
-            onClick={confirmCreate}
-            disabled={confirming || hasErrors || plan.length === 0}
-          >
-            {confirming ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-            Confirm & create cycle
-          </Button>
+        <div className="space-y-2 pt-2 border-t">
+          {(hasErrors || plan.length === 0) && (
+            <div className="flex items-start gap-2 text-xs rounded-md p-2 border border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <span>
+                <b>Confirm is disabled.</b>{" "}
+                {plan.length === 0
+                  ? "Select at least 2 members to build a cycle."
+                  : validation.find((v) => v.type === "error")?.msg ||
+                    "Resolve the errors above to continue."}
+                {validation.some((v) => v.msg.toLowerCase().includes("already exist")) && (
+                  <> — change the <b>Start month/year</b> above to a period that doesn't already exist for this group.</>
+                )}
+              </span>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button variant="outline" onClick={() => { setOrder(members.map((m) => m.user_id)); setOverrides({}); }}>
+              <RefreshCw className="w-4 h-4 mr-1" /> Reset order
+            </Button>
+            <Button
+              onClick={confirmCreate}
+              disabled={confirming || hasErrors || plan.length === 0}
+              title={
+                hasErrors
+                  ? validation.find((v) => v.type === "error")?.msg
+                  : plan.length === 0
+                  ? "Select members first"
+                  : "Create the rotation cycle"
+              }
+            >
+              {confirming ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+              Confirm & create cycle
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
