@@ -401,6 +401,75 @@ export type Database = {
           },
         ]
       }
+      group_notification_settings: {
+        Row: {
+          beneficiary_template: string | null
+          created_at: string
+          group_id: string
+          id: string
+          notify_beneficiary_change: boolean
+          notify_split_assignment: boolean
+          split_template: string | null
+          updated_at: string
+        }
+        Insert: {
+          beneficiary_template?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          notify_beneficiary_change?: boolean
+          notify_split_assignment?: boolean
+          split_template?: string | null
+          updated_at?: string
+        }
+        Update: {
+          beneficiary_template?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          notify_beneficiary_change?: boolean
+          notify_split_assignment?: boolean
+          split_template?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      group_scheduled_reminders: {
+        Row: {
+          created_at: string
+          day_of_month: number | null
+          group_id: string
+          id: string
+          is_active: boolean
+          last_sent_at: string | null
+          message: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_month?: number | null
+          group_id: string
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          message: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_month?: number | null
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          message?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       investment_transactions: {
         Row: {
           amount: number
