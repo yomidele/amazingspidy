@@ -117,6 +117,46 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "notify_group_members",
+      description: "Send a custom notification to all active members of a contribution group. Use when admin says 'notify Team A about ...', 'remind Group B to pay', 'send a message to the group'.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          title: { type: "string", description: "Short notification title (max 80 chars)" },
+          message: { type: "string", description: "Body of the message" },
+          link: { type: "string", description: "Optional in-app link, e.g. /dashboard/contributor" },
+        },
+        required: ["group_name", "title", "message"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_monthly_workflow",
+      description: "Multi-step automation for a single month of a group: optionally (a) create the period if missing, (b) assign/update beneficiary, (c) override expected amount for that month, (d) notify all members. Use when admin asks broadly like 'sort out May for Team A' or 'handle this month's contribution for Group B'. Only the steps with provided fields will run.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_name: { type: "string" },
+          month: { type: "integer", minimum: 1, maximum: 12 },
+          year: { type: "integer", minimum: 2024 },
+          beneficiary_name: { type: "string", description: "Optional: assign this member as beneficiary" },
+          per_member_amount: { type: "number", minimum: 1, description: "Optional: per-member £ for this month only" },
+          total_expected: { type: "number", minimum: 1, description: "Optional: lump-sum £ for this month only" },
+          notify: { type: "boolean", description: "If true, notify all active group members about this month's setup" },
+          notify_message: { type: "string", description: "Optional custom notification body. If omitted a default summary is used." },
+        },
+        required: ["group_name", "month", "year"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "mark_contribution_finalized",
       description: "Mark a monthly contribution period as finalized (closed for payments).",
       parameters: {
