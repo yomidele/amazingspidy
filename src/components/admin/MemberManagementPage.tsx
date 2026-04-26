@@ -1292,7 +1292,13 @@ const MemberManagementPage = () => {
           </SheetHeader>
           
           {selectedGroup && (
-            <div className="mt-6 space-y-6">
+            <div className="mt-6">
+              <Tabs defaultValue="members" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="members">Members</TabsTrigger>
+                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                </TabsList>
+                <TabsContent value="members" className="space-y-6 mt-4">
               {/* Group Stats */}
               <div className="grid grid-cols-2 gap-4">
                 <Card>
@@ -1436,6 +1442,11 @@ const MemberManagementPage = () => {
                   </div>
                 )}
               </div>
+                </TabsContent>
+                <TabsContent value="notifications" className="mt-4">
+                  <GroupNotificationsPanel groupId={selectedGroup.id} groupName={selectedGroup.name} />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </SheetContent>
