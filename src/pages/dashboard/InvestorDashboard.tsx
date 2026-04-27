@@ -21,6 +21,7 @@ import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedScreen";
 import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
+import { useExitConfirm } from "@/hooks/useExitConfirm";
 
 const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
   children: React.ReactNode;
@@ -107,6 +108,9 @@ const InvestorDashboard = () => {
     toast.success("Logged out successfully");
     navigate("/login/investor");
   };
+
+  // Intercept browser back so investors aren't accidentally logged out.
+  useExitConfirm(handleLogout, { message: "Do you want to logout?", enabled: isVerified === true });
 
   if (isVerified === null || moduleLoading) {
     return (

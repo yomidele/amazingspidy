@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import LiveReviews from "@/components/travel/LiveReviews";
 import { format } from "date-fns";
 import NotificationBell from "@/components/shared/NotificationBell";
+import { useExitConfirm } from "@/hooks/useExitConfirm";
 
 interface UserCase {
   id: string;
@@ -156,6 +157,9 @@ const TravelDashboard = () => {
     toast.success("Logged out successfully");
     navigate("/login/travel");
   };
+
+  // Intercept browser back so travel users aren't accidentally logged out.
+  useExitConfirm(handleLogout, { message: "Do you want to logout?" });
 
   const getStatusLabel = (status: string | null) => {
     const statusMap: Record<string, string> = {

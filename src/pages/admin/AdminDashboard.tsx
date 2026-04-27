@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TutorialProvider, useTutorial } from "@/contexts/TutorialContext";
 import AdminTooltip, { tooltipContent } from "@/components/admin/AdminTooltip";
+import { useExitConfirm } from "@/hooks/useExitConfirm";
 import ContributionSetupPage from "@/components/admin/ContributionSetupPage";
 import MemberManagementPage from "@/components/admin/MemberManagementPage";
 import LoanManagementPage from "@/components/admin/LoanManagementPage";
@@ -148,6 +149,9 @@ const AdminDashboardContent = () => {
     toast.success("Logged out successfully");
     navigate("/login/admin");
   };
+
+  // Intercept browser back so admins aren't accidentally logged out.
+  useExitConfirm(handleLogout, { message: "Do you want to logout?", enabled: !!isAdmin });
 
   // Show loading while checking admin role
   if (isAdmin === null) {

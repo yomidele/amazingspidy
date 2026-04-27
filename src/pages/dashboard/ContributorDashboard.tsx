@@ -21,6 +21,7 @@ import CurrentBeneficiaryWidget from "@/components/dashboard/CurrentBeneficiaryW
 import NotificationBell from "@/components/shared/NotificationBell";
 import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { useExitConfirm } from "@/hooks/useExitConfirm";
 
 interface BeneficiaryInfo {
   name: string;
@@ -215,6 +216,9 @@ const ContributorDashboard = () => {
     toast.success("Logged out successfully");
     navigate("/login/contribution");
   };
+
+  // Intercept browser back so users aren't accidentally logged out.
+  useExitConfirm(handleLogout, { message: "Do you want to logout?", enabled: !!user });
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Contributor";
   const progressPercent = monthlyContribution > 0
