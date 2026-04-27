@@ -81,7 +81,15 @@ const NotificationDetailPage = () => {
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/notifications")} aria-label="Back">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/dashboard/notifications");
+            }}
+            aria-label="Back"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-base font-semibold flex items-center gap-2 truncate">
