@@ -22,6 +22,7 @@ import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedScreen";
 import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
+import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 
 const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
   children: React.ReactNode;
@@ -103,11 +104,13 @@ const InvestorDashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const { confirmLogout } = useLogoutConfirm();
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/login/investor");
   };
+  const requestLogout = () => confirmLogout(handleLogout);
 
   // Intercept browser back so investors aren't accidentally logged out.
   useExitConfirm(handleLogout, { message: "Do you want to logout?", enabled: isVerified === true });

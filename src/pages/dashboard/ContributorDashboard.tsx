@@ -22,6 +22,7 @@ import NotificationBell from "@/components/shared/NotificationBell";
 import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
+import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 
 interface BeneficiaryInfo {
   name: string;
@@ -211,11 +212,13 @@ const ContributorDashboard = () => {
     }
   };
 
+  const { confirmLogout } = useLogoutConfirm();
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/login/contribution");
   };
+  const requestLogout = () => confirmLogout(handleLogout);
 
   // Intercept browser back so users aren't accidentally logged out.
   useExitConfirm(handleLogout, { message: "Do you want to logout?", enabled: !!user });

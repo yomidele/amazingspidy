@@ -26,6 +26,7 @@ import LiveReviews from "@/components/travel/LiveReviews";
 import { format } from "date-fns";
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
+import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 
 interface UserCase {
   id: string;
@@ -152,11 +153,13 @@ const TravelDashboard = () => {
     }
   };
 
+  const { confirmLogout } = useLogoutConfirm();
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/login/travel");
   };
+  const requestLogout = () => confirmLogout(handleLogout);
 
   // Intercept browser back so travel users aren't accidentally logged out.
   useExitConfirm(handleLogout, { message: "Do you want to logout?" });
