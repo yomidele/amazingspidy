@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { TutorialProvider, useTutorial } from "@/contexts/TutorialContext";
 import AdminTooltip, { tooltipContent } from "@/components/admin/AdminTooltip";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
+import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 import ContributionSetupPage from "@/components/admin/ContributionSetupPage";
 import MemberManagementPage from "@/components/admin/MemberManagementPage";
 import LoanManagementPage from "@/components/admin/LoanManagementPage";
@@ -144,11 +145,13 @@ const AdminDashboardContent = () => {
     }
   }, [tutorialEnabled, showTutorialOnFirstLoad, hasSeenTutorial, user]);
 
+  const { confirmLogout } = useLogoutConfirm();
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/login/admin");
   };
+  const requestLogout = () => confirmLogout(handleLogout);
 
   // Intercept browser back so admins aren't accidentally logged out.
   useExitConfirm(handleLogout, { message: "Do you want to logout?", enabled: !!isAdmin });

@@ -181,7 +181,7 @@ const InvestorDashboard = () => {
         <div className="flex items-center gap-1">
           <DashboardThemeToggle isDark={isDark} onToggle={toggleMode} />
           {user && <NotificationBell userId={user.id} variant="glass" />}
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-white/70 hover:text-white hover:bg-white/10">
+          <Button variant="ghost" size="icon" onClick={requestLogout} className="text-white/70 hover:text-white hover:bg-white/10">
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -232,7 +232,7 @@ const InvestorDashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleLogout} className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200">
+              <button onClick={requestLogout} className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200">
                 <LogOut className="w-4 h-4" />
                 Sign Out
               </button>

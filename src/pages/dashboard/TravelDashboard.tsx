@@ -490,7 +490,7 @@ const TravelDashboard = () => {
         </div>
         <div className="flex items-center gap-2">
           {user && <NotificationBell userId={user.id} variant="light" />}
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
+          <Button variant="ghost" size="icon" onClick={requestLogout}>
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -545,7 +545,7 @@ const TravelDashboard = () => {
                 <p className="text-xs text-sidebar-foreground/60 truncate">{user?.email}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80" onClick={handleLogout}>
+            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80" onClick={requestLogout}>
               <LogOut className="w-5 h-5 mr-3" />
               Sign Out
             </Button>
