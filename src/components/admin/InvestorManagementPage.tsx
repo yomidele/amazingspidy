@@ -512,29 +512,42 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Investor</TableHead>
-                        <TableHead>Principal</TableHead>
-                        <TableHead>Rate</TableHead>
-                        <TableHead>Expected Return</TableHead>
-                        <TableHead>Paid</TableHead>
-                        <TableHead>Balance</TableHead>
+                        <TableHead className="border-r">Investor</TableHead>
+                        <TableHead className="border-r">Amount</TableHead>
+                        <TableHead className="border-r">Total Rate</TableHead>
+                        <TableHead className="bg-sky-500/10">Investor Rate</TableHead>
+                        <TableHead className="bg-sky-500/10">Investor Due</TableHead>
+                        <TableHead className="bg-sky-500/10">Investor Paid</TableHead>
+                        <TableHead className="bg-sky-500/10 border-r">Investor Balance</TableHead>
+                        <TableHead className="bg-amber-500/10">Admin Rate</TableHead>
+                        <TableHead className="bg-amber-500/10">Admin Due</TableHead>
+                        <TableHead className="bg-amber-500/10">Admin Paid</TableHead>
+                        <TableHead className="bg-amber-500/10 border-r">Admin Balance</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredInvestments.map((inv) => {
-                        const expected = getExpectedReturn(inv);
-                        const paid = getTotalPaid(inv.id);
-                        const balance = expected - paid;
+                        const investorDue = Number(inv.investor_due || 0);
+                        const adminDue = Number(inv.admin_due || 0);
+                        const investorPaid = getInvestorPaid(inv.id);
+                        const adminPaid = getAdminPaid(inv.id);
+                        const investorBalance = investorDue - investorPaid;
+                        const adminBalance = adminDue - adminPaid;
                         return (
                           <TableRow key={inv.id}>
-                            <TableCell className="font-medium">{inv.investor_name}</TableCell>
-                            <TableCell>£{Number(inv.amount).toLocaleString()}</TableCell>
-                            <TableCell>{inv.interest_rate}%</TableCell>
-                            <TableCell className="text-amber-600 font-medium">£{expected.toLocaleString()}</TableCell>
-                            <TableCell className="text-green-600 font-medium">£{paid.toLocaleString()}</TableCell>
-                            <TableCell className="text-destructive font-medium">£{balance.toLocaleString()}</TableCell>
+                            <TableCell className="font-medium border-r">{inv.investor_name}</TableCell>
+                            <TableCell className="border-r">£{Number(inv.amount).toLocaleString()}</TableCell>
+                            <TableCell className="border-r">{inv.interest_rate}%</TableCell>
+                            <TableCell className="bg-sky-500/5 text-sky-700 dark:text-sky-400">{inv.investor_share_rate ?? 0}%</TableCell>
+                            <TableCell className="bg-sky-500/5 text-sky-700 dark:text-sky-400 font-medium">£{investorDue.toLocaleString()}</TableCell>
+                            <TableCell className="bg-sky-500/5 text-green-600 font-medium">£{investorPaid.toLocaleString()}</TableCell>
+                            <TableCell className="bg-sky-500/5 border-r font-medium text-destructive">£{investorBalance.toLocaleString()}</TableCell>
+                            <TableCell className="bg-amber-500/5 text-amber-700 dark:text-amber-400">{inv.admin_share_rate ?? 0}%</TableCell>
+                            <TableCell className="bg-amber-500/5 text-amber-700 dark:text-amber-400 font-medium">£{adminDue.toLocaleString()}</TableCell>
+                            <TableCell className="bg-amber-500/5 text-green-600 font-medium">£{adminPaid.toLocaleString()}</TableCell>
+                            <TableCell className="bg-amber-500/5 border-r font-medium text-destructive">£{adminBalance.toLocaleString()}</TableCell>
                             <TableCell><Badge variant={inv.status === "active" ? "default" : "secondary"}>{inv.status}</Badge></TableCell>
                             <TableCell>
                               <div className="flex gap-1">
