@@ -83,10 +83,13 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
   // Investment dialog
   const [investmentOpen, setInvestmentOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
+  const [currentRates, setCurrentRates] = useState({ total: 5, investor: 3, admin: 2 });
   const [investmentForm, setInvestmentForm] = useState({
     investor_id: "",
     amount: "",
-    interest_rate: "0",
+    interest_rate: "5",
+    investor_share_rate: "3",
+    admin_share_rate: "2",
     duration_months: "12",
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
@@ -100,6 +103,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
     investor_id: "",
     investment_id: "",
     amount_paid: "",
+    party: "investor" as "investor" | "admin",
     payment_date: new Date().toISOString().split("T")[0],
     notes: "",
   });
