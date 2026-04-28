@@ -586,20 +586,29 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
                     <TableHeader>
                       <TableRow>
                         <TableHead>Investor</TableHead>
+                        <TableHead>Party</TableHead>
                         <TableHead>Amount Paid</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Notes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {payments.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="font-medium">{p.investor_name}</TableCell>
-                          <TableCell className="text-green-600 font-medium">£{Number(p.amount_paid).toLocaleString()}</TableCell>
-                          <TableCell>{new Date(p.payment_date).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-muted-foreground">{p.notes || "—"}</TableCell>
-                        </TableRow>
-                      ))}
+                      {payments.map((p) => {
+                        const isAdmin = p.party === "admin";
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell className="font-medium">{p.investor_name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={isAdmin ? "border-amber-500/40 text-amber-700 dark:text-amber-400" : "border-sky-500/40 text-sky-700 dark:text-sky-400"}>
+                                {isAdmin ? "Admin Share" : "Investor Share"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className={`font-medium ${isAdmin ? "text-amber-700 dark:text-amber-400" : "text-sky-700 dark:text-sky-400"}`}>£{Number(p.amount_paid).toLocaleString()}</TableCell>
+                            <TableCell>{new Date(p.payment_date).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-muted-foreground">{p.notes || "—"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
