@@ -26,6 +26,7 @@ import LiveReviews from "@/components/travel/LiveReviews";
 import { format } from "date-fns";
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
+import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 
 interface UserCase {
   id: string;
@@ -152,11 +153,13 @@ const TravelDashboard = () => {
     }
   };
 
+  const { confirmLogout } = useLogoutConfirm();
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/login/travel");
   };
+  const requestLogout = () => confirmLogout(handleLogout);
 
   // Intercept browser back so travel users aren't accidentally logged out.
   useExitConfirm(handleLogout, { message: "Do you want to logout?" });
@@ -490,7 +493,7 @@ const TravelDashboard = () => {
         </div>
         <div className="flex items-center gap-2">
           {user && <NotificationBell userId={user.id} variant="light" />}
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
+          <Button variant="ghost" size="icon" onClick={requestLogout}>
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -545,7 +548,7 @@ const TravelDashboard = () => {
                 <p className="text-xs text-sidebar-foreground/60 truncate">{user?.email}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80" onClick={handleLogout}>
+            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80" onClick={requestLogout}>
               <LogOut className="w-5 h-5 mr-3" />
               Sign Out
             </Button>

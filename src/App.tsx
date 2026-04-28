@@ -21,6 +21,7 @@ import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
 import InvestorInfoPage from "./pages/InvestorInfoPage";
 import NotificationsPage from "./pages/dashboard/NotificationsPage";
 import NotificationDetailPage from "./pages/dashboard/NotificationDetailPage";
+import { LogoutConfirmProvider } from "./components/shared/LogoutConfirmProvider";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -37,6 +38,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <LogoutConfirmProvider>
         <Routes>
           <Route path="/" element={<Index />} />
           
@@ -68,6 +70,7 @@ const App = () => (
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </LogoutConfirmProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
