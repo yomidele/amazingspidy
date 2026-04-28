@@ -719,8 +719,43 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Amount (£)</Label><Input type="number" value={investmentForm.amount} onChange={(e) => setInvestmentForm({ ...investmentForm, amount: e.target.value })} /></div>
-              <div><Label>Interest Rate (%)</Label><Input type="number" value={investmentForm.interest_rate} onChange={(e) => setInvestmentForm({ ...investmentForm, interest_rate: e.target.value })} /></div>
+              <div>
+                <Label>Total Rate (%)</Label>
+                <Input type="number" step="0.1" value={investmentForm.interest_rate} onChange={(e) => {
+                  const total = e.target.value;
+                  const newAdmin = Number(total) - Number(investmentForm.investor_share_rate);
+                  setInvestmentForm({ ...investmentForm, interest_rate: total, admin_share_rate: newAdmin >= 0 ? String(newAdmin) : investmentForm.admin_share_rate });
+                }} />
+              </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sky-700 dark:text-sky-400">Investor Share (%)</Label>
+                <Input type="number" step="0.1" value={investmentForm.investor_share_rate} onChange={(e) => {
+                  const inv = e.target.value;
+                  const newAdmin = Number(investmentForm.interest_rate) - Number(inv);
+                  setInvestmentForm({ ...investmentForm, investor_share_rate: inv, admin_share_rate: newAdmin >= 0 ? String(newAdmin) : investmentForm.admin_share_rate });
+                }} />
+              </div>
+              <div>
+                <Label className="text-amber-700 dark:text-amber-400">Admin Share (%)</Label>
+                <Input type="number" step="0.1" value={investmentForm.admin_share_rate} onChange={(e) => setInvestmentForm({ ...investmentForm, admin_share_rate: e.target.value })} />
+              </div>
+            </div>
+
+            {!formRatesValid() ? (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                ⚠️ Investor ({investmentForm.investor_share_rate}%) + Admin ({investmentForm.admin_share_rate}%) = {Number(investmentForm.investor_share_rate) + Number(investmentForm.admin_share_rate)}% — must equal Total ({investmentForm.interest_rate}%).
+              </div>
+            ) : investmentForm.amount ? (
+              <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
+                <p><strong>Live preview</strong> on £{Number(investmentForm.amount).toLocaleString()}:</p>
+                <p>• <span className="text-sky-700 dark:text-sky-400 font-medium">Investor earns £{(Number(investmentForm.amount) * Number(investmentForm.investor_share_rate) / 100).toLocaleString()}</span></p>
+                <p>• <span className="text-amber-700 dark:text-amber-400 font-medium">Admin earns £{(Number(investmentForm.amount) * Number(investmentForm.admin_share_rate) / 100).toLocaleString()}</span></p>
+                <p>• Total interest: <span className="font-medium">£{(Number(investmentForm.amount) * Number(investmentForm.interest_rate) / 100).toLocaleString()}</span></p>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Duration (months)</Label><Input type="number" value={investmentForm.duration_months} onChange={(e) => setInvestmentForm({ ...investmentForm, duration_months: e.target.value })} /></div>
               <div>
@@ -743,7 +778,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvestmentOpen(false)}>Cancel</Button>
-            <Button variant="investor" onClick={handleSaveInvestment}>{editingInvestment ? "Update" : "Add Investment"}</Button>
+            <Button variant="investor" onClick={handleSaveInvestment} disabled={!formRatesValid()}>{editingInvestment ? "Update" : "Add Investment"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
