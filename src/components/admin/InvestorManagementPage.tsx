@@ -244,24 +244,55 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
 
   const openAddInvestment = () => {
     setEditingInvestment(null);
-    setInvestmentForm({ investor_id: "", amount: "", interest_rate: "0", duration_months: "12", start_date: new Date().toISOString().split("T")[0], end_date: "", status: "active", notes: "" });
+    setInvestmentForm({
+      investor_id: "",
+      amount: "",
+      interest_rate: String(currentRates.total),
+      investor_share_rate: String(currentRates.investor),
+      admin_share_rate: String(currentRates.admin),
+      duration_months: "12",
+      start_date: new Date().toISOString().split("T")[0],
+      end_date: "",
+      status: "active",
+      notes: "",
+    });
     setInvestmentOpen(true);
   };
 
   const openEditInvestment = (inv: Investment) => {
     setEditingInvestment(inv);
-    setInvestmentForm({ investor_id: inv.investor_id, amount: String(inv.amount), interest_rate: String(inv.interest_rate), duration_months: String(inv.duration_months), start_date: inv.start_date, end_date: inv.end_date || "", status: inv.status, notes: inv.notes || "" });
+    setInvestmentForm({
+      investor_id: inv.investor_id,
+      amount: String(inv.amount),
+      interest_rate: String(inv.interest_rate),
+      investor_share_rate: String(inv.investor_share_rate ?? 0),
+      admin_share_rate: String(inv.admin_share_rate ?? 0),
+      duration_months: String(inv.duration_months),
+      start_date: inv.start_date,
+      end_date: inv.end_date || "",
+      status: inv.status,
+      notes: inv.notes || "",
+    });
     setInvestmentOpen(true);
   };
+
+  const formRatesValid = () =>
+    Number(investmentForm.investor_share_rate) + Number(investmentForm.admin_share_rate) ===
+    Number(investmentForm.interest_rate);
 
   const handleSaveInvestment = async () => {
     if (!investmentForm.investor_id || !investmentForm.amount) {
       toast.error("Investor and amount are required"); return;
     }
+    if (!formRatesValid()) {
+      toast.error("Investor share + Admin share must equal Total rate"); return;
+    }
     const payload: any = {
       investor_id: investmentForm.investor_id,
       amount: Number(investmentForm.amount),
       interest_rate: Number(investmentForm.interest_rate),
+      investor_share_rate: Number(investmentForm.investor_share_rate),
+      admin_share_rate: Number(investmentForm.admin_share_rate),
       duration_months: Number(investmentForm.duration_months),
       start_date: investmentForm.start_date,
       end_date: investmentForm.end_date || null,
@@ -270,24 +301,11 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
     };
     if (editingInvestment) {
       const { error } = await supabase.from("investments").update(payload).eq("id", editingInvestment.id);
-      if (error) { toast.error("Failed to update investment"); return; }
+      if (error) { toast.error(error.message || "Failed to update investment"); return; }
       toast.success("Investment updated");
     } else {
-      // Snapshot current admin-configured rates onto the new investment
-      const { data: settings } = await supabase
-        .from("admin_settings" as any)
-        .select("*")
-        .eq("setting_key", "investment_interest")
-        .maybeSingle();
-      if (settings) {
-        const s = settings as any;
-        payload.interest_rate = Number(s.total_interest_rate);
-        payload.investor_share_rate = Number(s.investor_share_rate);
-        payload.admin_share_rate = Number(s.admin_share_rate);
-      }
-
       const { data: newInv, error } = await supabase.from("investments").insert(payload).select().single();
-      if (error) { toast.error("Failed to add investment"); return; }
+      if (error) { toast.error(error.message || "Failed to add investment"); return; }
 
       // Create investment transaction record
       if (newInv) {
@@ -301,7 +319,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
         } as any);
       }
 
-      toast.success("Investment added with current interest rate snapshot");
+      toast.success("Investment added with snapshot rates");
       await logActivity("investment_created", `New investment of £${investmentForm.amount} added (Total: ${payload.interest_rate}%, Investor: ${payload.investor_share_rate}%, Admin: ${payload.admin_share_rate}%)`, "investment", "new", investmentForm.investor_id);
     }
     setInvestmentOpen(false);
@@ -324,15 +342,26 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
       investor_id: paymentForm.investor_id,
       investment_id: paymentForm.investment_id,
       amount_paid: Number(paymentForm.amount_paid),
+      party: paymentForm.party,
       payment_date: paymentForm.payment_date,
       notes: paymentForm.notes || null,
-    });
+    } as any);
     if (error) { toast.error("Failed to record payment"); return; }
-    toast.success("Payment recorded");
+
+    // Mirror admin-share payments into admin_earnings ledger
+    if (paymentForm.party === "admin") {
+      await supabase.from("admin_earnings" as any).insert({
+        investment_id: paymentForm.investment_id,
+        amount: Number(paymentForm.amount_paid),
+        source: "investment_interest",
+      } as any);
+    }
+
+    toast.success(`Payment recorded (${paymentForm.party === "admin" ? "Admin share" : "Investor share"})`);
     const invName = investors.find((i) => i.user_id === paymentForm.investor_id)?.full_name || "Unknown";
-    await logActivity("investor_payment", `Recorded payment of £${paymentForm.amount_paid} to investor ${invName}`, "investor_payment", paymentForm.investment_id, paymentForm.investor_id);
+    await logActivity("investor_payment", `Recorded ${paymentForm.party} payment of £${paymentForm.amount_paid} on investment for ${invName}`, "investor_payment", paymentForm.investment_id, paymentForm.investor_id);
     setPaymentOpen(false);
-    setPaymentForm({ investor_id: "", investment_id: "", amount_paid: "", payment_date: new Date().toISOString().split("T")[0], notes: "" });
+    setPaymentForm({ investor_id: "", investment_id: "", amount_paid: "", party: "investor", payment_date: new Date().toISOString().split("T")[0], notes: "" });
     fetchData();
   };
 
