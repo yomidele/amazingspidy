@@ -809,6 +809,27 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Pay To</Label>
+              <Select value={paymentForm.party} onValueChange={(v) => setPaymentForm({ ...paymentForm, party: v as "investor" | "admin" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="investor">Investor Share</SelectItem>
+                  <SelectItem value="admin">Admin Share</SelectItem>
+                </SelectContent>
+              </Select>
+              {paymentForm.investment_id && (() => {
+                const sel = investments.find((i) => i.id === paymentForm.investment_id);
+                if (!sel) return null;
+                const due = paymentForm.party === "admin" ? Number(sel.admin_due || 0) : Number(sel.investor_due || 0);
+                const paid = paymentForm.party === "admin" ? getAdminPaid(sel.id) : getInvestorPaid(sel.id);
+                return (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {paymentForm.party === "admin" ? "Admin" : "Investor"} balance: £{(due - paid).toLocaleString()} (Due £{due.toLocaleString()}, Paid £{paid.toLocaleString()})
+                  </p>
+                );
+              })()}
+            </div>
             <div><Label>Amount Paid (£)</Label><Input type="number" value={paymentForm.amount_paid} onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })} /></div>
             <div><Label>Payment Date</Label><Input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} /></div>
             <div><Label>Notes</Label><Input value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} /></div>
