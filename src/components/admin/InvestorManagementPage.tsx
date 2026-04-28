@@ -23,6 +23,11 @@ interface Investment {
   investor_id: string;
   amount: number;
   interest_rate: number;
+  investor_share_rate: number;
+  admin_share_rate: number;
+  total_return: number;
+  investor_due: number;
+  admin_due: number;
   duration_months: number;
   start_date: string;
   end_date: string | null;
@@ -37,6 +42,7 @@ interface InvestorPayment {
   investment_id: string;
   amount_paid: number;
   payment_date: string;
+  party: "investor" | "admin";
   notes: string | null;
   created_at: string;
   investor_name?: string;
