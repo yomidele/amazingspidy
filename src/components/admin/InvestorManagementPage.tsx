@@ -405,7 +405,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Investors</CardTitle>
@@ -414,22 +414,40 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
           <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold">{investors.length}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Capital</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold">£{totalCapital.toLocaleString()}</div></CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Owed</CardTitle>
+        <Card className="border-sky-500/30 bg-sky-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-sky-700 dark:text-sky-400">Investor Due</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-amber-600">£{totalExpectedReturn.toLocaleString()}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-sky-700 dark:text-sky-400">£{totalInvestorDue.toLocaleString()}</div></CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Remaining</CardTitle>
+        <Card className="border-sky-500/30 bg-sky-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-sky-700 dark:text-sky-400">Investor Balance</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-destructive">£{totalRemaining.toLocaleString()}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-sky-700 dark:text-sky-400">£{totalInvestorBalance.toLocaleString()}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Paid £{totalInvestorPaid.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Admin Due</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-amber-700 dark:text-amber-400">£{totalAdminDue.toLocaleString()}</div></CardContent>
+        </Card>
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Admin Balance</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-amber-700 dark:text-amber-400">£{totalAdminBalance.toLocaleString()}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Paid £{totalAdminPaid.toLocaleString()}</p>
+          </CardContent>
         </Card>
       </div>
 
