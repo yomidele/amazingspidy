@@ -1,26 +1,18 @@
 import { useEffect, useRef } from "react";
+import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 
 /**
  * Intercepts the browser back button on a dashboard route and prompts
- * the user to confirm logout instead of silently exiting / logging out.
- *
- * Strategy:
- *  - Push a sentinel history entry on mount so the first "back" press
- *    pops that sentinel instead of leaving the dashboard.
- *  - On `popstate`, ask the user to confirm exit. If they cancel, we
- *    re-push the sentinel so they remain on the dashboard. If they
- *    confirm, we run the provided logout handler.
- *
- * This does NOT interfere with in-app navigation (clicking a link still
- * works normally). It only kicks in when the dashboard itself is the
- * top of the history stack and the user presses Back.
+ * the user (via the global styled logout dialog) to confirm logout
+ * instead of silently exiting / logging out.
  */
 export const useExitConfirm = (
   onConfirmExit: () => void | Promise<void>,
   options: { message?: string; enabled?: boolean } = {}
 ) => {
-  const { message = "Do you want to logout?", enabled = true } = options;
+  const { enabled = true } = options;
   const armedRef = useRef(false);
+  const { confirmLogout } = useLogoutConfirm();
 
   useEffect(() => {
     if (!enabled) return;
@@ -32,14 +24,12 @@ export const useExitConfirm = (
 
     const handlePop = (_e: PopStateEvent) => {
       if (!armedRef.current) return;
-      const confirmed = window.confirm(message);
-      if (confirmed) {
+      // Re-arm immediately so cancel keeps the user on the dashboard.
+      window.history.pushState({ __exitGuard: true }, "");
+      confirmLogout(() => {
         armedRef.current = false;
-        Promise.resolve(onConfirmExit()).catch(() => {});
-      } else {
-        // Re-arm: push the sentinel again so we keep intercepting.
-        window.history.pushState({ __exitGuard: true }, "");
-      }
+        return onConfirmExit();
+      });
     };
 
     window.addEventListener("popstate", handlePop);
@@ -47,5 +37,5 @@ export const useExitConfirm = (
       window.removeEventListener("popstate", handlePop);
       armedRef.current = false;
     };
-  }, [enabled, message, onConfirmExit]);
+  }, [enabled, confirmLogout, onConfirmExit]);
 };
