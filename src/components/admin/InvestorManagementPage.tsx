@@ -110,12 +110,22 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
 
   const fetchData = async () => {
     setLoading(true);
-    const [rolesRes, invDataRes, allProfilesRes, paymentsRes] = await Promise.all([
+    const [rolesRes, invDataRes, allProfilesRes, paymentsRes, settingsRes] = await Promise.all([
       supabase.from("user_roles").select("user_id").eq("role", "investor" as any),
       supabase.from("investments").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, full_name, email"),
       supabase.from("investor_payments" as any).select("*").order("payment_date", { ascending: false }),
+      supabase.from("admin_settings" as any).select("*").eq("setting_key", "investment_interest").maybeSingle(),
     ]);
+
+    if (settingsRes.data) {
+      const s = settingsRes.data as any;
+      setCurrentRates({
+        total: Number(s.total_interest_rate),
+        investor: Number(s.investor_share_rate),
+        admin: Number(s.admin_share_rate),
+      });
+    }
 
     const profileMap = new Map(allProfilesRes.data?.map((p: any) => [p.user_id, { name: p.full_name || "Unknown", email: p.email }]) || []);
     const investorIds = new Set(rolesRes.data?.map((r) => r.user_id) || []);
