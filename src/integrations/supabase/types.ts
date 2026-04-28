@@ -513,6 +513,7 @@ export type Database = {
       }
       investments: {
         Row: {
+          admin_due: number
           admin_share_rate: number | null
           amount: number
           created_at: string
@@ -520,15 +521,18 @@ export type Database = {
           end_date: string | null
           id: string
           interest_rate: number
+          investor_due: number
           investor_id: string
           investor_share_rate: number | null
           notes: string | null
           payout_status: string | null
           start_date: string
           status: string
+          total_return: number
           updated_at: string
         }
         Insert: {
+          admin_due?: number
           admin_share_rate?: number | null
           amount: number
           created_at?: string
@@ -536,15 +540,18 @@ export type Database = {
           end_date?: string | null
           id?: string
           interest_rate?: number
+          investor_due?: number
           investor_id: string
           investor_share_rate?: number | null
           notes?: string | null
           payout_status?: string | null
           start_date?: string
           status?: string
+          total_return?: number
           updated_at?: string
         }
         Update: {
+          admin_due?: number
           admin_share_rate?: number | null
           amount?: number
           created_at?: string
@@ -552,12 +559,14 @@ export type Database = {
           end_date?: string | null
           id?: string
           interest_rate?: number
+          investor_due?: number
           investor_id?: string
           investor_share_rate?: number | null
           notes?: string | null
           payout_status?: string | null
           start_date?: string
           status?: string
+          total_return?: number
           updated_at?: string
         }
         Relationships: []
@@ -570,6 +579,7 @@ export type Database = {
           investment_id: string
           investor_id: string
           notes: string | null
+          party: string
           payment_date: string
         }
         Insert: {
@@ -579,6 +589,7 @@ export type Database = {
           investment_id: string
           investor_id: string
           notes?: string | null
+          party?: string
           payment_date?: string
         }
         Update: {
@@ -588,6 +599,7 @@ export type Database = {
           investment_id?: string
           investor_id?: string
           notes?: string | null
+          party?: string
           payment_date?: string
         }
         Relationships: [

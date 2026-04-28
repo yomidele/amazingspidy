@@ -23,6 +23,11 @@ interface Investment {
   investor_id: string;
   amount: number;
   interest_rate: number;
+  investor_share_rate: number;
+  admin_share_rate: number;
+  total_return: number;
+  investor_due: number;
+  admin_due: number;
   duration_months: number;
   start_date: string;
   end_date: string | null;
@@ -37,6 +42,7 @@ interface InvestorPayment {
   investment_id: string;
   amount_paid: number;
   payment_date: string;
+  party: "investor" | "admin";
   notes: string | null;
   created_at: string;
   investor_name?: string;
@@ -77,10 +83,13 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
   // Investment dialog
   const [investmentOpen, setInvestmentOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
+  const [currentRates, setCurrentRates] = useState({ total: 5, investor: 3, admin: 2 });
   const [investmentForm, setInvestmentForm] = useState({
     investor_id: "",
     amount: "",
-    interest_rate: "0",
+    interest_rate: "5",
+    investor_share_rate: "3",
+    admin_share_rate: "2",
     duration_months: "12",
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
@@ -94,18 +103,29 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
     investor_id: "",
     investment_id: "",
     amount_paid: "",
+    party: "investor" as "investor" | "admin",
     payment_date: new Date().toISOString().split("T")[0],
     notes: "",
   });
 
   const fetchData = async () => {
     setLoading(true);
-    const [rolesRes, invDataRes, allProfilesRes, paymentsRes] = await Promise.all([
+    const [rolesRes, invDataRes, allProfilesRes, paymentsRes, settingsRes] = await Promise.all([
       supabase.from("user_roles").select("user_id").eq("role", "investor" as any),
       supabase.from("investments").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, full_name, email"),
       supabase.from("investor_payments" as any).select("*").order("payment_date", { ascending: false }),
+      supabase.from("admin_settings" as any).select("*").eq("setting_key", "investment_interest").maybeSingle(),
     ]);
+
+    if (settingsRes.data) {
+      const s = settingsRes.data as any;
+      setCurrentRates({
+        total: Number(s.total_interest_rate),
+        investor: Number(s.investor_share_rate),
+        admin: Number(s.admin_share_rate),
+      });
+    }
 
     const profileMap = new Map(allProfilesRes.data?.map((p: any) => [p.user_id, { name: p.full_name || "Unknown", email: p.email }]) || []);
     const investorIds = new Set(rolesRes.data?.map((r) => r.user_id) || []);
@@ -224,24 +244,55 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
 
   const openAddInvestment = () => {
     setEditingInvestment(null);
-    setInvestmentForm({ investor_id: "", amount: "", interest_rate: "0", duration_months: "12", start_date: new Date().toISOString().split("T")[0], end_date: "", status: "active", notes: "" });
+    setInvestmentForm({
+      investor_id: "",
+      amount: "",
+      interest_rate: String(currentRates.total),
+      investor_share_rate: String(currentRates.investor),
+      admin_share_rate: String(currentRates.admin),
+      duration_months: "12",
+      start_date: new Date().toISOString().split("T")[0],
+      end_date: "",
+      status: "active",
+      notes: "",
+    });
     setInvestmentOpen(true);
   };
 
   const openEditInvestment = (inv: Investment) => {
     setEditingInvestment(inv);
-    setInvestmentForm({ investor_id: inv.investor_id, amount: String(inv.amount), interest_rate: String(inv.interest_rate), duration_months: String(inv.duration_months), start_date: inv.start_date, end_date: inv.end_date || "", status: inv.status, notes: inv.notes || "" });
+    setInvestmentForm({
+      investor_id: inv.investor_id,
+      amount: String(inv.amount),
+      interest_rate: String(inv.interest_rate),
+      investor_share_rate: String(inv.investor_share_rate ?? 0),
+      admin_share_rate: String(inv.admin_share_rate ?? 0),
+      duration_months: String(inv.duration_months),
+      start_date: inv.start_date,
+      end_date: inv.end_date || "",
+      status: inv.status,
+      notes: inv.notes || "",
+    });
     setInvestmentOpen(true);
   };
+
+  const formRatesValid = () =>
+    Number(investmentForm.investor_share_rate) + Number(investmentForm.admin_share_rate) ===
+    Number(investmentForm.interest_rate);
 
   const handleSaveInvestment = async () => {
     if (!investmentForm.investor_id || !investmentForm.amount) {
       toast.error("Investor and amount are required"); return;
     }
+    if (!formRatesValid()) {
+      toast.error("Investor share + Admin share must equal Total rate"); return;
+    }
     const payload: any = {
       investor_id: investmentForm.investor_id,
       amount: Number(investmentForm.amount),
       interest_rate: Number(investmentForm.interest_rate),
+      investor_share_rate: Number(investmentForm.investor_share_rate),
+      admin_share_rate: Number(investmentForm.admin_share_rate),
       duration_months: Number(investmentForm.duration_months),
       start_date: investmentForm.start_date,
       end_date: investmentForm.end_date || null,
@@ -250,24 +301,11 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
     };
     if (editingInvestment) {
       const { error } = await supabase.from("investments").update(payload).eq("id", editingInvestment.id);
-      if (error) { toast.error("Failed to update investment"); return; }
+      if (error) { toast.error(error.message || "Failed to update investment"); return; }
       toast.success("Investment updated");
     } else {
-      // Snapshot current admin-configured rates onto the new investment
-      const { data: settings } = await supabase
-        .from("admin_settings" as any)
-        .select("*")
-        .eq("setting_key", "investment_interest")
-        .maybeSingle();
-      if (settings) {
-        const s = settings as any;
-        payload.interest_rate = Number(s.total_interest_rate);
-        payload.investor_share_rate = Number(s.investor_share_rate);
-        payload.admin_share_rate = Number(s.admin_share_rate);
-      }
-
       const { data: newInv, error } = await supabase.from("investments").insert(payload).select().single();
-      if (error) { toast.error("Failed to add investment"); return; }
+      if (error) { toast.error(error.message || "Failed to add investment"); return; }
 
       // Create investment transaction record
       if (newInv) {
@@ -281,7 +319,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
         } as any);
       }
 
-      toast.success("Investment added with current interest rate snapshot");
+      toast.success("Investment added with snapshot rates");
       await logActivity("investment_created", `New investment of £${investmentForm.amount} added (Total: ${payload.interest_rate}%, Investor: ${payload.investor_share_rate}%, Admin: ${payload.admin_share_rate}%)`, "investment", "new", investmentForm.investor_id);
     }
     setInvestmentOpen(false);
@@ -304,25 +342,49 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
       investor_id: paymentForm.investor_id,
       investment_id: paymentForm.investment_id,
       amount_paid: Number(paymentForm.amount_paid),
+      party: paymentForm.party,
       payment_date: paymentForm.payment_date,
       notes: paymentForm.notes || null,
-    });
+    } as any);
     if (error) { toast.error("Failed to record payment"); return; }
-    toast.success("Payment recorded");
+
+    // Mirror admin-share payments into admin_earnings ledger
+    if (paymentForm.party === "admin") {
+      await supabase.from("admin_earnings" as any).insert({
+        investment_id: paymentForm.investment_id,
+        amount: Number(paymentForm.amount_paid),
+        source: "investment_interest",
+      } as any);
+    }
+
+    toast.success(`Payment recorded (${paymentForm.party === "admin" ? "Admin share" : "Investor share"})`);
     const invName = investors.find((i) => i.user_id === paymentForm.investor_id)?.full_name || "Unknown";
-    await logActivity("investor_payment", `Recorded payment of £${paymentForm.amount_paid} to investor ${invName}`, "investor_payment", paymentForm.investment_id, paymentForm.investor_id);
+    await logActivity("investor_payment", `Recorded ${paymentForm.party} payment of £${paymentForm.amount_paid} on investment for ${invName}`, "investor_payment", paymentForm.investment_id, paymentForm.investor_id);
     setPaymentOpen(false);
-    setPaymentForm({ investor_id: "", investment_id: "", amount_paid: "", payment_date: new Date().toISOString().split("T")[0], notes: "" });
+    setPaymentForm({ investor_id: "", investment_id: "", amount_paid: "", party: "investor", payment_date: new Date().toISOString().split("T")[0], notes: "" });
     fetchData();
   };
 
-  const getExpectedReturn = (inv: Investment) => Number(inv.amount) * (1 + Number(inv.interest_rate) / 100);
-  const getTotalPaid = (investmentId: string) => payments.filter((p) => p.investment_id === investmentId).reduce((s, p) => s + Number(p.amount_paid), 0);
+  const getInvestorPaid = (investmentId: string) =>
+    payments
+      .filter((p) => p.investment_id === investmentId && (p.party ?? "investor") === "investor")
+      .reduce((s, p) => s + Number(p.amount_paid), 0);
+  const getAdminPaid = (investmentId: string) =>
+    payments
+      .filter((p) => p.investment_id === investmentId && p.party === "admin")
+      .reduce((s, p) => s + Number(p.amount_paid), 0);
 
   const totalCapital = investments.reduce((s, i) => s + Number(i.amount), 0);
-  const totalExpectedReturn = investments.reduce((s, i) => s + getExpectedReturn(i), 0);
-  const totalPaidOut = payments.reduce((s, p) => s + Number(p.amount_paid), 0);
-  const totalRemaining = totalExpectedReturn - totalPaidOut;
+  const totalInvestorDue = investments.reduce((s, i) => s + Number(i.investor_due || 0), 0);
+  const totalAdminDue = investments.reduce((s, i) => s + Number(i.admin_due || 0), 0);
+  const totalInvestorPaid = payments
+    .filter((p) => (p.party ?? "investor") === "investor")
+    .reduce((s, p) => s + Number(p.amount_paid), 0);
+  const totalAdminPaid = payments
+    .filter((p) => p.party === "admin")
+    .reduce((s, p) => s + Number(p.amount_paid), 0);
+  const totalInvestorBalance = totalInvestorDue - totalInvestorPaid;
+  const totalAdminBalance = totalAdminDue - totalAdminPaid;
 
   const filteredInvestments = investments.filter(
     (inv) => inv.investor_name?.toLowerCase().includes(search.toLowerCase()) || inv.status.toLowerCase().includes(search.toLowerCase())
@@ -343,7 +405,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Investors</CardTitle>
@@ -352,22 +414,40 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
           <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold">{investors.length}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Capital</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold">£{totalCapital.toLocaleString()}</div></CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Owed</CardTitle>
+        <Card className="border-sky-500/30 bg-sky-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-sky-700 dark:text-sky-400">Investor Due</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-amber-600">£{totalExpectedReturn.toLocaleString()}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-sky-700 dark:text-sky-400">£{totalInvestorDue.toLocaleString()}</div></CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Remaining</CardTitle>
+        <Card className="border-sky-500/30 bg-sky-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-sky-700 dark:text-sky-400">Investor Balance</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-destructive">£{totalRemaining.toLocaleString()}</div></CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-sky-700 dark:text-sky-400">£{totalInvestorBalance.toLocaleString()}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Paid £{totalInvestorPaid.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Admin Due</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><div className="text-lg sm:text-2xl font-bold text-amber-700 dark:text-amber-400">£{totalAdminDue.toLocaleString()}</div></CardContent>
+        </Card>
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Admin Balance</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-amber-700 dark:text-amber-400">£{totalAdminBalance.toLocaleString()}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Paid £{totalAdminPaid.toLocaleString()}</p>
+          </CardContent>
         </Card>
       </div>
 
@@ -432,29 +512,42 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Investor</TableHead>
-                        <TableHead>Principal</TableHead>
-                        <TableHead>Rate</TableHead>
-                        <TableHead>Expected Return</TableHead>
-                        <TableHead>Paid</TableHead>
-                        <TableHead>Balance</TableHead>
+                        <TableHead className="border-r">Investor</TableHead>
+                        <TableHead className="border-r">Amount</TableHead>
+                        <TableHead className="border-r">Total Rate</TableHead>
+                        <TableHead className="bg-sky-500/10">Investor Rate</TableHead>
+                        <TableHead className="bg-sky-500/10">Investor Due</TableHead>
+                        <TableHead className="bg-sky-500/10">Investor Paid</TableHead>
+                        <TableHead className="bg-sky-500/10 border-r">Investor Balance</TableHead>
+                        <TableHead className="bg-amber-500/10">Admin Rate</TableHead>
+                        <TableHead className="bg-amber-500/10">Admin Due</TableHead>
+                        <TableHead className="bg-amber-500/10">Admin Paid</TableHead>
+                        <TableHead className="bg-amber-500/10 border-r">Admin Balance</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredInvestments.map((inv) => {
-                        const expected = getExpectedReturn(inv);
-                        const paid = getTotalPaid(inv.id);
-                        const balance = expected - paid;
+                        const investorDue = Number(inv.investor_due || 0);
+                        const adminDue = Number(inv.admin_due || 0);
+                        const investorPaid = getInvestorPaid(inv.id);
+                        const adminPaid = getAdminPaid(inv.id);
+                        const investorBalance = investorDue - investorPaid;
+                        const adminBalance = adminDue - adminPaid;
                         return (
                           <TableRow key={inv.id}>
-                            <TableCell className="font-medium">{inv.investor_name}</TableCell>
-                            <TableCell>£{Number(inv.amount).toLocaleString()}</TableCell>
-                            <TableCell>{inv.interest_rate}%</TableCell>
-                            <TableCell className="text-amber-600 font-medium">£{expected.toLocaleString()}</TableCell>
-                            <TableCell className="text-green-600 font-medium">£{paid.toLocaleString()}</TableCell>
-                            <TableCell className="text-destructive font-medium">£{balance.toLocaleString()}</TableCell>
+                            <TableCell className="font-medium border-r">{inv.investor_name}</TableCell>
+                            <TableCell className="border-r">£{Number(inv.amount).toLocaleString()}</TableCell>
+                            <TableCell className="border-r">{inv.interest_rate}%</TableCell>
+                            <TableCell className="bg-sky-500/5 text-sky-700 dark:text-sky-400">{inv.investor_share_rate ?? 0}%</TableCell>
+                            <TableCell className="bg-sky-500/5 text-sky-700 dark:text-sky-400 font-medium">£{investorDue.toLocaleString()}</TableCell>
+                            <TableCell className="bg-sky-500/5 text-green-600 font-medium">£{investorPaid.toLocaleString()}</TableCell>
+                            <TableCell className="bg-sky-500/5 border-r font-medium text-destructive">£{investorBalance.toLocaleString()}</TableCell>
+                            <TableCell className="bg-amber-500/5 text-amber-700 dark:text-amber-400">{inv.admin_share_rate ?? 0}%</TableCell>
+                            <TableCell className="bg-amber-500/5 text-amber-700 dark:text-amber-400 font-medium">£{adminDue.toLocaleString()}</TableCell>
+                            <TableCell className="bg-amber-500/5 text-green-600 font-medium">£{adminPaid.toLocaleString()}</TableCell>
+                            <TableCell className="bg-amber-500/5 border-r font-medium text-destructive">£{adminBalance.toLocaleString()}</TableCell>
                             <TableCell><Badge variant={inv.status === "active" ? "default" : "secondary"}>{inv.status}</Badge></TableCell>
                             <TableCell>
                               <div className="flex gap-1">
@@ -493,20 +586,29 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
                     <TableHeader>
                       <TableRow>
                         <TableHead>Investor</TableHead>
+                        <TableHead>Party</TableHead>
                         <TableHead>Amount Paid</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Notes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {payments.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="font-medium">{p.investor_name}</TableCell>
-                          <TableCell className="text-green-600 font-medium">£{Number(p.amount_paid).toLocaleString()}</TableCell>
-                          <TableCell>{new Date(p.payment_date).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-muted-foreground">{p.notes || "—"}</TableCell>
-                        </TableRow>
-                      ))}
+                      {payments.map((p) => {
+                        const isAdmin = p.party === "admin";
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell className="font-medium">{p.investor_name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={isAdmin ? "border-amber-500/40 text-amber-700 dark:text-amber-400" : "border-sky-500/40 text-sky-700 dark:text-sky-400"}>
+                                {isAdmin ? "Admin Share" : "Investor Share"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className={`font-medium ${isAdmin ? "text-amber-700 dark:text-amber-400" : "text-sky-700 dark:text-sky-400"}`}>£{Number(p.amount_paid).toLocaleString()}</TableCell>
+                            <TableCell>{new Date(p.payment_date).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-muted-foreground">{p.notes || "—"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -617,8 +719,43 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Amount (£)</Label><Input type="number" value={investmentForm.amount} onChange={(e) => setInvestmentForm({ ...investmentForm, amount: e.target.value })} /></div>
-              <div><Label>Interest Rate (%)</Label><Input type="number" value={investmentForm.interest_rate} onChange={(e) => setInvestmentForm({ ...investmentForm, interest_rate: e.target.value })} /></div>
+              <div>
+                <Label>Total Rate (%)</Label>
+                <Input type="number" step="0.1" value={investmentForm.interest_rate} onChange={(e) => {
+                  const total = e.target.value;
+                  const newAdmin = Number(total) - Number(investmentForm.investor_share_rate);
+                  setInvestmentForm({ ...investmentForm, interest_rate: total, admin_share_rate: newAdmin >= 0 ? String(newAdmin) : investmentForm.admin_share_rate });
+                }} />
+              </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sky-700 dark:text-sky-400">Investor Share (%)</Label>
+                <Input type="number" step="0.1" value={investmentForm.investor_share_rate} onChange={(e) => {
+                  const inv = e.target.value;
+                  const newAdmin = Number(investmentForm.interest_rate) - Number(inv);
+                  setInvestmentForm({ ...investmentForm, investor_share_rate: inv, admin_share_rate: newAdmin >= 0 ? String(newAdmin) : investmentForm.admin_share_rate });
+                }} />
+              </div>
+              <div>
+                <Label className="text-amber-700 dark:text-amber-400">Admin Share (%)</Label>
+                <Input type="number" step="0.1" value={investmentForm.admin_share_rate} onChange={(e) => setInvestmentForm({ ...investmentForm, admin_share_rate: e.target.value })} />
+              </div>
+            </div>
+
+            {!formRatesValid() ? (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                ⚠️ Investor ({investmentForm.investor_share_rate}%) + Admin ({investmentForm.admin_share_rate}%) = {Number(investmentForm.investor_share_rate) + Number(investmentForm.admin_share_rate)}% — must equal Total ({investmentForm.interest_rate}%).
+              </div>
+            ) : investmentForm.amount ? (
+              <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
+                <p><strong>Live preview</strong> on £{Number(investmentForm.amount).toLocaleString()}:</p>
+                <p>• <span className="text-sky-700 dark:text-sky-400 font-medium">Investor earns £{(Number(investmentForm.amount) * Number(investmentForm.investor_share_rate) / 100).toLocaleString()}</span></p>
+                <p>• <span className="text-amber-700 dark:text-amber-400 font-medium">Admin earns £{(Number(investmentForm.amount) * Number(investmentForm.admin_share_rate) / 100).toLocaleString()}</span></p>
+                <p>• Total interest: <span className="font-medium">£{(Number(investmentForm.amount) * Number(investmentForm.interest_rate) / 100).toLocaleString()}</span></p>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Duration (months)</Label><Input type="number" value={investmentForm.duration_months} onChange={(e) => setInvestmentForm({ ...investmentForm, duration_months: e.target.value })} /></div>
               <div>
@@ -641,7 +778,7 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvestmentOpen(false)}>Cancel</Button>
-            <Button variant="investor" onClick={handleSaveInvestment}>{editingInvestment ? "Update" : "Add Investment"}</Button>
+            <Button variant="investor" onClick={handleSaveInvestment} disabled={!formRatesValid()}>{editingInvestment ? "Update" : "Add Investment"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -671,6 +808,27 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Pay To</Label>
+              <Select value={paymentForm.party} onValueChange={(v) => setPaymentForm({ ...paymentForm, party: v as "investor" | "admin" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="investor">Investor Share</SelectItem>
+                  <SelectItem value="admin">Admin Share</SelectItem>
+                </SelectContent>
+              </Select>
+              {paymentForm.investment_id && (() => {
+                const sel = investments.find((i) => i.id === paymentForm.investment_id);
+                if (!sel) return null;
+                const due = paymentForm.party === "admin" ? Number(sel.admin_due || 0) : Number(sel.investor_due || 0);
+                const paid = paymentForm.party === "admin" ? getAdminPaid(sel.id) : getInvestorPaid(sel.id);
+                return (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {paymentForm.party === "admin" ? "Admin" : "Investor"} balance: £{(due - paid).toLocaleString()} (Due £{due.toLocaleString()}, Paid £{paid.toLocaleString()})
+                  </p>
+                );
+              })()}
             </div>
             <div><Label>Amount Paid (£)</Label><Input type="number" value={paymentForm.amount_paid} onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })} /></div>
             <div><Label>Payment Date</Label><Input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} /></div>
