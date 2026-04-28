@@ -365,13 +365,26 @@ const InvestorManagementPage = ({ initialTab = "overview", triggerAddInvestor, o
     fetchData();
   };
 
-  const getExpectedReturn = (inv: Investment) => Number(inv.amount) * (1 + Number(inv.interest_rate) / 100);
-  const getTotalPaid = (investmentId: string) => payments.filter((p) => p.investment_id === investmentId).reduce((s, p) => s + Number(p.amount_paid), 0);
+  const getInvestorPaid = (investmentId: string) =>
+    payments
+      .filter((p) => p.investment_id === investmentId && (p.party ?? "investor") === "investor")
+      .reduce((s, p) => s + Number(p.amount_paid), 0);
+  const getAdminPaid = (investmentId: string) =>
+    payments
+      .filter((p) => p.investment_id === investmentId && p.party === "admin")
+      .reduce((s, p) => s + Number(p.amount_paid), 0);
 
   const totalCapital = investments.reduce((s, i) => s + Number(i.amount), 0);
-  const totalExpectedReturn = investments.reduce((s, i) => s + getExpectedReturn(i), 0);
-  const totalPaidOut = payments.reduce((s, p) => s + Number(p.amount_paid), 0);
-  const totalRemaining = totalExpectedReturn - totalPaidOut;
+  const totalInvestorDue = investments.reduce((s, i) => s + Number(i.investor_due || 0), 0);
+  const totalAdminDue = investments.reduce((s, i) => s + Number(i.admin_due || 0), 0);
+  const totalInvestorPaid = payments
+    .filter((p) => (p.party ?? "investor") === "investor")
+    .reduce((s, p) => s + Number(p.amount_paid), 0);
+  const totalAdminPaid = payments
+    .filter((p) => p.party === "admin")
+    .reduce((s, p) => s + Number(p.amount_paid), 0);
+  const totalInvestorBalance = totalInvestorDue - totalInvestorPaid;
+  const totalAdminBalance = totalAdminDue - totalAdminPaid;
 
   const filteredInvestments = investments.filter(
     (inv) => inv.investor_name?.toLowerCase().includes(search.toLowerCase()) || inv.status.toLowerCase().includes(search.toLowerCase())
