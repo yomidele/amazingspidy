@@ -175,7 +175,16 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
                 {a.status}
               </Badge>
             </div>
-            {a.purpose && <p className="text-white/40 text-xs mb-3">{a.purpose}</p>}
+            {a.purpose && <p className="text-white/40 text-xs mb-2">{a.purpose}</p>}
+            <div className="text-[11px] text-white/40 mb-3 space-y-0.5">
+              <div>Assigned: {new Date(a.assigned_at).toLocaleString()}</div>
+              {a.responded_at && (
+                <div>
+                  {a.status === "accepted" ? "Accepted" : "Rejected"} on{" "}
+                  {new Date(a.responded_at).toLocaleString()}
+                </div>
+              )}
+            </div>
             {a.status === "pending" && (
               <div className="flex gap-2">
                 <Button
