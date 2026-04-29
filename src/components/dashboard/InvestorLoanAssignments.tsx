@@ -84,12 +84,46 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
       if (error) throw error;
 
       if (status === "accepted") {
-        // Mark loan request as funded (admin still completes formal approval flow)
         await (supabase as any)
           .from("loan_requests")
           .update({ status: "approved" })
           .eq("id", a.loan_request_id);
       }
+
+      // Audit log entry — captures who & when
+      const { data: userData } = await supabase.auth.getUser();
+      const investorName =
+        userData?.user?.user_metadata?.full_name || userData?.user?.email || "Investor";
+      await logActivity(
+        status === "accepted" ? "loan_assignment_accepted" : "loan_assignment_rejected",
+        `Investor ${investorName} ${status} loan funding for ${a.borrower_name} (£${a.amount.toLocaleString()}).`,
+        "loan_assignment",
+        a.id,
+        userData?.user?.id ?? null
+      );
+
+      // Notify borrower
+      try {
+        const { data: req } = await supabase
+          .from("loan_requests")
+          .select("borrower_id")
+          .eq("id", a.loan_request_id)
+          .single();
+        if (req?.borrower_id) {
+          await sendNotification(
+            req.borrower_id,
+            status === "accepted" ? "Loan Funding Accepted" : "Loan Funding Declined",
+            status === "accepted"
+              ? `An investor has accepted to fund your £${a.amount.toLocaleString()} loan.`
+              : `The assigned investor declined funding your £${a.amount.toLocaleString()} loan. Admin will reassign.`,
+            status === "accepted" ? "success" : "warning",
+            "/dashboard/contributor"
+          );
+        }
+      } catch (e) {
+        console.warn("Borrower notification failed", e);
+      }
+
       toast.success(status === "accepted" ? "Funding accepted" : "Assignment rejected");
       fetchAssignments();
     } catch (e: any) {
