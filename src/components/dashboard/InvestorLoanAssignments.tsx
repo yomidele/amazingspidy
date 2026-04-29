@@ -28,7 +28,7 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
     try {
       const { data: aData, error } = await (supabase as any)
         .from("loan_assignments")
-        .select("id, loan_request_id, amount, status, assigned_at")
+        .select("id, loan_request_id, amount, status, assigned_at, responded_at")
         .eq("investor_id", investorId)
         .order("assigned_at", { ascending: false });
       if (error) throw error;
