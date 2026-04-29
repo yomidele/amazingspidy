@@ -57,6 +57,7 @@ const ContributorDashboard = () => {
   const navigate = useNavigate();
   const { isDark, toggleMode } = useDashboardTheme();
   const [user, setUser] = useState<any>(null);
+  const [membershipNumber, setMembershipNumber] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loanBalance, setLoanBalance] = useState(0);
@@ -115,6 +116,14 @@ const ContributorDashboard = () => {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
     setCurrentMonthPeriod(`${monthNames[currentMonth - 1]} ${currentYear}`);
+
+    // Fetch membership number for display
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("membership_number")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (profileRow?.membership_number) setMembershipNumber(profileRow.membership_number);
 
     try {
       const { data: membershipData } = await supabase
@@ -302,6 +311,9 @@ const ContributorDashboard = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || "User"}</p>
                 <p className="text-xs text-white/40 truncate">{user?.email}</p>
+                {membershipNumber && (
+                  <p className="text-[10px] font-mono text-emerald-400/80 mt-0.5">{membershipNumber}</p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">
