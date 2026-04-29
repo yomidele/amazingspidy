@@ -439,13 +439,34 @@ const LoanRequestReview = () => {
                   <Briefcase className="w-4 h-4" /> Funding Source
                 </div>
                 {assignmentMap[selectedRequest.id] ? (
-                  <div className="text-xs p-3 rounded-lg bg-muted/50">
-                    Assigned to investor:{" "}
-                    <strong>
-                      {investors.find((i) => i.user_id === assignmentMap[selectedRequest.id].investor_id)?.full_name || "Unknown"}
-                    </strong>
-                    {" "}— status:{" "}
-                    <Badge variant="outline" className="ml-1">{assignmentMap[selectedRequest.id].status}</Badge>
+                  <div className="text-xs p-3 rounded-lg bg-muted/50 space-y-1">
+                    <div>
+                      Assigned to investor:{" "}
+                      <strong>
+                        {investors.find((i) => i.user_id === assignmentMap[selectedRequest.id].investor_id)?.full_name || "Unknown"}
+                      </strong>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      Current status:
+                      <Badge
+                        variant="outline"
+                        className={
+                          assignmentMap[selectedRequest.id].status === "accepted"
+                            ? "border-success text-success"
+                            : assignmentMap[selectedRequest.id].status === "rejected"
+                            ? "border-destructive text-destructive"
+                            : "border-warning text-warning"
+                        }
+                      >
+                        {assignmentMap[selectedRequest.id].status}
+                      </Badge>
+                    </div>
+                    {assignmentMap[selectedRequest.id].responded_at && (
+                      <div className="text-muted-foreground">
+                        Responded:{" "}
+                        {new Date(assignmentMap[selectedRequest.id].responded_at as string).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex gap-2">
