@@ -39,12 +39,58 @@ const LoanRequestReview = () => {
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
   const [investors, setInvestors] = useState<{ user_id: string; full_name: string | null }[]>([]);
   const [selectedInvestor, setSelectedInvestor] = useState<string>("");
-  const [assignmentMap, setAssignmentMap] = useState<Record<string, { investor_id: string; status: string }>>({});
+  const [assignmentMap, setAssignmentMap] = useState<Record<string, { investor_id: string; status: string; assigned_at?: string; responded_at?: string | null }>>({});
+  const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
   const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
     open: false, request: null, check: null,
   });
 
   useEffect(() => { fetchRequests(); fetchInvestors(); }, []);
+
+  // Fetch audit timeline whenever a request is opened
+  useEffect(() => {
+    const loadTimeline = async () => {
+      if (!selectedRequest) { setAuditTimeline([]); return; }
+      const assignmentId = assignmentMap[selectedRequest.id]
+        ? (await (supabase as any)
+            .from("loan_assignments")
+            .select("id")
+            .eq("loan_request_id", selectedRequest.id)
+            .maybeSingle()).data?.id
+        : null;
+
+      const entityIds = [selectedRequest.id, assignmentId].filter(Boolean);
+      const { data: logs } = await supabase
+        .from("activity_logs")
+        .select("id, action, description, created_at, user_id")
+        .in("entity_id", entityIds)
+        .in("action", [
+          "loan_assigned_to_investor",
+          "loan_assignment_accepted",
+          "loan_assignment_rejected",
+          "loan_approved",
+          "loan_rejected",
+        ])
+        .order("created_at", { ascending: true });
+
+      const userIds = Array.from(new Set((logs || []).map((l) => l.user_id).filter(Boolean))) as string[];
+      const { data: profs } = userIds.length
+        ? await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds)
+        : { data: [] as any[] };
+      const nameMap = new Map((profs || []).map((p) => [p.user_id, p.full_name || "User"]));
+
+      setAuditTimeline(
+        (logs || []).map((l) => ({
+          id: l.id,
+          action: l.action,
+          description: l.description || "",
+          created_at: l.created_at,
+          actor_name: l.user_id ? (nameMap.get(l.user_id) || "User") : "System",
+        }))
+      );
+    };
+    loadTimeline();
+  }, [selectedRequest, assignmentMap]);
 
   const fetchInvestors = async () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "investor");
