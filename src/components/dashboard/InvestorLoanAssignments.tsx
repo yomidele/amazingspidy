@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logActivity, sendNotification } from "@/lib/activityLogger";
 
 interface Assignment {
   id: string;
@@ -11,6 +12,7 @@ interface Assignment {
   amount: number;
   status: "pending" | "accepted" | "rejected";
   assigned_at: string;
+  responded_at: string | null;
   borrower_name: string;
   duration_months: number;
   purpose: string | null;
@@ -26,7 +28,7 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
     try {
       const { data: aData, error } = await (supabase as any)
         .from("loan_assignments")
-        .select("id, loan_request_id, amount, status, assigned_at")
+        .select("id, loan_request_id, amount, status, assigned_at, responded_at")
         .eq("investor_id", investorId)
         .order("assigned_at", { ascending: false });
       if (error) throw error;
@@ -55,6 +57,7 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
             amount: Number(a.amount),
             status: a.status,
             assigned_at: a.assigned_at,
+            responded_at: a.responded_at ?? null,
             borrower_name: req ? profMap.get(req.borrower_id) || "Unknown" : "Unknown",
             duration_months: req?.duration_months ?? 0,
             purpose: req?.purpose ?? null,
@@ -83,12 +86,46 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
       if (error) throw error;
 
       if (status === "accepted") {
-        // Mark loan request as funded (admin still completes formal approval flow)
         await (supabase as any)
           .from("loan_requests")
           .update({ status: "approved" })
           .eq("id", a.loan_request_id);
       }
+
+      // Audit log entry — captures who & when
+      const { data: userData } = await supabase.auth.getUser();
+      const investorName =
+        userData?.user?.user_metadata?.full_name || userData?.user?.email || "Investor";
+      await logActivity(
+        status === "accepted" ? "loan_assignment_accepted" : "loan_assignment_rejected",
+        `Investor ${investorName} ${status} loan funding for ${a.borrower_name} (£${a.amount.toLocaleString()}).`,
+        "loan_assignment",
+        a.id,
+        userData?.user?.id ?? null
+      );
+
+      // Notify borrower
+      try {
+        const { data: req } = await supabase
+          .from("loan_requests")
+          .select("borrower_id")
+          .eq("id", a.loan_request_id)
+          .single();
+        if (req?.borrower_id) {
+          await sendNotification(
+            req.borrower_id,
+            status === "accepted" ? "Loan Funding Accepted" : "Loan Funding Declined",
+            status === "accepted"
+              ? `An investor has accepted to fund your £${a.amount.toLocaleString()} loan.`
+              : `The assigned investor declined funding your £${a.amount.toLocaleString()} loan. Admin will reassign.`,
+            status === "accepted" ? "success" : "warning",
+            "/dashboard/contributor"
+          );
+        }
+      } catch (e) {
+        console.warn("Borrower notification failed", e);
+      }
+
       toast.success(status === "accepted" ? "Funding accepted" : "Assignment rejected");
       fetchAssignments();
     } catch (e: any) {
@@ -138,7 +175,16 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
                 {a.status}
               </Badge>
             </div>
-            {a.purpose && <p className="text-white/40 text-xs mb-3">{a.purpose}</p>}
+            {a.purpose && <p className="text-white/40 text-xs mb-2">{a.purpose}</p>}
+            <div className="text-[11px] text-white/40 mb-3 space-y-0.5">
+              <div>Assigned: {new Date(a.assigned_at).toLocaleString()}</div>
+              {a.responded_at && (
+                <div>
+                  {a.status === "accepted" ? "Accepted" : "Rejected"} on{" "}
+                  {new Date(a.responded_at).toLocaleString()}
+                </div>
+              )}
+            </div>
             {a.status === "pending" && (
               <div className="flex gap-2">
                 <Button

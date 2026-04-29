@@ -39,12 +39,58 @@ const LoanRequestReview = () => {
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
   const [investors, setInvestors] = useState<{ user_id: string; full_name: string | null }[]>([]);
   const [selectedInvestor, setSelectedInvestor] = useState<string>("");
-  const [assignmentMap, setAssignmentMap] = useState<Record<string, { investor_id: string; status: string }>>({});
+  const [assignmentMap, setAssignmentMap] = useState<Record<string, { investor_id: string; status: string; assigned_at?: string; responded_at?: string | null }>>({});
+  const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
   const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
     open: false, request: null, check: null,
   });
 
   useEffect(() => { fetchRequests(); fetchInvestors(); }, []);
+
+  // Fetch audit timeline whenever a request is opened
+  useEffect(() => {
+    const loadTimeline = async () => {
+      if (!selectedRequest) { setAuditTimeline([]); return; }
+      const assignmentId = assignmentMap[selectedRequest.id]
+        ? (await (supabase as any)
+            .from("loan_assignments")
+            .select("id")
+            .eq("loan_request_id", selectedRequest.id)
+            .maybeSingle()).data?.id
+        : null;
+
+      const entityIds = [selectedRequest.id, assignmentId].filter(Boolean);
+      const { data: logs } = await supabase
+        .from("activity_logs")
+        .select("id, action, description, created_at, user_id")
+        .in("entity_id", entityIds)
+        .in("action", [
+          "loan_assigned_to_investor",
+          "loan_assignment_accepted",
+          "loan_assignment_rejected",
+          "loan_approved",
+          "loan_rejected",
+        ])
+        .order("created_at", { ascending: true });
+
+      const userIds = Array.from(new Set((logs || []).map((l) => l.user_id).filter(Boolean))) as string[];
+      const { data: profs } = userIds.length
+        ? await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds)
+        : { data: [] as any[] };
+      const nameMap = new Map((profs || []).map((p) => [p.user_id, p.full_name || "User"]));
+
+      setAuditTimeline(
+        (logs || []).map((l) => ({
+          id: l.id,
+          action: l.action,
+          description: l.description || "",
+          created_at: l.created_at,
+          actor_name: l.user_id ? (nameMap.get(l.user_id) || "User") : "System",
+        }))
+      );
+    };
+    loadTimeline();
+  }, [selectedRequest, assignmentMap]);
 
   const fetchInvestors = async () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "investor");
@@ -105,11 +151,16 @@ const LoanRequestReview = () => {
       // Fetch existing assignments
       const { data: assigns } = await (supabase as any)
         .from("loan_assignments")
-        .select("loan_request_id, investor_id, status")
+        .select("loan_request_id, investor_id, status, assigned_at, responded_at")
         .in("loan_request_id", requestIds);
-      const aMap: Record<string, { investor_id: string; status: string }> = {};
+      const aMap: Record<string, { investor_id: string; status: string; assigned_at?: string; responded_at?: string | null }> = {};
       for (const a of assigns || []) {
-        aMap[a.loan_request_id] = { investor_id: a.investor_id, status: a.status };
+        aMap[a.loan_request_id] = {
+          investor_id: a.investor_id,
+          status: a.status,
+          assigned_at: a.assigned_at,
+          responded_at: a.responded_at,
+        };
       }
       setAssignmentMap(aMap);
     } catch (error) {
@@ -388,13 +439,34 @@ const LoanRequestReview = () => {
                   <Briefcase className="w-4 h-4" /> Funding Source
                 </div>
                 {assignmentMap[selectedRequest.id] ? (
-                  <div className="text-xs p-3 rounded-lg bg-muted/50">
-                    Assigned to investor:{" "}
-                    <strong>
-                      {investors.find((i) => i.user_id === assignmentMap[selectedRequest.id].investor_id)?.full_name || "Unknown"}
-                    </strong>
-                    {" "}— status:{" "}
-                    <Badge variant="outline" className="ml-1">{assignmentMap[selectedRequest.id].status}</Badge>
+                  <div className="text-xs p-3 rounded-lg bg-muted/50 space-y-1">
+                    <div>
+                      Assigned to investor:{" "}
+                      <strong>
+                        {investors.find((i) => i.user_id === assignmentMap[selectedRequest.id].investor_id)?.full_name || "Unknown"}
+                      </strong>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      Current status:
+                      <Badge
+                        variant="outline"
+                        className={
+                          assignmentMap[selectedRequest.id].status === "accepted"
+                            ? "border-success text-success"
+                            : assignmentMap[selectedRequest.id].status === "rejected"
+                            ? "border-destructive text-destructive"
+                            : "border-warning text-warning"
+                        }
+                      >
+                        {assignmentMap[selectedRequest.id].status}
+                      </Badge>
+                    </div>
+                    {assignmentMap[selectedRequest.id].responded_at && (
+                      <div className="text-muted-foreground">
+                        Responded:{" "}
+                        {new Date(assignmentMap[selectedRequest.id].responded_at as string).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex gap-2">
@@ -427,6 +499,43 @@ const LoanRequestReview = () => {
                   Default: pool funding. Assigning to an investor sends them a request to fund this loan.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Audit timeline — assignment & decision history */}
+        {auditTimeline.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> Assignment & Decision Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ol className="relative border-l border-border ml-2 space-y-4">
+                {auditTimeline.map((e) => {
+                  const tone =
+                    e.action.includes("accepted") || e.action === "loan_approved"
+                      ? "bg-success"
+                      : e.action.includes("rejected")
+                      ? "bg-destructive"
+                      : "bg-primary";
+                  const label = e.action.replace(/_/g, " ");
+                  return (
+                    <li key={e.id} className="ml-4">
+                      <span className={`absolute -left-1.5 w-3 h-3 rounded-full ${tone}`} />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[10px] uppercase">{label}</Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(e.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">{e.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">By {e.actor_name}</p>
+                    </li>
+                  );
+                })}
+              </ol>
             </CardContent>
           </Card>
         )}
