@@ -381,6 +381,52 @@ const LoanRequestReview = () => {
                   <XCircle className="w-4 h-4 mr-2" /> Reject
                 </Button>
               </div>
+
+              {/* Investor assignment */}
+              <div className="pt-3 border-t space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Briefcase className="w-4 h-4" /> Funding Source
+                </div>
+                {assignmentMap[selectedRequest.id] ? (
+                  <div className="text-xs p-3 rounded-lg bg-muted/50">
+                    Assigned to investor:{" "}
+                    <strong>
+                      {investors.find((i) => i.user_id === assignmentMap[selectedRequest.id].investor_id)?.full_name || "Unknown"}
+                    </strong>
+                    {" "}— status:{" "}
+                    <Badge variant="outline" className="ml-1">{assignmentMap[selectedRequest.id].status}</Badge>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Select value={selectedInvestor} onValueChange={setSelectedInvestor}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Choose investor (optional)..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {investors.length === 0 ? (
+                          <SelectItem value="__none" disabled>No investors available</SelectItem>
+                        ) : (
+                          investors.map((inv) => (
+                            <SelectItem key={inv.user_id} value={inv.user_id}>
+                              {inv.full_name || inv.user_id.slice(0, 8)}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      disabled={!selectedInvestor || processing === selectedRequest.id}
+                      onClick={() => handleAssignToInvestor(selectedRequest)}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Default: pool funding. Assigning to an investor sends them a request to fund this loan.
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
