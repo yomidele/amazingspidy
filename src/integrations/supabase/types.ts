@@ -648,6 +648,56 @@ export type Database = {
         }
         Relationships: []
       }
+      loan_assignments: {
+        Row: {
+          amount: number
+          assigned_at: string
+          assigned_by: string | null
+          created_at: string
+          id: string
+          investor_id: string
+          loan_request_id: string
+          responded_at: string | null
+          response_note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          investor_id: string
+          loan_request_id: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          investor_id?: string
+          loan_request_id?: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_assignments_loan_request_id_fkey"
+            columns: ["loan_request_id"]
+            isOneToOne: true
+            referencedRelation: "loan_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_guarantors: {
         Row: {
           created_at: string
@@ -737,6 +787,7 @@ export type Database = {
           borrower_id: string
           created_at: string
           duration_months: number
+          funding_source: string
           group_id: string
           id: string
           purpose: string | null
@@ -749,6 +800,7 @@ export type Database = {
           borrower_id: string
           created_at?: string
           duration_months?: number
+          funding_source?: string
           group_id: string
           id?: string
           purpose?: string | null
@@ -761,6 +813,7 @@ export type Database = {
           borrower_id?: string
           created_at?: string
           duration_months?: number
+          funding_source?: string
           group_id?: string
           id?: string
           purpose?: string | null
@@ -956,6 +1009,7 @@ export type Database = {
           full_name: string | null
           id: string
           locked_at: string | null
+          membership_number: string | null
           phone: string | null
           updated_at: string
           user_id: string
@@ -969,6 +1023,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           locked_at?: string | null
+          membership_number?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -982,6 +1037,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           locked_at?: string | null
+          membership_number?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -1095,6 +1151,10 @@ export type Database = {
       is_loan_borrower: {
         Args: { _loan_request_id: string; _user_id: string }
         Returns: boolean
+      }
+      recalc_monthly_expected: {
+        Args: { _group_id: string; _month: number; _year: number }
+        Returns: undefined
       }
       v_month_name_from_int: { Args: { _m: number }; Returns: string }
     }
