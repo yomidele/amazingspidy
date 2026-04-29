@@ -151,11 +151,16 @@ const LoanRequestReview = () => {
       // Fetch existing assignments
       const { data: assigns } = await (supabase as any)
         .from("loan_assignments")
-        .select("loan_request_id, investor_id, status")
+        .select("loan_request_id, investor_id, status, assigned_at, responded_at")
         .in("loan_request_id", requestIds);
-      const aMap: Record<string, { investor_id: string; status: string }> = {};
+      const aMap: Record<string, { investor_id: string; status: string; assigned_at?: string; responded_at?: string | null }> = {};
       for (const a of assigns || []) {
-        aMap[a.loan_request_id] = { investor_id: a.investor_id, status: a.status };
+        aMap[a.loan_request_id] = {
+          investor_id: a.investor_id,
+          status: a.status,
+          assigned_at: a.assigned_at,
+          responded_at: a.responded_at,
+        };
       }
       setAssignmentMap(aMap);
     } catch (error) {
