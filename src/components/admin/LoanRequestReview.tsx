@@ -502,6 +502,43 @@ const LoanRequestReview = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Audit timeline — assignment & decision history */}
+        {auditTimeline.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> Assignment & Decision Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ol className="relative border-l border-border ml-2 space-y-4">
+                {auditTimeline.map((e) => {
+                  const tone =
+                    e.action.includes("accepted") || e.action === "loan_approved"
+                      ? "bg-success"
+                      : e.action.includes("rejected")
+                      ? "bg-destructive"
+                      : "bg-primary";
+                  const label = e.action.replace(/_/g, " ");
+                  return (
+                    <li key={e.id} className="ml-4">
+                      <span className={`absolute -left-1.5 w-3 h-3 rounded-full ${tone}`} />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[10px] uppercase">{label}</Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(e.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">{e.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">By {e.actor_name}</p>
+                    </li>
+                  );
+                })}
+              </ol>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
