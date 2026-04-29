@@ -12,6 +12,7 @@ interface Assignment {
   amount: number;
   status: "pending" | "accepted" | "rejected";
   assigned_at: string;
+  responded_at: string | null;
   borrower_name: string;
   duration_months: number;
   purpose: string | null;
