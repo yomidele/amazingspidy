@@ -101,10 +101,71 @@ const LoanRequestReview = () => {
       });
 
       setRequests(enriched);
+
+      // Fetch existing assignments
+      const { data: assigns } = await (supabase as any)
+        .from("loan_assignments")
+        .select("loan_request_id, investor_id, status")
+        .in("loan_request_id", requestIds);
+      const aMap: Record<string, { investor_id: string; status: string }> = {};
+      for (const a of assigns || []) {
+        aMap[a.loan_request_id] = { investor_id: a.investor_id, status: a.status };
+      }
+      setAssignmentMap(aMap);
     } catch (error) {
       console.error("Error fetching loan requests:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAssignToInvestor = async (request: LoanRequestRow) => {
+    if (!selectedInvestor) {
+      toast.error("Please select an investor first");
+      return;
+    }
+    setProcessing(request.id);
+    try {
+      const { error } = await (supabase as any).from("loan_assignments").upsert(
+        {
+          loan_request_id: request.id,
+          investor_id: selectedInvestor,
+          amount: request.amount,
+          status: "pending",
+          assigned_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+          responded_at: null,
+        },
+        { onConflict: "loan_request_id" }
+      );
+      if (error) throw error;
+
+      await (supabase as any)
+        .from("loan_requests")
+        .update({ funding_source: "investor" })
+        .eq("id", request.id);
+
+      const investor = investors.find((i) => i.user_id === selectedInvestor);
+      await sendNotification(
+        selectedInvestor,
+        "New Loan Assignment",
+        `You have been assigned to fund a £${request.amount.toLocaleString()} loan for ${request.borrower_name}. Please review and respond.`,
+        "info",
+        "/dashboard/investor"
+      );
+      await logActivity(
+        "loan_assigned_to_investor",
+        `Loan request from ${request.borrower_name} (£${request.amount.toLocaleString()}) assigned to investor ${investor?.full_name || selectedInvestor}.`,
+        "loan_request",
+        request.id
+      );
+      toast.success(`Assigned to ${investor?.full_name || "investor"}`);
+      setSelectedInvestor("");
+      fetchRequests();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Failed to assign loan to investor");
+    } finally {
+      setProcessing(null);
     }
   };
 
