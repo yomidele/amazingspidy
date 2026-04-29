@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck, Trash2 } from "lucide-react";
+import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck, Trash2, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logActivity, sendNotification, checkLiquidity, type LiquidityCheck } from "@/lib/activityLogger";
@@ -34,11 +37,22 @@ const LoanRequestReview = () => {
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
+  const [investors, setInvestors] = useState<{ user_id: string; full_name: string | null }[]>([]);
+  const [selectedInvestor, setSelectedInvestor] = useState<string>("");
+  const [assignmentMap, setAssignmentMap] = useState<Record<string, { investor_id: string; status: string }>>({});
   const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
     open: false, request: null, check: null,
   });
 
-  useEffect(() => { fetchRequests(); }, []);
+  useEffect(() => { fetchRequests(); fetchInvestors(); }, []);
+
+  const fetchInvestors = async () => {
+    const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "investor");
+    const ids = (roles || []).map((r) => r.user_id);
+    if (ids.length === 0) { setInvestors([]); return; }
+    const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+    setInvestors(profs || []);
+  };
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -87,10 +101,71 @@ const LoanRequestReview = () => {
       });
 
       setRequests(enriched);
+
+      // Fetch existing assignments
+      const { data: assigns } = await (supabase as any)
+        .from("loan_assignments")
+        .select("loan_request_id, investor_id, status")
+        .in("loan_request_id", requestIds);
+      const aMap: Record<string, { investor_id: string; status: string }> = {};
+      for (const a of assigns || []) {
+        aMap[a.loan_request_id] = { investor_id: a.investor_id, status: a.status };
+      }
+      setAssignmentMap(aMap);
     } catch (error) {
       console.error("Error fetching loan requests:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAssignToInvestor = async (request: LoanRequestRow) => {
+    if (!selectedInvestor) {
+      toast.error("Please select an investor first");
+      return;
+    }
+    setProcessing(request.id);
+    try {
+      const { error } = await (supabase as any).from("loan_assignments").upsert(
+        {
+          loan_request_id: request.id,
+          investor_id: selectedInvestor,
+          amount: request.amount,
+          status: "pending",
+          assigned_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+          responded_at: null,
+        },
+        { onConflict: "loan_request_id" }
+      );
+      if (error) throw error;
+
+      await (supabase as any)
+        .from("loan_requests")
+        .update({ funding_source: "investor" })
+        .eq("id", request.id);
+
+      const investor = investors.find((i) => i.user_id === selectedInvestor);
+      await sendNotification(
+        selectedInvestor,
+        "New Loan Assignment",
+        `You have been assigned to fund a £${request.amount.toLocaleString()} loan for ${request.borrower_name}. Please review and respond.`,
+        "info",
+        "/dashboard/investor"
+      );
+      await logActivity(
+        "loan_assigned_to_investor",
+        `Loan request from ${request.borrower_name} (£${request.amount.toLocaleString()}) assigned to investor ${investor?.full_name || selectedInvestor}.`,
+        "loan_request",
+        request.id
+      );
+      toast.success(`Assigned to ${investor?.full_name || "investor"}`);
+      setSelectedInvestor("");
+      fetchRequests();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Failed to assign loan to investor");
+    } finally {
+      setProcessing(null);
     }
   };
 
@@ -305,6 +380,52 @@ const LoanRequestReview = () => {
                 >
                   <XCircle className="w-4 h-4 mr-2" /> Reject
                 </Button>
+              </div>
+
+              {/* Investor assignment */}
+              <div className="pt-3 border-t space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Briefcase className="w-4 h-4" /> Funding Source
+                </div>
+                {assignmentMap[selectedRequest.id] ? (
+                  <div className="text-xs p-3 rounded-lg bg-muted/50">
+                    Assigned to investor:{" "}
+                    <strong>
+                      {investors.find((i) => i.user_id === assignmentMap[selectedRequest.id].investor_id)?.full_name || "Unknown"}
+                    </strong>
+                    {" "}— status:{" "}
+                    <Badge variant="outline" className="ml-1">{assignmentMap[selectedRequest.id].status}</Badge>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Select value={selectedInvestor} onValueChange={setSelectedInvestor}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Choose investor (optional)..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {investors.length === 0 ? (
+                          <SelectItem value="__none" disabled>No investors available</SelectItem>
+                        ) : (
+                          investors.map((inv) => (
+                            <SelectItem key={inv.user_id} value={inv.user_id}>
+                              {inv.full_name || inv.user_id.slice(0, 8)}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      disabled={!selectedInvestor || processing === selectedRequest.id}
+                      onClick={() => handleAssignToInvestor(selectedRequest)}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Default: pool funding. Assigning to an investor sends them a request to fund this loan.
+                </p>
               </div>
             </CardContent>
           </Card>

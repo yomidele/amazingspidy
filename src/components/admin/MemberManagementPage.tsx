@@ -985,6 +985,7 @@ const MemberManagementPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Member #</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
@@ -999,6 +1000,11 @@ const MemberManagementPage = () => {
                     const membership = memberships.find((m) => m.user_id === member.user_id);
                     return (
                       <TableRow key={member.id}>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {(member as any).membership_number || "—"}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="font-medium">
                           {member.full_name || "—"}
                         </TableCell>
