@@ -23,6 +23,7 @@ import InvestorModuleLockedScreen from "@/components/admin/InvestorModuleLockedS
 import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
 import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
+import InvestorLoanAssignments from "@/components/dashboard/InvestorLoanAssignments";
 
 const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
   children: React.ReactNode;
@@ -274,6 +275,9 @@ const InvestorDashboard = () => {
             <AnimatePresence mode="wait">
               {activeTab === "overview" && (
                 <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {/* Loan funding requests assigned by admin */}
+                  {user?.id && <InvestorLoanAssignments investorId={user.id} />}
+
                   {/* Hero Balance */}
                   <GlassCard className="p-6 lg:p-8 mb-6" delay={0.1} hover={false}>
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
