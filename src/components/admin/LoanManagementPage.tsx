@@ -182,13 +182,17 @@ const LoanManagementPage = () => {
 
     try {
       // Insert repayment
-      const { error: repaymentError } = await supabase.from("loan_repayments").insert({
-        loan_id: selectedLoan.id,
-        amount: newRepayment.amount,
-        repayment_type: newRepayment.repayment_type,
-        notes: newRepayment.notes || null,
-        repayment_date: new Date().toISOString(),
-      });
+      const { data: repayment, error: repaymentError } = await supabase
+        .from("loan_repayments")
+        .insert({
+          loan_id: selectedLoan.id,
+          amount: newRepayment.amount,
+          repayment_type: newRepayment.repayment_type,
+          notes: newRepayment.notes || null,
+          repayment_date: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
 
       if (repaymentError) throw repaymentError;
 
@@ -205,6 +209,12 @@ const LoanManagementPage = () => {
         .eq("id", selectedLoan.id);
 
       if (updateError) throw updateError;
+
+      // Distribute repayment to funding investors (if loan was investor-funded)
+      if (repayment?.id) {
+        const { distributeRepayment } = await import("@/lib/loanFunding");
+        await distributeRepayment(repayment.id, selectedLoan.id, newRepayment.amount);
+      }
 
       toast.success("Repayment recorded successfully");
       setIsRecordRepaymentOpen(false);
