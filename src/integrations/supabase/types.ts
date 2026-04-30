@@ -653,6 +653,7 @@ export type Database = {
           amount: number
           assigned_at: string
           assigned_by: string | null
+          assignment_share: number
           created_at: string
           id: string
           investor_id: string
@@ -666,6 +667,7 @@ export type Database = {
           amount: number
           assigned_at?: string
           assigned_by?: string | null
+          assignment_share?: number
           created_at?: string
           id?: string
           investor_id: string
@@ -679,6 +681,7 @@ export type Database = {
           amount?: number
           assigned_at?: string
           assigned_by?: string | null
+          assignment_share?: number
           created_at?: string
           id?: string
           investor_id?: string
@@ -692,11 +695,44 @@ export type Database = {
           {
             foreignKeyName: "loan_assignments_loan_request_id_fkey"
             columns: ["loan_request_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "loan_requests"
             referencedColumns: ["id"]
           },
         ]
+      }
+      loan_disbursements: {
+        Row: {
+          amount: number
+          created_at: string
+          disbursed_at: string
+          id: string
+          investor_id: string
+          loan_id: string
+          loan_request_id: string
+          notes: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          disbursed_at?: string
+          id?: string
+          investor_id: string
+          loan_id: string
+          loan_request_id: string
+          notes?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          disbursed_at?: string
+          id?: string
+          investor_id?: string
+          loan_id?: string
+          loan_request_id?: string
+          notes?: string | null
+        }
+        Relationships: []
       }
       loan_guarantors: {
         Row: {
@@ -735,6 +771,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      loan_repayment_distributions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          investor_id: string
+          loan_id: string
+          loan_repayment_id: string
+          share_percent: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          investor_id: string
+          loan_id: string
+          loan_repayment_id: string
+          share_percent: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          investor_id?: string
+          loan_id?: string
+          loan_repayment_id?: string
+          share_percent?: number
+        }
+        Relationships: []
       }
       loan_repayments: {
         Row: {
@@ -1138,6 +1204,19 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      investor_available_balance: {
+        Args: { _investor_id: string }
+        Returns: number
+      }
+      investor_available_balances: {
+        Args: never
+        Returns: {
+          available_balance: number
+          full_name: string
+          investor_id: string
+          total_capital: number
+        }[]
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_group_member: {
