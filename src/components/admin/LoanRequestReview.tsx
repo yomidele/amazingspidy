@@ -392,7 +392,13 @@ const LoanRequestReview = () => {
       pending: "bg-muted text-muted-foreground",
       awaiting_guarantor: "bg-warning/10 text-warning border-warning",
       pending_admin: "bg-primary/10 text-primary border-primary",
+      pending_admin_review: "bg-primary/10 text-primary border-primary",
+      assigned_to_investor: "bg-blue-500/10 text-blue-500 border-blue-500",
+      partially_funded: "bg-amber-500/10 text-amber-500 border-amber-500",
+      fully_funded: "bg-emerald-500/10 text-emerald-500 border-emerald-500",
+      investor_rejected: "bg-orange-500/10 text-orange-500 border-orange-500",
       approved: "bg-success/10 text-success border-success",
+      active: "bg-success/10 text-success border-success",
       rejected: "bg-destructive/10 text-destructive border-destructive",
     };
     return <Badge variant="outline" className={colors[status] || ""}>{status.replace(/_/g, " ")}</Badge>;
