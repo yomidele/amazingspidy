@@ -413,7 +413,7 @@ const LoanRequestReview = () => {
           onBack={() => setSelectedRequest(null)}
         />
         {/* Admin actions for pending_admin */}
-        {selectedRequest.status === "pending_admin" && (
+        {["pending_admin", "pending_admin_review", "assigned_to_investor", "partially_funded", "fully_funded", "investor_rejected"].includes(selectedRequest.status) && (
           <Card>
             <CardContent className="p-4 space-y-3">
               <h3 className="font-semibold text-sm">Admin Decision</h3>
@@ -423,88 +423,58 @@ const LoanRequestReview = () => {
                 value={adminNotes[selectedRequest.id] || ""}
                 onChange={(e) => setAdminNotes({ ...adminNotes, [selectedRequest.id]: e.target.value })}
               />
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 bg-success hover:bg-success/90"
-                  disabled={processing === selectedRequest.id}
-                  onClick={() => handleApproveClick(selectedRequest)}
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" /> Approve Loan
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  disabled={processing === selectedRequest.id}
-                  onClick={() => handleReject(selectedRequest)}
-                >
-                  <XCircle className="w-4 h-4 mr-2" /> Reject
-                </Button>
-              </div>
 
-              {/* Investor assignment */}
-              <div className="pt-3 border-t space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Briefcase className="w-4 h-4" /> Funding Source
+              {selectedRequest.status === "fully_funded" ? (
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-500"
+                  disabled={processing === selectedRequest.id}
+                  onClick={async () => {
+                    setProcessing(selectedRequest.id);
+                    try {
+                      await disburseLoan(selectedRequest.id);
+                      toast.success("Loan disbursed and active!");
+                      fetchRequests();
+                      setSelectedRequest(null);
+                    } catch (e: any) {
+                      toast.error(e.message || "Disbursement failed");
+                    } finally {
+                      setProcessing(null);
+                    }
+                  }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" /> Disburse Loan to Borrower
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1 bg-success hover:bg-success/90"
+                    disabled={processing === selectedRequest.id}
+                    onClick={() => handleApproveClick(selectedRequest)}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" /> Approve from Pool
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    disabled={processing === selectedRequest.id}
+                    onClick={() => handleReject(selectedRequest)}
+                  >
+                    <XCircle className="w-4 h-4 mr-2" /> Reject
+                  </Button>
                 </div>
-                {assignmentMap[selectedRequest.id] ? (
-                  <div className="text-xs p-3 rounded-lg bg-muted/50 space-y-1">
-                    <div>
-                      Assigned to investor:{" "}
-                      <strong>
-                        {investors.find((i) => i.user_id === assignmentMap[selectedRequest.id].investor_id)?.full_name || "Unknown"}
-                      </strong>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      Current status:
-                      <Badge
-                        variant="outline"
-                        className={
-                          assignmentMap[selectedRequest.id].status === "accepted"
-                            ? "border-success text-success"
-                            : assignmentMap[selectedRequest.id].status === "rejected"
-                            ? "border-destructive text-destructive"
-                            : "border-warning text-warning"
-                        }
-                      >
-                        {assignmentMap[selectedRequest.id].status}
-                      </Badge>
-                    </div>
-                    {assignmentMap[selectedRequest.id].responded_at && (
-                      <div className="text-muted-foreground">
-                        Responded:{" "}
-                        {new Date(assignmentMap[selectedRequest.id].responded_at as string).toLocaleString()}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Select value={selectedInvestor} onValueChange={setSelectedInvestor}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Choose investor (optional)..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {investors.length === 0 ? (
-                          <SelectItem value="__none" disabled>No investors available</SelectItem>
-                        ) : (
-                          investors.map((inv) => (
-                            <SelectItem key={inv.user_id} value={inv.user_id}>
-                              {inv.full_name || inv.user_id.slice(0, 8)}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="outline"
-                      disabled={!selectedInvestor || processing === selectedRequest.id}
-                      onClick={() => handleAssignToInvestor(selectedRequest)}
-                    >
-                      Assign
-                    </Button>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Default: pool funding. Assigning to an investor sends them a request to fund this loan.
+              )}
+
+              {/* Multi-investor assignment */}
+              <div className="pt-3 border-t">
+                <MultiInvestorAssignment
+                  loanRequestId={selectedRequest.id}
+                  loanAmount={selectedRequest.amount}
+                  borrowerName={selectedRequest.borrower_name}
+                  borrowerId={selectedRequest.borrower_id}
+                  onChanged={fetchRequests}
+                />
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Tip: assign to one or several investors (split funding). Loan only becomes fundable once all assigned investors approve.
                 </p>
               </div>
             </CardContent>
