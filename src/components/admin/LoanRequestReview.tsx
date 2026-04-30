@@ -40,8 +40,6 @@ const LoanRequestReview = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
   const [investors, setInvestors] = useState<{ user_id: string; full_name: string | null }[]>([]);
-  const [selectedInvestor, setSelectedInvestor] = useState<string>("");
-  const [assignmentMap, setAssignmentMap] = useState<Record<string, { investor_id: string; status: string; assigned_at?: string; responded_at?: string | null }>>({});
   const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
   const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
     open: false, request: null, check: null,
@@ -53,15 +51,13 @@ const LoanRequestReview = () => {
   useEffect(() => {
     const loadTimeline = async () => {
       if (!selectedRequest) { setAuditTimeline([]); return; }
-      const assignmentId = assignmentMap[selectedRequest.id]
-        ? (await (supabase as any)
-            .from("loan_assignments")
-            .select("id")
-            .eq("loan_request_id", selectedRequest.id)
-            .maybeSingle()).data?.id
-        : null;
+      const { data: assignmentRows } = await (supabase as any)
+        .from("loan_assignments")
+        .select("id")
+        .eq("loan_request_id", selectedRequest.id);
+      const assignmentIds = (assignmentRows || []).map((a: any) => a.id);
+      const entityIds = [selectedRequest.id, ...assignmentIds];
 
-      const entityIds = [selectedRequest.id, assignmentId].filter(Boolean);
       const { data: logs } = await supabase
         .from("activity_logs")
         .select("id, action, description, created_at, user_id")
@@ -70,8 +66,10 @@ const LoanRequestReview = () => {
           "loan_assigned_to_investor",
           "loan_assignment_accepted",
           "loan_assignment_rejected",
+          "loan_assignment_removed",
           "loan_approved",
           "loan_rejected",
+          "loan_disbursed",
         ])
         .order("created_at", { ascending: true });
 
@@ -92,7 +90,7 @@ const LoanRequestReview = () => {
       );
     };
     loadTimeline();
-  }, [selectedRequest, assignmentMap]);
+  }, [selectedRequest]);
 
   const fetchInvestors = async () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "investor");
