@@ -269,7 +269,7 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
           .from("loan_requests")
           .select("id")
           .eq("borrower_id", userId)
-          .in("status", ["pending", "awaiting_guarantor", "pending_admin"]),
+          .in("status", ["pending", "awaiting_guarantor", "pending_admin", "pending_admin_review", "assigned_to_investor", "partially_funded", "fully_funded", "investor_rejected"]),
         supabase.rpc("get_same_group_guarantors" as any, { _user_id: userId }) as any,
       ]);
 
@@ -429,7 +429,13 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
       pending: { label: "Pending", variant: "secondary" },
       awaiting_guarantor: { label: "Awaiting Guarantor", variant: "default" },
       pending_admin: { label: "Pending Admin", variant: "default" },
+      pending_admin_review: { label: "Pending Admin Review", variant: "default" },
+      assigned_to_investor: { label: "Assigned to Investor", variant: "default" },
+      partially_funded: { label: "Partially Funded", variant: "default" },
+      fully_funded: { label: "Fully Funded", variant: "outline" },
+      investor_rejected: { label: "Investor Rejected — Reassigning", variant: "destructive" },
       approved: { label: "Approved", variant: "outline" },
+      active: { label: "Active", variant: "outline" },
       rejected: { label: "Rejected", variant: "destructive" },
     };
     const info = map[status] || { label: status, variant: "secondary" as const };
