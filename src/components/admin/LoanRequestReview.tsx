@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logActivity, sendNotification, checkLiquidity, type LiquidityCheck } from "@/lib/activityLogger";
 import LoanDocumentViewer from "./LoanDocumentViewer";
+import MultiInvestorAssignment from "./MultiInvestorAssignment";
+import { disburseLoan } from "@/lib/loanFunding";
 
 interface LoanRequestRow {
   id: string;
