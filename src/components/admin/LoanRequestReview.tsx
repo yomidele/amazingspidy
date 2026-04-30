@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck, Trash2, Briefcase } from "lucide-react";
+import { FileCheck, CheckCircle, XCircle, Users, AlertTriangle, ShieldCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,9 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logActivity, sendNotification, checkLiquidity, type LiquidityCheck } from "@/lib/activityLogger";
