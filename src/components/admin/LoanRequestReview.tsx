@@ -36,13 +36,12 @@ const LoanRequestReview = () => {
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
-  const [investors, setInvestors] = useState<{ user_id: string; full_name: string | null }[]>([]);
   const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
   const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
     open: false, request: null, check: null,
   });
 
-  useEffect(() => { fetchRequests(); fetchInvestors(); }, []);
+  useEffect(() => { fetchRequests(); }, []);
 
   // Fetch audit timeline whenever a request is opened
   useEffect(() => {
@@ -82,20 +81,12 @@ const LoanRequestReview = () => {
           action: l.action,
           description: l.description || "",
           created_at: l.created_at,
-          actor_name: l.user_id ? (nameMap.get(l.user_id) || "User") : "System",
+          actor_name: l.user_id ? (nameMap.get(l.user_id) || "User") : "User",
         }))
       );
     };
     loadTimeline();
   }, [selectedRequest]);
-
-  const fetchInvestors = async () => {
-    const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "investor");
-    const ids = (roles || []).map((r) => r.user_id);
-    if (ids.length === 0) { setInvestors([]); return; }
-    const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
-    setInvestors(profs || []);
-  };
 
   const fetchRequests = async () => {
     setLoading(true);
