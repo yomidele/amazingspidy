@@ -136,19 +136,16 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
           signer_role: "guarantor",
           signature_data: guarantorSignature,
         });
-
-        const { error: lrError } = await supabase
-          .from("loan_requests")
-          .update({ status: "pending_admin" })
-          .eq("id", loanRequestId);
-        if (lrError) throw lrError;
-      } else {
-        const { error: lrError } = await supabase
-          .from("loan_requests")
-          .update({ status: "rejected" })
-          .eq("id", loanRequestId);
-        if (lrError) throw lrError;
       }
+
+      // Central state-machine transition (handles notifications + audit log)
+      const { error: rpcError } = await (supabase as any).rpc("update_loan_status", {
+        _loan_request_id: loanRequestId,
+        _new_status: approve ? "GUARANTOR_APPROVED" : "GUARANTOR_REJECTED",
+        _actor_id: userId,
+        _note: responseNote || null,
+      });
+      if (rpcError) throw rpcError;
 
       toast.success(approve ? "Request approved!" : "Request rejected");
       setRespondingId(null);
