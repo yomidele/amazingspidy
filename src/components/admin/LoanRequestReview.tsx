@@ -231,31 +231,30 @@ const LoanRequestReview = () => {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      pending: "bg-muted text-muted-foreground",
-      awaiting_guarantor: "bg-warning/10 text-warning border-warning",
-      pending_admin: "bg-primary/10 text-primary border-primary",
-      pending_admin_review: "bg-primary/10 text-primary border-primary",
-      assigned_to_investor: "bg-blue-500/10 text-blue-500 border-blue-500",
-      partially_funded: "bg-amber-500/10 text-amber-500 border-amber-500",
-      fully_funded: "bg-emerald-500/10 text-emerald-500 border-emerald-500",
-      investor_rejected: "bg-orange-500/10 text-orange-500 border-orange-500",
-      approved: "bg-success/10 text-success border-success",
-      active: "bg-success/10 text-success border-success",
-      rejected: "bg-destructive/10 text-destructive border-destructive",
+      PENDING_GUARANTOR: "bg-warning/10 text-warning border-warning",
+      GUARANTOR_APPROVED: "bg-primary/10 text-primary border-primary",
+      GUARANTOR_REJECTED: "bg-destructive/10 text-destructive border-destructive",
+      ASSIGNED_TO_INVESTOR: "bg-blue-500/10 text-blue-500 border-blue-500",
+      INVESTOR_APPROVED: "bg-emerald-500/10 text-emerald-500 border-emerald-500",
+      INVESTOR_REJECTED: "bg-orange-500/10 text-orange-500 border-orange-500",
+      LOAN_DISBURSED: "bg-success/10 text-success border-success",
     };
     return <Badge variant="outline" className={colors[status] || ""}>{status.replace(/_/g, " ")}</Badge>;
   };
 
   // If viewing a specific loan request document
   if (selectedRequest) {
+    const canAssign = ["GUARANTOR_APPROVED", "INVESTOR_REJECTED"].includes(selectedRequest.status);
+    const canReject = ["PENDING_GUARANTOR", "GUARANTOR_APPROVED", "INVESTOR_REJECTED"].includes(selectedRequest.status);
+    const isActionable = canAssign || canReject || selectedRequest.status === "ASSIGNED_TO_INVESTOR";
+
     return (
       <div className="space-y-4">
         <LoanDocumentViewer
           loanRequest={selectedRequest}
           onBack={() => setSelectedRequest(null)}
         />
-        {/* Admin actions for pending_admin */}
-        {["pending_admin", "pending_admin_review", "assigned_to_investor", "partially_funded", "fully_funded", "investor_rejected"].includes(selectedRequest.status) && (
+        {isActionable && (
           <Card>
             <CardContent className="p-4 space-y-3">
               <h3 className="font-semibold text-sm">Admin Decision</h3>
@@ -266,57 +265,28 @@ const LoanRequestReview = () => {
                 onChange={(e) => setAdminNotes({ ...adminNotes, [selectedRequest.id]: e.target.value })}
               />
 
-              {selectedRequest.status === "fully_funded" ? (
+              {canReject && (
                 <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-500"
+                  variant="destructive"
+                  className="w-full"
                   disabled={processing === selectedRequest.id}
-                  onClick={async () => {
-                    setProcessing(selectedRequest.id);
-                    try {
-                      await disburseLoan(selectedRequest.id);
-                      toast.success("Loan disbursed and active!");
-                      fetchRequests();
-                      setSelectedRequest(null);
-                    } catch (e: any) {
-                      toast.error(e.message || "Disbursement failed");
-                    } finally {
-                      setProcessing(null);
-                    }
-                  }}
+                  onClick={() => handleReject(selectedRequest)}
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" /> Disburse Loan to Borrower
+                  <XCircle className="w-4 h-4 mr-2" /> Reject Loan Request
                 </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    className="flex-1 bg-success hover:bg-success/90"
-                    disabled={processing === selectedRequest.id}
-                    onClick={() => handleApproveClick(selectedRequest)}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" /> Approve from Pool
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    disabled={processing === selectedRequest.id}
-                    onClick={() => handleReject(selectedRequest)}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" /> Reject
-                  </Button>
-                </div>
               )}
 
-              {/* Multi-investor assignment */}
+              {/* Single-investor assignment */}
               <div className="pt-3 border-t">
-                <MultiInvestorAssignment
+                <SingleInvestorAssignment
                   loanRequestId={selectedRequest.id}
                   loanAmount={selectedRequest.amount}
                   borrowerName={selectedRequest.borrower_name}
-                  borrowerId={selectedRequest.borrower_id}
+                  loanStatus={selectedRequest.status}
                   onChanged={fetchRequests}
                 />
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  Tip: assign to one or several investors (split funding). Loan only becomes fundable once all assigned investors approve.
+                  Investor decides to fund. On approval, balance is deducted automatically and the loan is disbursed.
                 </p>
               </div>
             </CardContent>
