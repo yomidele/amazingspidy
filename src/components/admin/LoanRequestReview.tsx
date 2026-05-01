@@ -414,55 +414,6 @@ const LoanRequestReview = () => {
         </CardContent>
       </Card>
 
-      {/* Liquidity Warning Dialog */}
-      <Dialog open={liquidityDialog.open} onOpenChange={(open) => !open && setLiquidityDialog({ open: false, request: null, check: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" /> Liquidity Warning
-            </DialogTitle>
-            <DialogDescription>
-              Insufficient available funds to cover this loan.
-            </DialogDescription>
-          </DialogHeader>
-          {liquidityDialog.check && (
-            <div className="space-y-3 py-2">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Total Contributions</p>
-                  <p className="font-bold">£{liquidityDialog.check.totalContributions.toLocaleString()}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Active Loans</p>
-                  <p className="font-bold text-destructive">£{liquidityDialog.check.totalActiveLoans.toLocaleString()}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Investor Obligations</p>
-                  <p className="font-bold">£{liquidityDialog.check.totalInvestorObligations.toLocaleString()}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Available Funds</p>
-                  <p className={`font-bold ${liquidityDialog.check.availableFunds >= 0 ? "text-success" : "text-destructive"}`}>
-                    £{liquidityDialog.check.availableFunds.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
-                <p><strong>Requested:</strong> £{liquidityDialog.request?.amount.toLocaleString()}</p>
-                <p className="text-destructive mt-1">{liquidityDialog.check.reason}</p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLiquidityDialog({ open: false, request: null, check: null })}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={() => liquidityDialog.request && executeApproval(liquidityDialog.request)}>
-              <ShieldCheck className="w-4 h-4 mr-2" /> Override & Approve
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
