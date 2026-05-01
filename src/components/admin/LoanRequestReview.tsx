@@ -345,13 +345,13 @@ const LoanRequestReview = () => {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Pending Review</p>
-            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "pending_admin").length}</p>
+            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "GUARANTOR_APPROVED").length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Awaiting Guarantor</p>
-            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "awaiting_guarantor").length}</p>
+            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "PENDING_GUARANTOR").length}</p>
           </CardContent>
         </Card>
         <Card className="col-span-2 sm:col-span-1">
