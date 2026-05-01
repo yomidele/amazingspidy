@@ -162,101 +162,27 @@ const LoanRequestReview = () => {
     if (error) throw error;
   };
 
-  const handleApproveClick = async (request: LoanRequestRow) => {
-    const check = await checkLiquidity(request.amount);
-    if (!check.canApproveLoan) {
-      setLiquidityDialog({ open: true, request, check });
-      return;
-    }
-    await executeApproval(request);
-  };
-
-  const executeApproval = async (request: LoanRequestRow) => {
-    setProcessing(request.id);
-    setLiquidityDialog({ open: false, request: null, check: null });
-    try {
-      const { error: updateError } = await supabase
-        .from("loan_requests")
-        .update({ status: "approved", admin_notes: adminNotes[request.id] || null })
-        .eq("id", request.id);
-
-      if (updateError) throw updateError;
-
-      const { data: loan, error: loanError } = await supabase.from("loans").insert({
-        user_id: request.borrower_id,
-        group_id: request.group_id,
-        principal_amount: request.amount,
-        outstanding_balance: request.amount,
-        monthly_repayment: Math.ceil((request.amount / request.duration_months) * 100) / 100,
-        status: "active",
-        issued_date: new Date().toISOString(),
-      }).select("id").single();
-
-      if (loanError) throw loanError;
-
-      await generateRepaymentSchedule(loan.id, request.amount, request.duration_months);
-
-      await logActivity(
-        "loan_approved",
-        `Loan of £${request.amount.toLocaleString()} approved for ${request.borrower_name}. Guarantor: ${request.guarantor_name}. Duration: ${request.duration_months} months.`,
-        "loan", loan.id
-      );
-
-      await sendNotification(
-        request.borrower_id,
-        "Loan Approved ✅",
-        `Your loan request of £${request.amount.toLocaleString()} has been approved! Check your repayment schedule.`,
-        "success", "/dashboard/contributor"
-      );
-
-      if (request.guarantor_id) {
-        await sendNotification(
-          request.guarantor_id,
-          "Loan You Guaranteed Was Approved",
-          `The loan of £${request.amount.toLocaleString()} for ${request.borrower_name} that you guaranteed has been approved.`,
-          "info"
-        );
-      }
-
-      toast.success("Loan approved with repayment schedule!");
-      fetchRequests();
-      setSelectedRequest(null);
-    } catch (error: any) {
-      console.error("Error processing request:", error);
-      toast.error(error.message || "Failed to process request");
-    } finally {
-      setProcessing(null);
-    }
-  };
-
   const handleReject = async (request: LoanRequestRow) => {
     setProcessing(request.id);
     try {
-      const { error: updateError } = await supabase
-        .from("loan_requests")
-        .update({ status: "rejected", admin_notes: adminNotes[request.id] || null })
-        .eq("id", request.id);
-
-      if (updateError) throw updateError;
-
-      await logActivity(
-        "loan_rejected",
-        `Loan request of £${request.amount.toLocaleString()} by ${request.borrower_name} was rejected. Reason: ${adminNotes[request.id] || "No reason provided"}.`,
-        "loan_request", request.id
-      );
-
-      await sendNotification(
-        request.borrower_id,
-        "Loan Request Rejected",
-        `Your loan request of £${request.amount.toLocaleString()} has been rejected. ${adminNotes[request.id] ? `Reason: ${adminNotes[request.id]}` : "Contact admin for details."}`,
-        "error"
-      );
-
+      const { data: userData } = await supabase.auth.getUser();
+      // Determine target reject status based on current state
+      const target =
+        request.status === "PENDING_GUARANTOR" || request.status === "GUARANTOR_APPROVED"
+          ? "GUARANTOR_REJECTED"
+          : "GUARANTOR_REJECTED"; // admin can always force-cancel into a terminal reject
+      const { error } = await (supabase as any).rpc("update_loan_status", {
+        _loan_request_id: request.id,
+        _new_status: target,
+        _actor_id: userData?.user?.id ?? null,
+        _note: adminNotes[request.id] || "Rejected by admin",
+      });
+      if (error) throw error;
       toast.success("Loan request rejected");
       fetchRequests();
       setSelectedRequest(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to process request");
+      toast.error(error.message || "Failed to reject request");
     } finally {
       setProcessing(null);
     }
