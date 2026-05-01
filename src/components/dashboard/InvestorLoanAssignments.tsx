@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logActivity, sendNotification } from "@/lib/activityLogger";
+
 
 interface Assignment {
   id: string;
