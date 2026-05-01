@@ -856,6 +856,7 @@ export type Database = {
           funding_source: string
           group_id: string
           id: string
+          investor_id: string | null
           purpose: string | null
           status: string
           updated_at: string
@@ -869,6 +870,7 @@ export type Database = {
           funding_source?: string
           group_id: string
           id?: string
+          investor_id?: string | null
           purpose?: string | null
           status?: string
           updated_at?: string
@@ -882,6 +884,7 @@ export type Database = {
           funding_source?: string
           group_id?: string
           id?: string
+          investor_id?: string | null
           purpose?: string | null
           status?: string
           updated_at?: string
@@ -931,6 +934,7 @@ export type Database = {
           created_at: string
           group_id: string
           id: string
+          investor_id: string | null
           issued_date: string | null
           monthly_repayment: number | null
           outstanding_balance: number
@@ -943,6 +947,7 @@ export type Database = {
           created_at?: string
           group_id: string
           id?: string
+          investor_id?: string | null
           issued_date?: string | null
           monthly_repayment?: number | null
           outstanding_balance: number
@@ -955,6 +960,7 @@ export type Database = {
           created_at?: string
           group_id?: string
           id?: string
+          investor_id?: string | null
           issued_date?: string | null
           monthly_repayment?: number | null
           outstanding_balance?: number
@@ -1234,6 +1240,15 @@ export type Database = {
       recalc_monthly_expected: {
         Args: { _group_id: string; _month: number; _year: number }
         Returns: undefined
+      }
+      update_loan_status: {
+        Args: {
+          _actor_id?: string
+          _loan_request_id: string
+          _new_status: string
+          _note?: string
+        }
+        Returns: Json
       }
       v_month_name_from_int: { Args: { _m: number }; Returns: string }
     }

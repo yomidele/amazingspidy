@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logActivity, sendNotification } from "@/lib/activityLogger";
+
 
 interface Assignment {
   id: string;
@@ -100,46 +100,21 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
         }
       }
 
+      // The DB triggers handle:
+      //  - on accept: deducts balance, creates loan + disbursement + repayments,
+      //    transitions request to LOAN_DISBURSED, notifies borrower & admin, writes audit log
+      //  - on reject: transitions request to INVESTOR_REJECTED, notifies admin & borrower
       const { error } = await (supabase as any)
         .from("loan_assignments")
         .update({ status, responded_at: new Date().toISOString() })
         .eq("id", a.id);
       if (error) throw error;
 
-      const { data: userData } = await supabase.auth.getUser();
-      const investorName =
-        userData?.user?.user_metadata?.full_name || userData?.user?.email || "Investor";
-      await logActivity(
-        status === "accepted" ? "loan_assignment_accepted" : "loan_assignment_rejected",
-        `Investor ${investorName} ${status} loan funding of £${a.assignment_share.toLocaleString()} for ${a.borrower_name}.`,
-        "loan_assignment",
-        a.id,
-        userData?.user?.id ?? null
+      toast.success(
+        status === "accepted"
+          ? "Loan approved & funded — borrower has been notified"
+          : "Assignment rejected — admin will reassign"
       );
-
-      // Notify borrower
-      try {
-        const { data: req } = await supabase
-          .from("loan_requests")
-          .select("borrower_id")
-          .eq("id", a.loan_request_id)
-          .single();
-        if (req?.borrower_id) {
-          await sendNotification(
-            req.borrower_id,
-            status === "accepted" ? "Investor Funding Approved" : "Investor Funding Declined",
-            status === "accepted"
-              ? `An investor has approved funding £${a.assignment_share.toLocaleString()} of your loan.`
-              : `An assigned investor declined to fund £${a.assignment_share.toLocaleString()} of your loan. Admin will reassign.`,
-            status === "accepted" ? "success" : "warning",
-            "/dashboard/contributor"
-          );
-        }
-      } catch (e) {
-        console.warn("Borrower notification failed", e);
-      }
-
-      toast.success(status === "accepted" ? "Funding approved & locked" : "Assignment rejected");
       fetchAssignments();
     } catch (e: any) {
       toast.error(e.message || "Could not update assignment");

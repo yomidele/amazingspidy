@@ -9,10 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logActivity, sendNotification, checkLiquidity, type LiquidityCheck } from "@/lib/activityLogger";
+import { logActivity, sendNotification } from "@/lib/activityLogger";
 import LoanDocumentViewer from "./LoanDocumentViewer";
-import MultiInvestorAssignment from "./MultiInvestorAssignment";
-import { disburseLoan } from "@/lib/loanFunding";
+import SingleInvestorAssignment from "./SingleInvestorAssignment";
 
 interface LoanRequestRow {
   id: string;
@@ -37,9 +36,6 @@ const LoanRequestReview = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
   const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
-  const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
-    open: false, request: null, check: null,
-  });
 
   useEffect(() => { fetchRequests(); }, []);
 
@@ -166,101 +162,27 @@ const LoanRequestReview = () => {
     if (error) throw error;
   };
 
-  const handleApproveClick = async (request: LoanRequestRow) => {
-    const check = await checkLiquidity(request.amount);
-    if (!check.canApproveLoan) {
-      setLiquidityDialog({ open: true, request, check });
-      return;
-    }
-    await executeApproval(request);
-  };
-
-  const executeApproval = async (request: LoanRequestRow) => {
-    setProcessing(request.id);
-    setLiquidityDialog({ open: false, request: null, check: null });
-    try {
-      const { error: updateError } = await supabase
-        .from("loan_requests")
-        .update({ status: "approved", admin_notes: adminNotes[request.id] || null })
-        .eq("id", request.id);
-
-      if (updateError) throw updateError;
-
-      const { data: loan, error: loanError } = await supabase.from("loans").insert({
-        user_id: request.borrower_id,
-        group_id: request.group_id,
-        principal_amount: request.amount,
-        outstanding_balance: request.amount,
-        monthly_repayment: Math.ceil((request.amount / request.duration_months) * 100) / 100,
-        status: "active",
-        issued_date: new Date().toISOString(),
-      }).select("id").single();
-
-      if (loanError) throw loanError;
-
-      await generateRepaymentSchedule(loan.id, request.amount, request.duration_months);
-
-      await logActivity(
-        "loan_approved",
-        `Loan of £${request.amount.toLocaleString()} approved for ${request.borrower_name}. Guarantor: ${request.guarantor_name}. Duration: ${request.duration_months} months.`,
-        "loan", loan.id
-      );
-
-      await sendNotification(
-        request.borrower_id,
-        "Loan Approved ✅",
-        `Your loan request of £${request.amount.toLocaleString()} has been approved! Check your repayment schedule.`,
-        "success", "/dashboard/contributor"
-      );
-
-      if (request.guarantor_id) {
-        await sendNotification(
-          request.guarantor_id,
-          "Loan You Guaranteed Was Approved",
-          `The loan of £${request.amount.toLocaleString()} for ${request.borrower_name} that you guaranteed has been approved.`,
-          "info"
-        );
-      }
-
-      toast.success("Loan approved with repayment schedule!");
-      fetchRequests();
-      setSelectedRequest(null);
-    } catch (error: any) {
-      console.error("Error processing request:", error);
-      toast.error(error.message || "Failed to process request");
-    } finally {
-      setProcessing(null);
-    }
-  };
-
   const handleReject = async (request: LoanRequestRow) => {
     setProcessing(request.id);
     try {
-      const { error: updateError } = await supabase
-        .from("loan_requests")
-        .update({ status: "rejected", admin_notes: adminNotes[request.id] || null })
-        .eq("id", request.id);
-
-      if (updateError) throw updateError;
-
-      await logActivity(
-        "loan_rejected",
-        `Loan request of £${request.amount.toLocaleString()} by ${request.borrower_name} was rejected. Reason: ${adminNotes[request.id] || "No reason provided"}.`,
-        "loan_request", request.id
-      );
-
-      await sendNotification(
-        request.borrower_id,
-        "Loan Request Rejected",
-        `Your loan request of £${request.amount.toLocaleString()} has been rejected. ${adminNotes[request.id] ? `Reason: ${adminNotes[request.id]}` : "Contact admin for details."}`,
-        "error"
-      );
-
+      const { data: userData } = await supabase.auth.getUser();
+      // Determine target reject status based on current state
+      const target =
+        request.status === "PENDING_GUARANTOR" || request.status === "GUARANTOR_APPROVED"
+          ? "GUARANTOR_REJECTED"
+          : "GUARANTOR_REJECTED"; // admin can always force-cancel into a terminal reject
+      const { error } = await (supabase as any).rpc("update_loan_status", {
+        _loan_request_id: request.id,
+        _new_status: target,
+        _actor_id: userData?.user?.id ?? null,
+        _note: adminNotes[request.id] || "Rejected by admin",
+      });
+      if (error) throw error;
       toast.success("Loan request rejected");
       fetchRequests();
       setSelectedRequest(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to process request");
+      toast.error(error.message || "Failed to reject request");
     } finally {
       setProcessing(null);
     }
@@ -271,7 +193,7 @@ const LoanRequestReview = () => {
     setProcessing(request.id);
     try {
       // If this request was approved, delete the associated loan first (repayments cascade via FK)
-      if (request.status === "approved") {
+      if (request.status === "LOAN_DISBURSED") {
         await supabase
           .from("loans")
           .delete()
@@ -309,31 +231,30 @@ const LoanRequestReview = () => {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      pending: "bg-muted text-muted-foreground",
-      awaiting_guarantor: "bg-warning/10 text-warning border-warning",
-      pending_admin: "bg-primary/10 text-primary border-primary",
-      pending_admin_review: "bg-primary/10 text-primary border-primary",
-      assigned_to_investor: "bg-blue-500/10 text-blue-500 border-blue-500",
-      partially_funded: "bg-amber-500/10 text-amber-500 border-amber-500",
-      fully_funded: "bg-emerald-500/10 text-emerald-500 border-emerald-500",
-      investor_rejected: "bg-orange-500/10 text-orange-500 border-orange-500",
-      approved: "bg-success/10 text-success border-success",
-      active: "bg-success/10 text-success border-success",
-      rejected: "bg-destructive/10 text-destructive border-destructive",
+      PENDING_GUARANTOR: "bg-warning/10 text-warning border-warning",
+      GUARANTOR_APPROVED: "bg-primary/10 text-primary border-primary",
+      GUARANTOR_REJECTED: "bg-destructive/10 text-destructive border-destructive",
+      ASSIGNED_TO_INVESTOR: "bg-blue-500/10 text-blue-500 border-blue-500",
+      INVESTOR_APPROVED: "bg-emerald-500/10 text-emerald-500 border-emerald-500",
+      INVESTOR_REJECTED: "bg-orange-500/10 text-orange-500 border-orange-500",
+      LOAN_DISBURSED: "bg-success/10 text-success border-success",
     };
     return <Badge variant="outline" className={colors[status] || ""}>{status.replace(/_/g, " ")}</Badge>;
   };
 
   // If viewing a specific loan request document
   if (selectedRequest) {
+    const canAssign = ["GUARANTOR_APPROVED", "INVESTOR_REJECTED"].includes(selectedRequest.status);
+    const canReject = ["PENDING_GUARANTOR", "GUARANTOR_APPROVED", "INVESTOR_REJECTED"].includes(selectedRequest.status);
+    const isActionable = canAssign || canReject || selectedRequest.status === "ASSIGNED_TO_INVESTOR";
+
     return (
       <div className="space-y-4">
         <LoanDocumentViewer
           loanRequest={selectedRequest}
           onBack={() => setSelectedRequest(null)}
         />
-        {/* Admin actions for pending_admin */}
-        {["pending_admin", "pending_admin_review", "assigned_to_investor", "partially_funded", "fully_funded", "investor_rejected"].includes(selectedRequest.status) && (
+        {isActionable && (
           <Card>
             <CardContent className="p-4 space-y-3">
               <h3 className="font-semibold text-sm">Admin Decision</h3>
@@ -344,57 +265,28 @@ const LoanRequestReview = () => {
                 onChange={(e) => setAdminNotes({ ...adminNotes, [selectedRequest.id]: e.target.value })}
               />
 
-              {selectedRequest.status === "fully_funded" ? (
+              {canReject && (
                 <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-500"
+                  variant="destructive"
+                  className="w-full"
                   disabled={processing === selectedRequest.id}
-                  onClick={async () => {
-                    setProcessing(selectedRequest.id);
-                    try {
-                      await disburseLoan(selectedRequest.id);
-                      toast.success("Loan disbursed and active!");
-                      fetchRequests();
-                      setSelectedRequest(null);
-                    } catch (e: any) {
-                      toast.error(e.message || "Disbursement failed");
-                    } finally {
-                      setProcessing(null);
-                    }
-                  }}
+                  onClick={() => handleReject(selectedRequest)}
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" /> Disburse Loan to Borrower
+                  <XCircle className="w-4 h-4 mr-2" /> Reject Loan Request
                 </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    className="flex-1 bg-success hover:bg-success/90"
-                    disabled={processing === selectedRequest.id}
-                    onClick={() => handleApproveClick(selectedRequest)}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" /> Approve from Pool
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    disabled={processing === selectedRequest.id}
-                    onClick={() => handleReject(selectedRequest)}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" /> Reject
-                  </Button>
-                </div>
               )}
 
-              {/* Multi-investor assignment */}
+              {/* Single-investor assignment */}
               <div className="pt-3 border-t">
-                <MultiInvestorAssignment
+                <SingleInvestorAssignment
                   loanRequestId={selectedRequest.id}
                   loanAmount={selectedRequest.amount}
                   borrowerName={selectedRequest.borrower_name}
-                  borrowerId={selectedRequest.borrower_id}
+                  loanStatus={selectedRequest.status}
                   onChanged={fetchRequests}
                 />
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  Tip: assign to one or several investors (split funding). Loan only becomes fundable once all assigned investors approve.
+                  Investor decides to fund. On approval, balance is deducted automatically and the loan is disbursed.
                 </p>
               </div>
             </CardContent>
@@ -453,13 +345,13 @@ const LoanRequestReview = () => {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Pending Review</p>
-            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "pending_admin").length}</p>
+            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "GUARANTOR_APPROVED").length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Awaiting Guarantor</p>
-            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "awaiting_guarantor").length}</p>
+            <p className="font-bold text-2xl">{requests.filter((r) => r.status === "PENDING_GUARANTOR").length}</p>
           </CardContent>
         </Card>
         <Card className="col-span-2 sm:col-span-1">
@@ -522,55 +414,6 @@ const LoanRequestReview = () => {
         </CardContent>
       </Card>
 
-      {/* Liquidity Warning Dialog */}
-      <Dialog open={liquidityDialog.open} onOpenChange={(open) => !open && setLiquidityDialog({ open: false, request: null, check: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" /> Liquidity Warning
-            </DialogTitle>
-            <DialogDescription>
-              Insufficient available funds to cover this loan.
-            </DialogDescription>
-          </DialogHeader>
-          {liquidityDialog.check && (
-            <div className="space-y-3 py-2">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Total Contributions</p>
-                  <p className="font-bold">£{liquidityDialog.check.totalContributions.toLocaleString()}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Active Loans</p>
-                  <p className="font-bold text-destructive">£{liquidityDialog.check.totalActiveLoans.toLocaleString()}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Investor Obligations</p>
-                  <p className="font-bold">£{liquidityDialog.check.totalInvestorObligations.toLocaleString()}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-muted-foreground text-xs">Available Funds</p>
-                  <p className={`font-bold ${liquidityDialog.check.availableFunds >= 0 ? "text-success" : "text-destructive"}`}>
-                    £{liquidityDialog.check.availableFunds.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
-                <p><strong>Requested:</strong> £{liquidityDialog.request?.amount.toLocaleString()}</p>
-                <p className="text-destructive mt-1">{liquidityDialog.check.reason}</p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLiquidityDialog({ open: false, request: null, check: null })}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={() => liquidityDialog.request && executeApproval(liquidityDialog.request)}>
-              <ShieldCheck className="w-4 h-4 mr-2" /> Override & Approve
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

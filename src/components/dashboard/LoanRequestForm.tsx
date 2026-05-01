@@ -144,11 +144,13 @@ const LoanRequestItem = ({
         .eq("loan_request_id", request.id)
         .eq("signer_role", "guarantor");
 
-      if (gSig && gSig.length > 0 && request.status === "awaiting_guarantor") {
-        await supabase
-          .from("loan_requests")
-          .update({ status: "pending_admin" })
-          .eq("id", request.id);
+      if (gSig && gSig.length > 0 && request.status === "PENDING_GUARANTOR") {
+        await (supabase as any).rpc("update_loan_status", {
+          _loan_request_id: request.id,
+          _new_status: "GUARANTOR_APPROVED",
+          _actor_id: userId,
+          _note: "Late borrower signature completed",
+        });
       }
 
       toast.success("Signature saved successfully!");
@@ -162,7 +164,7 @@ const LoanRequestItem = ({
     }
   };
 
-  const needsSignature = hasSigned === false && ["awaiting_guarantor", "pending_admin", "approved"].includes(request.status);
+  const needsSignature = hasSigned === false && ["PENDING_GUARANTOR", "GUARANTOR_APPROVED", "ASSIGNED_TO_INVESTOR"].includes(request.status);
 
   if (viewDocument && guarantorInfo) {
     return (
@@ -269,7 +271,7 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
           .from("loan_requests")
           .select("id")
           .eq("borrower_id", userId)
-          .in("status", ["pending", "awaiting_guarantor", "pending_admin", "pending_admin_review", "assigned_to_investor", "partially_funded", "fully_funded", "investor_rejected"]),
+          .in("status", ["PENDING_GUARANTOR", "GUARANTOR_APPROVED", "ASSIGNED_TO_INVESTOR", "INVESTOR_APPROVED", "INVESTOR_REJECTED"]),
         supabase.rpc("get_same_group_guarantors" as any, { _user_id: userId }) as any,
       ]);
 
@@ -385,7 +387,7 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
           amount: form.amount,
           duration_months: form.duration_months,
           purpose: form.purpose.trim(),
-          status: "awaiting_guarantor",
+          status: "PENDING_GUARANTOR",
         })
         .select("id")
         .single();
@@ -426,19 +428,15 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, { label: string; variant: "default" | "outline" | "destructive" | "secondary" }> = {
-      pending: { label: "Pending", variant: "secondary" },
-      awaiting_guarantor: { label: "Awaiting Guarantor", variant: "default" },
-      pending_admin: { label: "Pending Admin", variant: "default" },
-      pending_admin_review: { label: "Pending Admin Review", variant: "default" },
-      assigned_to_investor: { label: "Assigned to Investor", variant: "default" },
-      partially_funded: { label: "Partially Funded", variant: "default" },
-      fully_funded: { label: "Fully Funded", variant: "outline" },
-      investor_rejected: { label: "Investor Rejected — Reassigning", variant: "destructive" },
-      approved: { label: "Approved", variant: "outline" },
-      active: { label: "Active", variant: "outline" },
-      rejected: { label: "Rejected", variant: "destructive" },
+      PENDING_GUARANTOR: { label: "Awaiting Guarantor", variant: "default" },
+      GUARANTOR_APPROVED: { label: "Pending Admin Review", variant: "default" },
+      GUARANTOR_REJECTED: { label: "Rejected by Guarantor", variant: "destructive" },
+      ASSIGNED_TO_INVESTOR: { label: "Assigned to Investor", variant: "default" },
+      INVESTOR_APPROVED: { label: "Funded", variant: "outline" },
+      INVESTOR_REJECTED: { label: "Investor Rejected — Reassigning", variant: "destructive" },
+      LOAN_DISBURSED: { label: "Active", variant: "outline" },
     };
-    const info = map[status] || { label: status, variant: "secondary" as const };
+    const info = map[status] || { label: status.replace(/_/g, " "), variant: "secondary" as const };
     return <Badge variant={info.variant}>{info.label}</Badge>;
   };
 

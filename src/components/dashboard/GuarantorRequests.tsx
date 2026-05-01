@@ -136,19 +136,16 @@ const GuarantorRequests = ({ userId }: GuarantorRequestsProps) => {
           signer_role: "guarantor",
           signature_data: guarantorSignature,
         });
-
-        const { error: lrError } = await supabase
-          .from("loan_requests")
-          .update({ status: "pending_admin" })
-          .eq("id", loanRequestId);
-        if (lrError) throw lrError;
-      } else {
-        const { error: lrError } = await supabase
-          .from("loan_requests")
-          .update({ status: "rejected" })
-          .eq("id", loanRequestId);
-        if (lrError) throw lrError;
       }
+
+      // Central state-machine transition (handles notifications + audit log)
+      const { error: rpcError } = await (supabase as any).rpc("update_loan_status", {
+        _loan_request_id: loanRequestId,
+        _new_status: approve ? "GUARANTOR_APPROVED" : "GUARANTOR_REJECTED",
+        _actor_id: userId,
+        _note: responseNote || null,
+      });
+      if (rpcError) throw rpcError;
 
       toast.success(approve ? "Request approved!" : "Request rejected");
       setRespondingId(null);
@@ -285,18 +282,20 @@ const GuarantorRequestItem = ({
       });
       if (error) throw error;
 
-      // Check if borrower has also signed, if so update to pending_admin
+      // If borrower has also signed and we're still PENDING_GUARANTOR, advance state
       const { data: bSig } = await supabase
         .from("loan_signatures")
         .select("id")
         .eq("loan_request_id", req.loan_request_id)
         .eq("signer_role", "borrower");
 
-      if (bSig && bSig.length > 0 && req.loan_status === "awaiting_guarantor") {
-        await supabase
-          .from("loan_requests")
-          .update({ status: "pending_admin" })
-          .eq("id", req.loan_request_id);
+      if (bSig && bSig.length > 0 && req.loan_status === "PENDING_GUARANTOR") {
+        await (supabase as any).rpc("update_loan_status", {
+          _loan_request_id: req.loan_request_id,
+          _new_status: "GUARANTOR_APPROVED",
+          _actor_id: userId,
+          _note: "Late guarantor signature completed",
+        });
       }
 
       toast.success("Signature saved successfully!");
@@ -310,7 +309,7 @@ const GuarantorRequestItem = ({
     }
   };
 
-  const needsLateSignature = req.status === "approved" && hasSigned === false;
+  const needsLateSignature = req.status === "GUARANTOR_APPROVED" && hasSigned === false;
 
   return (
     <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
