@@ -387,7 +387,7 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
           amount: form.amount,
           duration_months: form.duration_months,
           purpose: form.purpose.trim(),
-          status: "awaiting_guarantor",
+          status: "PENDING_GUARANTOR",
         })
         .select("id")
         .single();
