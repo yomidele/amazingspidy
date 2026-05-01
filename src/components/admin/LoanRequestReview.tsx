@@ -36,9 +36,6 @@ const LoanRequestReview = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
   const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
-  const [liquidityDialog, setLiquidityDialog] = useState<{ open: boolean; request: LoanRequestRow | null; check: LiquidityCheck | null }>({
-    open: false, request: null, check: null,
-  });
 
   useEffect(() => { fetchRequests(); }, []);
 
