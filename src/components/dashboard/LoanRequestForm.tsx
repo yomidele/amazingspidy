@@ -164,7 +164,7 @@ const LoanRequestItem = ({
     }
   };
 
-  const needsSignature = hasSigned === false && ["awaiting_guarantor", "pending_admin", "approved"].includes(request.status);
+  const needsSignature = hasSigned === false && ["PENDING_GUARANTOR", "GUARANTOR_APPROVED", "ASSIGNED_TO_INVESTOR"].includes(request.status);
 
   if (viewDocument && guarantorInfo) {
     return (
