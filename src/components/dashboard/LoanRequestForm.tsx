@@ -428,19 +428,15 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, { label: string; variant: "default" | "outline" | "destructive" | "secondary" }> = {
-      pending: { label: "Pending", variant: "secondary" },
-      awaiting_guarantor: { label: "Awaiting Guarantor", variant: "default" },
-      pending_admin: { label: "Pending Admin", variant: "default" },
-      pending_admin_review: { label: "Pending Admin Review", variant: "default" },
-      assigned_to_investor: { label: "Assigned to Investor", variant: "default" },
-      partially_funded: { label: "Partially Funded", variant: "default" },
-      fully_funded: { label: "Fully Funded", variant: "outline" },
-      investor_rejected: { label: "Investor Rejected — Reassigning", variant: "destructive" },
-      approved: { label: "Approved", variant: "outline" },
-      active: { label: "Active", variant: "outline" },
-      rejected: { label: "Rejected", variant: "destructive" },
+      PENDING_GUARANTOR: { label: "Awaiting Guarantor", variant: "default" },
+      GUARANTOR_APPROVED: { label: "Pending Admin Review", variant: "default" },
+      GUARANTOR_REJECTED: { label: "Rejected by Guarantor", variant: "destructive" },
+      ASSIGNED_TO_INVESTOR: { label: "Assigned to Investor", variant: "default" },
+      INVESTOR_APPROVED: { label: "Funded", variant: "outline" },
+      INVESTOR_REJECTED: { label: "Investor Rejected — Reassigning", variant: "destructive" },
+      LOAN_DISBURSED: { label: "Active", variant: "outline" },
     };
-    const info = map[status] || { label: status, variant: "secondary" as const };
+    const info = map[status] || { label: status.replace(/_/g, " "), variant: "secondary" as const };
     return <Badge variant={info.variant}>{info.label}</Badge>;
   };
 
