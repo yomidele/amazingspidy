@@ -144,11 +144,13 @@ const LoanRequestItem = ({
         .eq("loan_request_id", request.id)
         .eq("signer_role", "guarantor");
 
-      if (gSig && gSig.length > 0 && request.status === "awaiting_guarantor") {
-        await supabase
-          .from("loan_requests")
-          .update({ status: "pending_admin" })
-          .eq("id", request.id);
+      if (gSig && gSig.length > 0 && request.status === "PENDING_GUARANTOR") {
+        await (supabase as any).rpc("update_loan_status", {
+          _loan_request_id: request.id,
+          _new_status: "GUARANTOR_APPROVED",
+          _actor_id: userId,
+          _note: "Late borrower signature completed",
+        });
       }
 
       toast.success("Signature saved successfully!");
