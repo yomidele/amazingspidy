@@ -9,10 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logActivity, sendNotification, checkLiquidity, type LiquidityCheck } from "@/lib/activityLogger";
+import { logActivity, sendNotification } from "@/lib/activityLogger";
 import LoanDocumentViewer from "./LoanDocumentViewer";
-import MultiInvestorAssignment from "./MultiInvestorAssignment";
-import { disburseLoan } from "@/lib/loanFunding";
+import SingleInvestorAssignment from "./SingleInvestorAssignment";
 
 interface LoanRequestRow {
   id: string;
