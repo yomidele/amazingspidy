@@ -271,7 +271,7 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
           .from("loan_requests")
           .select("id")
           .eq("borrower_id", userId)
-          .in("status", ["pending", "awaiting_guarantor", "pending_admin", "pending_admin_review", "assigned_to_investor", "partially_funded", "fully_funded", "investor_rejected"]),
+          .in("status", ["PENDING_GUARANTOR", "GUARANTOR_APPROVED", "ASSIGNED_TO_INVESTOR", "INVESTOR_APPROVED", "INVESTOR_REJECTED"]),
         supabase.rpc("get_same_group_guarantors" as any, { _user_id: userId }) as any,
       ]);
 
