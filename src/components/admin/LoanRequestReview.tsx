@@ -193,7 +193,7 @@ const LoanRequestReview = () => {
     setProcessing(request.id);
     try {
       // If this request was approved, delete the associated loan first (repayments cascade via FK)
-      if (request.status === "approved") {
+      if (request.status === "LOAN_DISBURSED") {
         await supabase
           .from("loans")
           .delete()
