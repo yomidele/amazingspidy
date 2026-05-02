@@ -231,30 +231,32 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
           <p className="text-[11px] text-white/40 uppercase tracking-wider mb-3">Group member</p>
 
           <div className="space-y-2 text-sm">
-            {s.accountName && (
-              <div className="flex items-center gap-2 text-white/70">
-                <User className="w-4 h-4 text-white/40" />
-                <span className="truncate">{s.accountName}</span>
-              </div>
-            )}
-            {s.bankName && (
-              <div className="flex items-center gap-2 text-white/70">
-                <Building2 className="w-4 h-4 text-white/40" />
-                <span className="truncate">{s.bankName}</span>
-              </div>
-            )}
-            {s.accountNumber && (
-              <div className="flex items-center gap-2 text-white/70">
-                <CreditCard className="w-4 h-4 text-white/40" />
-                <span className="font-mono">{s.accountNumber}</span>
-              </div>
-            )}
-            {s.sortCode && (
-              <div className="flex items-center gap-2 text-white/70">
-                <Hash className="w-4 h-4 text-white/40" />
-                <span className="font-mono">{s.sortCode}</span>
-              </div>
-            )}
+            <CopyField
+              label="Account Name"
+              value={s.accountName}
+              variant="dark"
+              icon={<User className="w-4 h-4 text-white/40" />}
+            />
+            <CopyField
+              label="Bank Name"
+              value={s.bankName}
+              variant="dark"
+              icon={<Building2 className="w-4 h-4 text-white/40" />}
+            />
+            <CopyField
+              label="Account Number"
+              value={s.accountNumber}
+              variant="dark"
+              mono
+              icon={<CreditCard className="w-4 h-4 text-white/40" />}
+            />
+            <CopyField
+              label="Sort Code"
+              value={s.sortCode}
+              variant="dark"
+              mono
+              icon={<Hash className="w-4 h-4 text-white/40" />}
+            />
           </div>
 
           {(s.accountName || s.bankName || s.accountNumber || s.sortCode) && (
