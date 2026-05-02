@@ -358,6 +358,19 @@ const LoanRequestReview = ({ initialRequestId, onClearInitial }: LoanRequestRevi
         <p className="text-sm text-muted-foreground">Review and approve contributor loan requests</p>
       </div>
 
+      {notFound && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Request not found</p>
+              <p className="text-xs text-muted-foreground">The loan request from your notification no longer exists. It may have been deleted.</p>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => { setNotFound(false); onClearInitial?.(); }}>Dismiss</Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats cards - 2 per row on mobile */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Card>
