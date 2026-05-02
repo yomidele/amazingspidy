@@ -72,13 +72,17 @@ const AdminDashboardContent = () => {
 
   // sync state with path for user detail
   useEffect(() => {
-    const match = location.pathname.match(/^\/admin\/users\/([^\/]+)/);
-    if (match) {
+    const userMatch = location.pathname.match(/^\/admin\/users\/([^\/]+)/);
+    const loanMatch = location.pathname.match(/^\/admin\/loan-requests\/([^\/]+)/);
+    if (userMatch) {
       setActiveModule("contribution");
       setActivePage("user-detail");
-      setSelectedUserId(match[1]);
+      setSelectedUserId(userMatch[1]);
+    } else if (loanMatch) {
+      setActiveModule("contribution");
+      setActivePage("loan-requests");
+      setSelectedLoanRequestId(loanMatch[1]);
     } else if (activePage === "user-detail") {
-      // return to members on back
       setActivePage("members");
       setSelectedUserId(null);
     }
