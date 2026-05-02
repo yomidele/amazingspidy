@@ -56,8 +56,10 @@ interface LoanRequest {
   group_id: string;
 }
 
-const MIN_PAID_MONTHS = 3;
+// New members can request loans immediately. We only block if they have an active
+// loan or a pending request. Max amount is uncapped when they have no contributions yet.
 const LOAN_MULTIPLIER = 2;
+const DEFAULT_MAX_LOAN = 100000; // generous fallback for new members with no contributions yet
 
 // Sub-component for each loan request with signing and document viewing capability
 const LoanRequestItem = ({
