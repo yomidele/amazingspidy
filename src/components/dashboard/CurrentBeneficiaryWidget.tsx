@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Crown, Building2, CreditCard, Copy, User, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import CopyField from "@/components/shared/CopyField";
 
 interface BeneficiarySlot {
   groupId: string;
