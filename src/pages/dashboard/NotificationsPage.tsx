@@ -84,6 +84,11 @@ const NotificationsPage = () => {
       await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
       setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, is_read: true } : x));
     }
+    // If the notification has a deep link, navigate straight there
+    if (n.link) {
+      navigate(n.link);
+      return;
+    }
     navigate(`/dashboard/notifications/${n.id}`);
   };
 
