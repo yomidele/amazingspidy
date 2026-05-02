@@ -29,15 +29,33 @@ interface LoanRequestRow {
   group_id: string;
 }
 
-const LoanRequestReview = () => {
+interface LoanRequestReviewProps {
+  initialRequestId?: string | null;
+  onClearInitial?: () => void;
+}
+
+const LoanRequestReview = ({ initialRequestId, onClearInitial }: LoanRequestReviewProps = {}) => {
   const [requests, setRequests] = useState<LoanRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
 
   useEffect(() => { fetchRequests(); }, []);
+
+  // When opened via deep link, auto-select the matching request
+  useEffect(() => {
+    if (!initialRequestId || requests.length === 0) return;
+    const match = requests.find((r) => r.id === initialRequestId);
+    if (match) {
+      setSelectedRequest(match);
+      setNotFound(false);
+    } else {
+      setNotFound(true);
+    }
+  }, [initialRequestId, requests]);
 
   // Fetch audit timeline whenever a request is opened
   useEffect(() => {
@@ -252,7 +270,7 @@ const LoanRequestReview = () => {
       <div className="space-y-4">
         <LoanDocumentViewer
           loanRequest={selectedRequest}
-          onBack={() => setSelectedRequest(null)}
+          onBack={() => { setSelectedRequest(null); onClearInitial?.(); }}
         />
         {isActionable && (
           <Card>
@@ -339,6 +357,19 @@ const LoanRequestReview = () => {
         <h2 className="font-heading text-xl font-bold text-foreground">Loan Requests</h2>
         <p className="text-sm text-muted-foreground">Review and approve contributor loan requests</p>
       </div>
+
+      {notFound && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Request not found</p>
+              <p className="text-xs text-muted-foreground">The loan request from your notification no longer exists. It may have been deleted.</p>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => { setNotFound(false); onClearInitial?.(); }}>Dismiss</Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats cards - 2 per row on mobile */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

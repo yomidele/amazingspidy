@@ -56,8 +56,10 @@ interface LoanRequest {
   group_id: string;
 }
 
-const MIN_PAID_MONTHS = 3;
+// New members can request loans immediately. We only block if they have an active
+// loan or a pending request. Max amount is uncapped when they have no contributions yet.
 const LOAN_MULTIPLIER = 2;
+const DEFAULT_MAX_LOAN = 100000; // generous fallback for new members with no contributions yet
 
 // Sub-component for each loan request with signing and document viewing capability
 const LoanRequestItem = ({
@@ -285,9 +287,6 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
       const hasActiveLoan = (activeLoansResult.data?.length || 0) > 0;
       const hasPendingRequest = (pendingRequestsResult.data?.length || 0) > 0;
 
-      if (paidMonths < MIN_PAID_MONTHS) {
-        reasons.push(`You need at least ${MIN_PAID_MONTHS} months of paid contributions (you have ${paidMonths}).`);
-      }
       if (hasActiveLoan) {
         reasons.push("You have an active loan that must be fully repaid first.");
       }
@@ -295,7 +294,7 @@ const LoanRequestForm = ({ userId, userName }: LoanRequestFormProps) => {
         reasons.push("You already have a pending loan request.");
       }
 
-      const maxLoanAmount = totalContributed * LOAN_MULTIPLIER;
+      const maxLoanAmount = totalContributed > 0 ? totalContributed * LOAN_MULTIPLIER : DEFAULT_MAX_LOAN;
 
       setEligibility({
         eligible: reasons.length === 0,
