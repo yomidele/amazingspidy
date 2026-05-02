@@ -226,7 +226,12 @@ const AdminDashboardContent = () => {
         case "loans":
           return <LoanManagementPage />;
         case "loan-requests":
-          return <LoanRequestReview />;
+          return (
+            <LoanRequestReview
+              initialRequestId={selectedLoanRequestId}
+              onClearInitial={() => setSelectedLoanRequestId(null)}
+            />
+          );
         case "settings":
           return (
             <AdminSettingsPage
