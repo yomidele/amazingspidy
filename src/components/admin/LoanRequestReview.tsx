@@ -29,15 +29,33 @@ interface LoanRequestRow {
   group_id: string;
 }
 
-const LoanRequestReview = () => {
+interface LoanRequestReviewProps {
+  initialRequestId?: string | null;
+  onClearInitial?: () => void;
+}
+
+const LoanRequestReview = ({ initialRequestId, onClearInitial }: LoanRequestReviewProps = {}) => {
   const [requests, setRequests] = useState<LoanRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LoanRequestRow | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [auditTimeline, setAuditTimeline] = useState<Array<{ id: string; action: string; description: string; created_at: string; actor_name: string }>>([]);
 
   useEffect(() => { fetchRequests(); }, []);
+
+  // When opened via deep link, auto-select the matching request
+  useEffect(() => {
+    if (!initialRequestId || requests.length === 0) return;
+    const match = requests.find((r) => r.id === initialRequestId);
+    if (match) {
+      setSelectedRequest(match);
+      setNotFound(false);
+    } else {
+      setNotFound(true);
+    }
+  }, [initialRequestId, requests]);
 
   // Fetch audit timeline whenever a request is opened
   useEffect(() => {
