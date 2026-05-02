@@ -270,7 +270,7 @@ const LoanRequestReview = ({ initialRequestId, onClearInitial }: LoanRequestRevi
       <div className="space-y-4">
         <LoanDocumentViewer
           loanRequest={selectedRequest}
-          onBack={() => setSelectedRequest(null)}
+          onBack={() => { setSelectedRequest(null); onClearInitial?.(); }}
         />
         {isActionable && (
           <Card>
