@@ -61,6 +61,7 @@ const AdminDashboardContent = () => {
   const [activeModule, setActiveModule] = useState<"contribution" | "travel" | "investor">("contribution");
   const [activePage, setActivePage] = useState("dashboard");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedLoanRequestId, setSelectedLoanRequestId] = useState<string | null>(null);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [triggerAddInvestor, setTriggerAddInvestor] = useState(false);
