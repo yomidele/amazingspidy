@@ -18,6 +18,7 @@ import RepaymentSchedule from "@/components/dashboard/RepaymentSchedule";
 import ContributorCharts from "@/components/dashboard/ContributorCharts";
 import ContributorInsights from "@/components/dashboard/ContributorInsights";
 import CurrentBeneficiaryWidget from "@/components/dashboard/CurrentBeneficiaryWidget";
+import GroupMembersWidget from "@/components/dashboard/GroupMembersWidget";
 import NotificationBell from "@/components/shared/NotificationBell";
 import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
@@ -399,6 +400,9 @@ const ContributorDashboard = () => {
 
                   {/* Current beneficiary (real-time) */}
                   {user && <CurrentBeneficiaryWidget userId={user.id} />}
+
+                  {/* Group members (real-time) */}
+                  {user && <GroupMembersWidget userId={user.id} />}
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
