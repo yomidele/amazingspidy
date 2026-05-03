@@ -114,6 +114,43 @@ const PaymentRecordingPage = () => {
     }
   }, [selectedContribution]);
 
+  // Realtime: when totals or payments or splits change, refresh
+  useEffect(() => {
+    const refreshContribRow = async (id: string) => {
+      const { data } = await supabase
+        .from("monthly_contributions")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (data) {
+        setContributions((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, ...data } : c))
+        );
+      }
+    };
+
+    const channel = supabase
+      .channel("payment-recording-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "monthly_contributions" }, (payload: any) => {
+        const row = payload.new || payload.old;
+        if (row?.id) refreshContribRow(row.id);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_payments" }, (payload: any) => {
+        const row = payload.new || payload.old;
+        if (row?.monthly_contribution_id === selectedContribution) {
+          fetchPayments(selectedContribution);
+        }
+        if (row?.monthly_contribution_id) refreshContribRow(row.monthly_contribution_id);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_splits" }, () => {
+        if (selectedContribution) refreshContribRow(selectedContribution);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedContribution]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
