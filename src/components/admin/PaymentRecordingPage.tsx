@@ -287,27 +287,8 @@ const PaymentRecordingPage = () => {
         }
       }
 
-      // FIXED: Only fetch payments for the current selection and update totals
-      // This preserves selectedContribution and prevents month reset
-      const updatedPayments = await fetchPayments(selectedContribution);
-      const totalPaid = updatedPayments
-        .filter((p) => p.status === "paid")
-        .reduce((sum, p) => sum + p.amount, 0);
-      if (contribution) {
-        await supabase
-          .from("monthly_contributions")
-          .update({ total_collected: totalPaid })
-          .eq("id", selectedContribution);
-        
-        // Update local contributions state without resetting selectedContribution
-        setContributions(prev =>
-          prev.map(c =>
-            c.id === selectedContribution
-              ? { ...c, total_collected: totalPaid }
-              : c
-          )
-        );
-      }
+      // Totals are recalculated by DB trigger; refetch payments only
+      await fetchPayments(selectedContribution);
 
       // Log activity
       const logMemberName = getMemberName(newPayment.user_id);
