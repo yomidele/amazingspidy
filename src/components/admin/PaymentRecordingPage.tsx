@@ -355,27 +355,8 @@ const PaymentRecordingPage = () => {
       setIsDeleteDialogOpen(false);
       setPaymentToEdit(null);
       
-      // FIXED: Only fetch and update for current selection
-      // Preserves selectedContribution without full data reload
-      const updatedPayments = await fetchPayments(selectedContribution);
-      const totalPaid = updatedPayments
-        .filter((p) => p.status === "paid")
-        .reduce((sum, p) => sum + p.amount, 0);
-      if (contribution) {
-        await supabase
-          .from("monthly_contributions")
-          .update({ total_collected: totalPaid })
-          .eq("id", selectedContribution);
-        
-        // Update local state with new total
-        setContributions(prev =>
-          prev.map(c =>
-            c.id === selectedContribution
-              ? { ...c, total_collected: totalPaid }
-              : c
-          )
-        );
-      }
+      // Totals are recalculated by DB trigger; refetch payments only
+      await fetchPayments(selectedContribution);
     } catch (error: any) {
       console.error("Error deleting payment:", error);
       toast.error("Failed to delete payment");
