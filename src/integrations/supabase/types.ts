@@ -1197,6 +1197,17 @@ export type Database = {
     }
     Functions: {
       advance_group_month: { Args: { _group_id: string }; Returns: Json }
+      get_group_members: {
+        Args: { _group_id: string }
+        Returns: {
+          contribution_amount: number
+          full_name: string
+          joined_at: string
+          membership_number: string
+          role: string
+          user_id: string
+        }[]
+      }
       get_same_group_guarantors: {
         Args: { _user_id: string }
         Returns: {
