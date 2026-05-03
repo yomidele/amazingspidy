@@ -1241,6 +1241,10 @@ export type Database = {
         Args: { _group_id: string; _month: number; _year: number }
         Returns: undefined
       }
+      recalc_monthly_totals: {
+        Args: { _group_id: string; _month: number; _year: number }
+        Returns: undefined
+      }
       update_loan_status: {
         Args: {
           _actor_id?: string
