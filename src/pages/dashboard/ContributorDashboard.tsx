@@ -401,6 +401,9 @@ const ContributorDashboard = () => {
                   {/* Current beneficiary (real-time) */}
                   {user && <CurrentBeneficiaryWidget userId={user.id} />}
 
+                  {/* Group members (real-time) */}
+                  {user && <GroupMembersWidget userId={user.id} />}
+
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
                     {[
