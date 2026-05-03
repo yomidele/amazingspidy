@@ -245,7 +245,7 @@ const ContributionSetupPage = () => {
         return;
       }
 
-      const perMember = selectedGroup.contribution_amount;
+      // total_expected is computed by DB trigger (sum of per-member obligations including splits)
       const { error } = await supabase.from("monthly_contributions").insert({
         month: newContribution.month,
         year: newContribution.year,
@@ -254,7 +254,6 @@ const ContributionSetupPage = () => {
         beneficiary_account_number: newContribution.beneficiary_account_number || null,
         beneficiary_bank_name: newContribution.beneficiary_bank_name || null,
         beneficiary_sort_code: newContribution.beneficiary_sort_code || null,
-        total_expected: groupMembers.length * perMember,
         total_collected: 0,
         is_finalized: false,
         group_id: newContribution.group_id,
