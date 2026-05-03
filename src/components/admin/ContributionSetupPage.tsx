@@ -122,6 +122,33 @@ const ContributionSetupPage = () => {
     fetchData();
   }, []);
 
+  // Realtime: keep totals fresh on splits/payments/membership changes
+  useEffect(() => {
+    const refresh = async () => {
+      const { data } = await supabase
+        .from("monthly_contributions")
+        .select("*")
+        .order("year", { ascending: false })
+        .order("month", { ascending: false });
+      if (data) {
+        setContributions(data as MonthlyContribution[]);
+        setSelectedContribution((prev) =>
+          prev ? (data.find((d: any) => d.id === prev.id) as MonthlyContribution) || prev : prev
+        );
+      }
+    };
+    const channel = supabase
+      .channel("contrib-setup-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "monthly_contributions" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_payments" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_splits" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_memberships" }, refresh)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchData = async () => {
     setLoading(true);
     try {
