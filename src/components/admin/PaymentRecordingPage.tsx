@@ -114,6 +114,43 @@ const PaymentRecordingPage = () => {
     }
   }, [selectedContribution]);
 
+  // Realtime: when totals or payments or splits change, refresh
+  useEffect(() => {
+    const refreshContribRow = async (id: string) => {
+      const { data } = await supabase
+        .from("monthly_contributions")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (data) {
+        setContributions((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, ...data } : c))
+        );
+      }
+    };
+
+    const channel = supabase
+      .channel("payment-recording-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "monthly_contributions" }, (payload: any) => {
+        const row = payload.new || payload.old;
+        if (row?.id) refreshContribRow(row.id);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_payments" }, (payload: any) => {
+        const row = payload.new || payload.old;
+        if (row?.monthly_contribution_id === selectedContribution) {
+          fetchPayments(selectedContribution);
+        }
+        if (row?.monthly_contribution_id) refreshContribRow(row.monthly_contribution_id);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "contribution_splits" }, () => {
+        if (selectedContribution) refreshContribRow(selectedContribution);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedContribution]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -250,27 +287,8 @@ const PaymentRecordingPage = () => {
         }
       }
 
-      // FIXED: Only fetch payments for the current selection and update totals
-      // This preserves selectedContribution and prevents month reset
-      const updatedPayments = await fetchPayments(selectedContribution);
-      const totalPaid = updatedPayments
-        .filter((p) => p.status === "paid")
-        .reduce((sum, p) => sum + p.amount, 0);
-      if (contribution) {
-        await supabase
-          .from("monthly_contributions")
-          .update({ total_collected: totalPaid })
-          .eq("id", selectedContribution);
-        
-        // Update local contributions state without resetting selectedContribution
-        setContributions(prev =>
-          prev.map(c =>
-            c.id === selectedContribution
-              ? { ...c, total_collected: totalPaid }
-              : c
-          )
-        );
-      }
+      // Totals are recalculated by DB trigger; refetch payments only
+      await fetchPayments(selectedContribution);
 
       // Log activity
       const logMemberName = getMemberName(newPayment.user_id);
@@ -301,27 +319,8 @@ const PaymentRecordingPage = () => {
 
       toast.success("Payment status updated");
       
-      // FIXED: Only fetch and update payments for current selection
-      // Preserves selectedContribution without full data reload
-      const updatedPayments = await fetchPayments(selectedContribution);
-      // Recalculate total collected
-      const totalPaid = updatedPayments
-        .filter((p) => p.status === "paid")
-        .reduce((sum, p) => sum + p.amount, 0);
-
-      await supabase
-        .from("monthly_contributions")
-        .update({ total_collected: totalPaid })
-        .eq("id", selectedContribution);
-
-      // Update local state with recalculated total
-      setContributions(prev =>
-        prev.map(c =>
-          c.id === selectedContribution
-            ? { ...c, total_collected: totalPaid }
-            : c
-        )
-      );
+      // Totals are recalculated by DB trigger; refetch payments only
+      await fetchPayments(selectedContribution);
     } catch (error: any) {
       console.error("Error updating payment:", error);
       toast.error("Failed to update payment status");
@@ -356,27 +355,8 @@ const PaymentRecordingPage = () => {
       setIsDeleteDialogOpen(false);
       setPaymentToEdit(null);
       
-      // FIXED: Only fetch and update for current selection
-      // Preserves selectedContribution without full data reload
-      const updatedPayments = await fetchPayments(selectedContribution);
-      const totalPaid = updatedPayments
-        .filter((p) => p.status === "paid")
-        .reduce((sum, p) => sum + p.amount, 0);
-      if (contribution) {
-        await supabase
-          .from("monthly_contributions")
-          .update({ total_collected: totalPaid })
-          .eq("id", selectedContribution);
-        
-        // Update local state with new total
-        setContributions(prev =>
-          prev.map(c =>
-            c.id === selectedContribution
-              ? { ...c, total_collected: totalPaid }
-              : c
-          )
-        );
-      }
+      // Totals are recalculated by DB trigger; refetch payments only
+      await fetchPayments(selectedContribution);
     } catch (error: any) {
       console.error("Error deleting payment:", error);
       toast.error("Failed to delete payment");
