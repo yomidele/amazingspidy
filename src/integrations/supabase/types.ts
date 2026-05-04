@@ -1197,6 +1197,7 @@ export type Database = {
     }
     Functions: {
       advance_group_month: { Args: { _group_id: string }; Returns: Json }
+      check_missing_beneficiaries: { Args: never; Returns: Json }
       get_group_members: {
         Args: { _group_id: string }
         Returns: {
