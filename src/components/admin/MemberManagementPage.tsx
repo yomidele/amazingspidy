@@ -1648,6 +1648,15 @@ const MemberManagementPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MemberDetailDialog
+        member={detailMember}
+        open={isDetailOpen}
+        onOpenChange={(o) => {
+          setIsDetailOpen(o);
+          if (!o) setDetailMember(null);
+        }}
+      />
     </div>
   );
 };
