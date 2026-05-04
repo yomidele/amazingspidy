@@ -55,6 +55,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GroupNotificationsPanel from "./GroupNotificationsPanel";
+import MemberDetailDialog from "./MemberDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -122,6 +123,8 @@ const MemberManagementPage = () => {
   const [editJoinMonth, setEditJoinMonth] = useState<number>(new Date().getMonth() + 1);
   const [editJoinYear, setEditJoinYear] = useState<number>(new Date().getFullYear());
   const [isCreatingMember, setIsCreatingMember] = useState(false);
+  const [detailMember, setDetailMember] = useState<Member | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   
   // Delete member
   const [deletingMember, setDeletingMember] = useState<Member | null>(null);
@@ -999,17 +1002,24 @@ const MemberManagementPage = () => {
                     const memberGroups = getMemberGroups(member.user_id);
                     const membership = memberships.find((m) => m.user_id === member.user_id);
                     return (
-                      <TableRow key={member.id}>
+                      <TableRow
+                        key={member.id}
+                        className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => {
+                          setDetailMember(member);
+                          setIsDetailOpen(true);
+                        }}
+                      >
                         <TableCell>
                           <Badge variant="outline" className="font-mono text-xs">
                             {(member as any).membership_number || "—"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-foreground">
                           {member.full_name || "—"}
                         </TableCell>
-                        <TableCell>{member.email || "—"}</TableCell>
-                        <TableCell>{member.phone || "—"}</TableCell>
+                        <TableCell className="text-foreground">{member.email || "—"}</TableCell>
+                        <TableCell className="text-foreground">{member.phone || "—"}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {memberGroups.length > 0 ? (
@@ -1034,7 +1044,7 @@ const MemberManagementPage = () => {
                             : new Date(member.created_at).toLocaleDateString()
                           }
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
@@ -1638,6 +1648,15 @@ const MemberManagementPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MemberDetailDialog
+        member={detailMember}
+        open={isDetailOpen}
+        onOpenChange={(o) => {
+          setIsDetailOpen(o);
+          if (!o) setDetailMember(null);
+        }}
+      />
     </div>
   );
 };

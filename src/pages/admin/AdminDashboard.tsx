@@ -82,11 +82,26 @@ const AdminDashboardContent = () => {
       setActiveModule("contribution");
       setActivePage("loan-requests");
       setSelectedLoanRequestId(loanMatch[1]);
+    } else if (location.pathname === "/admin/contributions") {
+      setActiveModule("contribution");
+      setActivePage("contributions");
+    } else if (location.pathname === "/admin/members") {
+      setActiveModule("contribution");
+      setActivePage("members");
     } else if (activePage === "user-detail") {
       setActivePage("members");
       setSelectedUserId(null);
     }
   }, [location.pathname]);
+
+  // Periodically check for missing beneficiaries (admins only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const run = () => supabase.rpc("check_missing_beneficiaries" as any).then(() => {});
+    run();
+    const id = window.setInterval(run, 5 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [isAdmin]);
 
   useEffect(() => {
     const checkAuth = async () => {
