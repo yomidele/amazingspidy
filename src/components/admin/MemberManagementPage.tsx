@@ -1044,7 +1044,7 @@ const MemberManagementPage = () => {
                             : new Date(member.created_at).toLocaleDateString()
                           }
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
