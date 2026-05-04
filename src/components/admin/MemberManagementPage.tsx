@@ -1002,17 +1002,24 @@ const MemberManagementPage = () => {
                     const memberGroups = getMemberGroups(member.user_id);
                     const membership = memberships.find((m) => m.user_id === member.user_id);
                     return (
-                      <TableRow key={member.id}>
+                      <TableRow
+                        key={member.id}
+                        className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => {
+                          setDetailMember(member);
+                          setIsDetailOpen(true);
+                        }}
+                      >
                         <TableCell>
                           <Badge variant="outline" className="font-mono text-xs">
                             {(member as any).membership_number || "—"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-foreground">
                           {member.full_name || "—"}
                         </TableCell>
-                        <TableCell>{member.email || "—"}</TableCell>
-                        <TableCell>{member.phone || "—"}</TableCell>
+                        <TableCell className="text-foreground">{member.email || "—"}</TableCell>
+                        <TableCell className="text-foreground">{member.phone || "—"}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {memberGroups.length > 0 ? (
