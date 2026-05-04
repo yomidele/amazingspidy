@@ -123,6 +123,8 @@ const MemberManagementPage = () => {
   const [editJoinMonth, setEditJoinMonth] = useState<number>(new Date().getMonth() + 1);
   const [editJoinYear, setEditJoinYear] = useState<number>(new Date().getFullYear());
   const [isCreatingMember, setIsCreatingMember] = useState(false);
+  const [detailMember, setDetailMember] = useState<Member | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   
   // Delete member
   const [deletingMember, setDeletingMember] = useState<Member | null>(null);
