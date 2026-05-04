@@ -55,6 +55,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GroupNotificationsPanel from "./GroupNotificationsPanel";
+import MemberDetailDialog from "./MemberDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
