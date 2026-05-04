@@ -10,35 +10,35 @@
 
 @layer base {
   :root {
-    /* Core Colors */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* Core Colors — high-contrast light mode (WCAG AA) */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 47% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222 47% 9%;
 
     /* Primary - Deep Navy */
-    --primary: 215 50% 23%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 215 55% 22%;
+    --primary-foreground: 0 0% 100%;
 
     /* Secondary - Soft Slate */
     --secondary: 214 32% 91%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 214 32% 94%;
+    --muted-foreground: 215 20% 32%;
 
     --accent: 214 32% 91%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 222 47% 9%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 214 22% 82%;
+    --input: 214 22% 82%;
     --ring: 215 50% 23%;
 
     --radius: 0.75rem;
