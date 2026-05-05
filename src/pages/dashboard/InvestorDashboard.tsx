@@ -194,6 +194,7 @@ const InvestorDashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <RoleSwitcher variant="compact" />
           <DashboardThemeToggle isDark={isDark} onToggle={toggleMode} />
           {user && <NotificationBell userId={user.id} variant="glass" />}
           <Button variant="ghost" size="icon" onClick={requestLogout} className="text-white/70 hover:text-white hover:bg-white/10">
