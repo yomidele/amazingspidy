@@ -338,9 +338,11 @@
     color: hsl(215 16% 47%) !important;
   }
 
+  .dashboard-light .text-white\/60,
   .dashboard-light .text-white\/70,
-  .dashboard-light .text-white\/80 {
-    color: hsl(215 20% 35%) !important;
+  .dashboard-light .text-white\/80,
+  .dashboard-light .text-white\/90 {
+    color: hsl(215 20% 25%) !important;
   }
 
   .dashboard-light .border-white\/10,
