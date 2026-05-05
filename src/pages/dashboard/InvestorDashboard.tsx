@@ -233,6 +233,7 @@ const InvestorDashboard = () => {
                 </button>
               ))}
             </nav>
+            <div className="mt-4"><RoleSwitcher /></div>
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/10">
