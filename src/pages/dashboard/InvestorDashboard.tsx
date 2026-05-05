@@ -24,6 +24,8 @@ import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
 import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 import InvestorLoanAssignments from "@/components/dashboard/InvestorLoanAssignments";
+import RoleSwitcher from "@/components/shared/RoleSwitcher";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
   children: React.ReactNode;
@@ -63,6 +65,8 @@ const InvestorDashboard = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const { status: investorModuleStatus, loading: moduleLoading } = useInvestorModuleStatus();
 
+  const { setActiveRole, hasContributor } = useActiveRole();
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -76,12 +80,19 @@ const InvestorDashboard = () => {
         .maybeSingle();
 
       if (!roleData) {
-        toast.error("Access denied. Investor privileges required.");
-        await supabase.auth.signOut();
-        navigate("/login/investor");
+        // User no longer has investor access — fall back to contributor dashboard if available, else logout
+        toast.error("Investor access not available on this account.");
+        if (hasContributor) {
+          setActiveRole("contributor");
+          navigate("/dashboard/contributor");
+        } else {
+          await supabase.auth.signOut();
+          navigate("/login/investor");
+        }
         return;
       }
 
+      setActiveRole("investor");
       setUser(session.user);
       setIsVerified(true);
 
@@ -103,7 +114,7 @@ const InvestorDashboard = () => {
       if (!session) navigate("/login/investor");
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, setActiveRole, hasContributor]);
 
   const { confirmLogout } = useLogoutConfirm();
   const handleLogout = async () => {
