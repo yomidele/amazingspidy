@@ -22,6 +22,7 @@ import InvestorInfoPage from "./pages/InvestorInfoPage";
 import NotificationsPage from "./pages/dashboard/NotificationsPage";
 import NotificationDetailPage from "./pages/dashboard/NotificationDetailPage";
 import { LogoutConfirmProvider } from "./components/shared/LogoutConfirmProvider";
+import { ActiveRoleProvider } from "./contexts/ActiveRoleContext";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -39,6 +40,7 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <LogoutConfirmProvider>
+        <ActiveRoleProvider>
         <Routes>
           <Route path="/" element={<Index />} />
           
@@ -70,6 +72,7 @@ const App = () => (
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </ActiveRoleProvider>
         </LogoutConfirmProvider>
       </BrowserRouter>
     </TooltipProvider>
