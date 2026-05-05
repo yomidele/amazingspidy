@@ -89,6 +89,7 @@ const ContributorDashboard = () => {
         return;
       }
       setUser(session.user);
+      setActiveRole("contributor");
       fetchUserData(session.user.id);
 
       const notificationChannel = supabase
