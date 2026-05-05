@@ -24,6 +24,8 @@ import DashboardThemeToggle from "@/components/shared/DashboardThemeToggle";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
 import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
+import RoleSwitcher from "@/components/shared/RoleSwitcher";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 interface BeneficiaryInfo {
   name: string;
@@ -57,6 +59,7 @@ const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
 const ContributorDashboard = () => {
   const navigate = useNavigate();
   const { isDark, toggleMode } = useDashboardTheme();
+  const { setActiveRole } = useActiveRole();
   const [user, setUser] = useState<any>(null);
   const [membershipNumber, setMembershipNumber] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -260,6 +263,7 @@ const ContributorDashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <RoleSwitcher variant="compact" />
           <DashboardThemeToggle isDark={isDark} onToggle={toggleMode} />
           {user && <NotificationBell userId={user.id} variant="glass" />}
           <Button variant="ghost" size="icon" onClick={requestLogout} className="text-white/70 hover:text-white hover:bg-white/10">
@@ -300,6 +304,7 @@ const ContributorDashboard = () => {
                 </button>
               ))}
             </nav>
+            <div className="mt-4"><RoleSwitcher /></div>
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/10">
