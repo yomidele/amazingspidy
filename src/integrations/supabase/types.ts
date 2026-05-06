@@ -1249,6 +1249,10 @@ export type Database = {
         Args: { _loan_request_id: string; _user_id: string }
         Returns: boolean
       }
+      notify_personalized_contribution: {
+        Args: { _group_id: string; _month: number; _year: number }
+        Returns: undefined
+      }
       recalc_monthly_expected: {
         Args: { _group_id: string; _month: number; _year: number }
         Returns: undefined
@@ -1257,6 +1261,7 @@ export type Database = {
         Args: { _group_id: string; _month: number; _year: number }
         Returns: undefined
       }
+      send_unpaid_reminders: { Args: never; Returns: Json }
       update_loan_status: {
         Args: {
           _actor_id?: string
