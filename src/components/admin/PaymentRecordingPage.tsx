@@ -13,6 +13,7 @@ import {
   Download,
   Trash2,
   Pencil,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,12 +70,21 @@ interface Member {
   user_id: string;
   full_name: string | null;
   email: string | null;
+  membership_number?: string | null;
+}
+
+interface Group {
+  id: string;
+  name: string;
 }
 
 const PaymentRecordingPage = () => {
   const [contributions, setContributions] = useState<MonthlyContribution[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [membersLoading, setMembersLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedContribution, setSelectedContribution] = useState<string>("");
   const [initialContributionId, setInitialContributionId] = useState<string | null>(null);
@@ -154,6 +164,15 @@ const PaymentRecordingPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch groups (teams)
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("contribution_groups")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      if (groupsError) throw groupsError;
+      setGroups(groupsData || []);
+
       // Fetch monthly contributions
       const { data: contribData, error: contribError } = await supabase
         .from("monthly_contributions")
@@ -164,29 +183,23 @@ const PaymentRecordingPage = () => {
       if (contribError) throw contribError;
       setContributions(contribData || []);
 
-      if (contribData && contribData.length > 0) {
-        // FIXED: Only set selectedContribution if it's truly empty
-        // This preserves the user's selection across re-renders and API calls
-        if (!selectedContribution) {
-          // If no selection exists, prefer URL param, otherwise use first contribution
-          if (
-            initialContributionId &&
-            contribData.find((c) => c.id === initialContributionId)
-          ) {
-            setSelectedContribution(initialContributionId);
-          } else {
-            setSelectedContribution(contribData[0].id);
-          }
-        }
+      // Pick initial group: from URL contribution param, else first group
+      const params = new URLSearchParams(location.search);
+      const groupParam = params.get("group");
+      const contribParam = params.get("contribution");
+      let initialGroup = "";
+      if (groupParam && groupsData?.find((g) => g.id === groupParam)) {
+        initialGroup = groupParam;
+      } else if (contribParam) {
+        const c = contribData?.find((x) => x.id === contribParam);
+        if (c) initialGroup = c.group_id;
       }
-
-      // Fetch members
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name, email");
-
-      if (profilesError) throw profilesError;
-      setMembers(profilesData || []);
+      if (!initialGroup && groupsData && groupsData.length > 0) {
+        initialGroup = groupsData[0].id;
+      }
+      if (initialGroup && !selectedGroup) {
+        setSelectedGroup(initialGroup);
+      }
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load data");
@@ -194,6 +207,58 @@ const PaymentRecordingPage = () => {
       setLoading(false);
     }
   };
+
+  // Fetch members for the selected group/team
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!selectedGroup) {
+        setMembers([]);
+        return;
+      }
+      setMembersLoading(true);
+      try {
+        const { data: memberships, error: mErr } = await supabase
+          .from("group_memberships")
+          .select("user_id")
+          .eq("group_id", selectedGroup)
+          .eq("is_active", true);
+        if (mErr) throw mErr;
+        const userIds = (memberships || []).map((m) => m.user_id);
+        if (userIds.length === 0) {
+          setMembers([]);
+          return;
+        }
+        const { data: profilesData, error: pErr } = await supabase
+          .from("profiles")
+          .select("id, user_id, full_name, email, membership_number")
+          .in("user_id", userIds)
+          .order("membership_number", { ascending: true, nullsFirst: false });
+        if (pErr) throw pErr;
+        setMembers(profilesData || []);
+      } catch (e: any) {
+        console.error(e);
+        toast.error("Failed to load team members");
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+    fetchTeamMembers();
+  }, [selectedGroup]);
+
+  // When group changes, auto-pick latest period for that group
+  useEffect(() => {
+    if (!selectedGroup) return;
+    const params = new URLSearchParams(location.search);
+    params.set("group", selectedGroup);
+    navigate({ search: params.toString() }, { replace: true });
+
+    const groupContribs = contributions.filter((c) => c.group_id === selectedGroup);
+    const currentBelongs = groupContribs.find((c) => c.id === selectedContribution);
+    if (!currentBelongs) {
+      setSelectedContribution(groupContribs[0]?.id || "");
+    }
+  }, [selectedGroup, contributions]);
+
 
   const fetchPayments = async (contributionId: string) => {
     // update url param
@@ -499,28 +564,47 @@ const PaymentRecordingPage = () => {
         </Dialog>
       </div>
 
-      {/* Period Selector & Stats */}
+      {/* Team & Period Selector & Stats */}
       <div className="grid lg:grid-cols-4 gap-4">
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Select Period
+              <UsersRound className="w-4 h-4" />
+              Select Team
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Select value={selectedContribution} onValueChange={setSelectedContribution}>
+          <CardContent className="space-y-3">
+            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
               <SelectTrigger>
-                <SelectValue placeholder="Select period" />
+                <SelectValue placeholder="Select a team" />
               </SelectTrigger>
               <SelectContent>
-                {contributions.map((contrib) => (
-                  <SelectItem key={contrib.id} value={contrib.id}>
-                    {monthNames[contrib.month - 1]} {contrib.year}
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <div>
+              <Label className="text-xs flex items-center gap-1 mb-1">
+                <Calendar className="w-3 h-3" /> Period
+              </Label>
+              <Select value={selectedContribution} onValueChange={setSelectedContribution}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contributions
+                    .filter((c) => !selectedGroup || c.group_id === selectedGroup)
+                    .map((contrib) => (
+                      <SelectItem key={contrib.id} value={contrib.id}>
+                        {monthNames[contrib.month - 1]} {contrib.year}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -561,9 +645,9 @@ const PaymentRecordingPage = () => {
                 <Users className="w-5 h-5 text-warning" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Paid / Pending</p>
+                <p className="text-xs text-muted-foreground">Members / Paid</p>
                 <p className="font-bold">
-                  {paidCount} / {pendingCount}
+                  {members.length} / {paidCount}
                 </p>
               </div>
             </div>
@@ -571,28 +655,35 @@ const PaymentRecordingPage = () => {
         </Card>
       </div>
 
-      {/* Payments Table */}
+      {/* Team Members Payment Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Payment Records</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <UsersRound className="w-5 h-5 text-contribution" />
+            {selectedGroup
+              ? `${groups.find((g) => g.id === selectedGroup)?.name || "Team"} — Members`
+              : "Team Members"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {!selectedGroup ? (
+            <div className="text-center py-10">
+              <UsersRound className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">Please select a team to view members</p>
+            </div>
+          ) : membersLoading || loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading payments...</p>
+              <p className="text-muted-foreground">Loading team members...</p>
+            </div>
+          ) : members.length === 0 ? (
+            <div className="text-center py-10">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No members assigned to this team yet</p>
             </div>
           ) : !selectedContribution ? (
             <div className="text-center py-8">
               <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">Select a contribution period to view payments</p>
-            </div>
-          ) : payments.length === 0 ? (
-            <div className="text-center py-8">
-              <DollarSign className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">No payments recorded yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Click "Record Payment" to add the first payment
-              </p>
+              <p className="text-muted-foreground">Select a contribution period to record payments</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -600,131 +691,108 @@ const PaymentRecordingPage = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
+                    <TableHead>Member ID</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="font-medium">
-                        {getMemberName(payment.user_id)}
-                      </TableCell>
-                      <TableCell>£{payment.amount}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {payment.payment_date
-                          ? new Date(payment.payment_date).toLocaleDateString()
-                          : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            payment.status === "paid"
-                              ? "default"
-                              : payment.status === "pending"
-                              ? "outline"
-                              : "secondary"
-                          }
-                          className={
-                            payment.status === "paid"
-                              ? "bg-success text-success-foreground"
-                              : payment.status === "pending"
-                              ? "bg-warning/10 text-warning border-warning"
-                              : ""
-                          }
-                        >
-                          {payment.status || "pending"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewReceipt(payment)}
-                            title="View Receipt"
+                  {members.map((member) => {
+                    const payment = payments.find((p) => p.user_id === member.user_id);
+                    const status = payment?.status || "unpaid";
+                    const teamName = groups.find((g) => g.id === selectedGroup)?.name || "—";
+                    return (
+                      <TableRow key={member.user_id}>
+                        <TableCell className="font-medium">
+                          {member.full_name || member.email || "Unknown"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {member.membership_number || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{teamName}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              status === "paid"
+                                ? "bg-success text-success-foreground"
+                                : status === "partial"
+                                ? "bg-warning/10 text-warning border border-warning"
+                                : status === "pending"
+                                ? "bg-warning/10 text-warning border border-warning"
+                                : "bg-muted text-muted-foreground"
+                            }
                           >
-                            <Eye className="w-4 h-4 text-muted-foreground" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(payment)}
-                            title="Edit Payment"
-                          >
-                            <Pencil className="w-4 h-4 text-primary" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDeleteDialog(payment)}
-                            title="Delete Payment"
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                          {payment.status !== "paid" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleUpdatePaymentStatus(payment.id, "paid")}
-                            >
-                              <Check className="w-4 h-4 text-success" />
-                            </Button>
-                          )}
-                          {payment.status !== "pending" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleUpdatePaymentStatus(payment.id, "pending")}
-                            >
-                              <X className="w-4 h-4 text-warning" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{payment ? `£${payment.amount}` : "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {payment?.payment_date
+                            ? new Date(payment.payment_date).toLocaleDateString()
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {payment ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleViewReceipt(payment)}
+                                  title="View Receipt"
+                                >
+                                  <Eye className="w-4 h-4 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditDialog(payment)}
+                                  title="Edit Payment"
+                                >
+                                  <Pencil className="w-4 h-4 text-primary" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openDeleteDialog(payment)}
+                                  title="Delete Payment"
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                variant="contribution"
+                                size="sm"
+                                onClick={() => {
+                                  setPaymentToEdit(null);
+                                  setNewPayment({
+                                    user_id: member.user_id,
+                                    amount: getPerMemberAmount(),
+                                    status: "paid",
+                                  });
+                                  setIsRecordPaymentOpen(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" /> Record
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Members Not Yet Paid */}
-      {selectedContribution && getMembersNotPaid().length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-warning">
-              Members Not Yet Paid ({getMembersNotPaid().length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {getMembersNotPaid().map((member) => (
-                <Badge
-                  key={member.id}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-contribution-light"
-                  onClick={() => {
-                    setNewPayment({
-                      ...newPayment,
-                      user_id: member.user_id,
-                      amount: getPerMemberAmount(),
-                    });
-                    setIsRecordPaymentOpen(true);
-                  }}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  {member.full_name || member.email}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Receipt Dialog */}
       <TransactionReceiptDialog
