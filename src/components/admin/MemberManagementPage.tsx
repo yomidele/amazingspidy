@@ -198,7 +198,8 @@ const MemberManagementPage = () => {
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*")
-          .in("user_id", contributorIds);
+          .in("user_id", contributorIds)
+          .order("membership_number", { ascending: true, nullsFirst: false });
 
         if (profilesError) throw profilesError;
         setMembers(profilesData || []);
