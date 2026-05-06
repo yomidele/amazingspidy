@@ -70,6 +70,12 @@ interface Member {
   user_id: string;
   full_name: string | null;
   email: string | null;
+  membership_number?: string | null;
+}
+
+interface Group {
+  id: string;
+  name: string;
 }
 
 const PaymentRecordingPage = () => {
