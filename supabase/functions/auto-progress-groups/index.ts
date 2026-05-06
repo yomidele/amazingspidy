@@ -1,4 +1,4 @@
-// Auto-progress all groups in 'auto' mode. Idempotent — RPC refuses duplicates.
+// Daily job: auto-advance groups in 'auto' mode AND send unpaid-contribution reminders.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -32,7 +32,11 @@ Deno.serve(async (req) => {
     results.push({ group: g.name, result: data, error: rpcErr?.message });
   }
 
-  return new Response(JSON.stringify({ processed: results.length, results }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  // Always run beneficiary-missing check + unpaid reminders
+  const { data: missing } = await supabase.rpc("check_missing_beneficiaries");
+  const { data: reminders } = await supabase.rpc("send_unpaid_reminders");
+
+  return new Response(JSON.stringify({
+    processed: results.length, results, missing_beneficiaries: missing, reminders,
+  }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
