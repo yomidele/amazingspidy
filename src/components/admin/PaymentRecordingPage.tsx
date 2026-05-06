@@ -82,6 +82,9 @@ const PaymentRecordingPage = () => {
   const [contributions, setContributions] = useState<MonthlyContribution[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [membersLoading, setMembersLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedContribution, setSelectedContribution] = useState<string>("");
   const [initialContributionId, setInitialContributionId] = useState<string | null>(null);
