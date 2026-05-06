@@ -164,6 +164,15 @@ const PaymentRecordingPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch groups (teams)
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("contribution_groups")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      if (groupsError) throw groupsError;
+      setGroups(groupsData || []);
+
       // Fetch monthly contributions
       const { data: contribData, error: contribError } = await supabase
         .from("monthly_contributions")
@@ -174,29 +183,23 @@ const PaymentRecordingPage = () => {
       if (contribError) throw contribError;
       setContributions(contribData || []);
 
-      if (contribData && contribData.length > 0) {
-        // FIXED: Only set selectedContribution if it's truly empty
-        // This preserves the user's selection across re-renders and API calls
-        if (!selectedContribution) {
-          // If no selection exists, prefer URL param, otherwise use first contribution
-          if (
-            initialContributionId &&
-            contribData.find((c) => c.id === initialContributionId)
-          ) {
-            setSelectedContribution(initialContributionId);
-          } else {
-            setSelectedContribution(contribData[0].id);
-          }
-        }
+      // Pick initial group: from URL contribution param, else first group
+      const params = new URLSearchParams(location.search);
+      const groupParam = params.get("group");
+      const contribParam = params.get("contribution");
+      let initialGroup = "";
+      if (groupParam && groupsData?.find((g) => g.id === groupParam)) {
+        initialGroup = groupParam;
+      } else if (contribParam) {
+        const c = contribData?.find((x) => x.id === contribParam);
+        if (c) initialGroup = c.group_id;
       }
-
-      // Fetch members
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name, email");
-
-      if (profilesError) throw profilesError;
-      setMembers(profilesData || []);
+      if (!initialGroup && groupsData && groupsData.length > 0) {
+        initialGroup = groupsData[0].id;
+      }
+      if (initialGroup && !selectedGroup) {
+        setSelectedGroup(initialGroup);
+      }
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load data");
@@ -204,6 +207,58 @@ const PaymentRecordingPage = () => {
       setLoading(false);
     }
   };
+
+  // Fetch members for the selected group/team
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!selectedGroup) {
+        setMembers([]);
+        return;
+      }
+      setMembersLoading(true);
+      try {
+        const { data: memberships, error: mErr } = await supabase
+          .from("group_memberships")
+          .select("user_id")
+          .eq("group_id", selectedGroup)
+          .eq("is_active", true);
+        if (mErr) throw mErr;
+        const userIds = (memberships || []).map((m) => m.user_id);
+        if (userIds.length === 0) {
+          setMembers([]);
+          return;
+        }
+        const { data: profilesData, error: pErr } = await supabase
+          .from("profiles")
+          .select("id, user_id, full_name, email, membership_number")
+          .in("user_id", userIds)
+          .order("membership_number", { ascending: true, nullsFirst: false });
+        if (pErr) throw pErr;
+        setMembers(profilesData || []);
+      } catch (e: any) {
+        console.error(e);
+        toast.error("Failed to load team members");
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+    fetchTeamMembers();
+  }, [selectedGroup]);
+
+  // When group changes, auto-pick latest period for that group
+  useEffect(() => {
+    if (!selectedGroup) return;
+    const params = new URLSearchParams(location.search);
+    params.set("group", selectedGroup);
+    navigate({ search: params.toString() }, { replace: true });
+
+    const groupContribs = contributions.filter((c) => c.group_id === selectedGroup);
+    const currentBelongs = groupContribs.find((c) => c.id === selectedContribution);
+    if (!currentBelongs) {
+      setSelectedContribution(groupContribs[0]?.id || "");
+    }
+  }, [selectedGroup, contributions]);
+
 
   const fetchPayments = async (contributionId: string) => {
     // update url param
