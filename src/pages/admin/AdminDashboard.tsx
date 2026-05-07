@@ -52,6 +52,8 @@ import NotificationBell from "@/components/shared/NotificationBell";
 import AmanaAIAssistant from "@/components/admin/AmanaAIAssistant";
 import AccountManagementPage from "@/components/admin/AccountManagementPage";
 import RotationAndSplitsPanel from "@/components/admin/RotationAndSplitsPanel";
+import MembershipRequestsPage from "@/components/admin/MembershipRequestsPage";
+import GroupAdminManagementPage from "@/components/admin/GroupAdminManagementPage";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -199,6 +201,8 @@ const AdminDashboardContent = () => {
     { icon: Receipt, label: "Payments", page: "payments", tooltip: tooltipContent.recordPayment },
     { icon: CreditCard, label: "Loans", page: "loans", tooltip: tooltipContent.issueLoan },
     { icon: FileCheck, label: "Loan Requests", page: "loan-requests", tooltip: "Review and approve loan requests from contributors" },
+    { icon: FileCheck, label: "Member Requests", page: "membership-requests", tooltip: "Approve or reject new member requests from group admins" },
+    { icon: Shield, label: "Group Admins", page: "group-admins", tooltip: "Assign and manage group admins" },
     { icon: Bell, label: "Notifications", page: "notifications", tooltip: tooltipContent.notifications },
     { icon: Settings, label: "Settings", page: "settings", tooltip: tooltipContent.settings },
   ];
@@ -247,6 +251,10 @@ const AdminDashboardContent = () => {
               onClearInitial={() => setSelectedLoanRequestId(null)}
             />
           );
+        case "membership-requests":
+          return <MembershipRequestsPage />;
+        case "group-admins":
+          return <GroupAdminManagementPage />;
         case "settings":
           return (
             <AdminSettingsPage

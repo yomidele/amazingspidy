@@ -17,6 +17,7 @@ import TravelDashboard from "./pages/dashboard/TravelDashboard";
 import InvestorDashboard from "./pages/dashboard/InvestorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManualPage from "./pages/admin/AdminManualPage";
+import GroupAdminDashboard from "./pages/group-admin/GroupAdminDashboard";
 import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
 import InvestorInfoPage from "./pages/InvestorInfoPage";
 import NotificationsPage from "./pages/dashboard/NotificationsPage";
@@ -68,6 +69,9 @@ const App = () => (
           {/* Admin Dashboard */}
           <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="/admin/manual" element={<AdminManualPage />} />
+
+          {/* Group Admin Dashboard */}
+          <Route path="/group-admin/*" element={<GroupAdminDashboard />} />
           
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
