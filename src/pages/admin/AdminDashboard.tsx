@@ -251,6 +251,10 @@ const AdminDashboardContent = () => {
               onClearInitial={() => setSelectedLoanRequestId(null)}
             />
           );
+        case "membership-requests":
+          return <MembershipRequestsPage />;
+        case "group-admins":
+          return <GroupAdminManagementPage />;
         case "settings":
           return (
             <AdminSettingsPage
