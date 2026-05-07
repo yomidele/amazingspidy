@@ -69,6 +69,9 @@ const App = () => (
           {/* Admin Dashboard */}
           <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="/admin/manual" element={<AdminManualPage />} />
+
+          {/* Group Admin Dashboard */}
+          <Route path="/group-admin/*" element={<GroupAdminDashboard />} />
           
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
