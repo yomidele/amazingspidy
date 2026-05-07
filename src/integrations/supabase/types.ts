@@ -1274,7 +1274,12 @@ export type Database = {
       v_month_name_from_int: { Args: { _m: number }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "contributor" | "travel_client" | "investor"
+      app_role:
+        | "admin"
+        | "contributor"
+        | "travel_client"
+        | "investor"
+        | "group_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1402,7 +1407,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "contributor", "travel_client", "investor"],
+      app_role: [
+        "admin",
+        "contributor",
+        "travel_client",
+        "investor",
+        "group_admin",
+      ],
     },
   },
 } as const
