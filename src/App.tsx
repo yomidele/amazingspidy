@@ -17,6 +17,7 @@ import TravelDashboard from "./pages/dashboard/TravelDashboard";
 import InvestorDashboard from "./pages/dashboard/InvestorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManualPage from "./pages/admin/AdminManualPage";
+import GroupAdminDashboard from "./pages/group-admin/GroupAdminDashboard";
 import TeemahTravelsPage from "./pages/travel/TeemahTravelsPage";
 import InvestorInfoPage from "./pages/InvestorInfoPage";
 import NotificationsPage from "./pages/dashboard/NotificationsPage";
