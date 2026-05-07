@@ -201,6 +201,8 @@ const AdminDashboardContent = () => {
     { icon: Receipt, label: "Payments", page: "payments", tooltip: tooltipContent.recordPayment },
     { icon: CreditCard, label: "Loans", page: "loans", tooltip: tooltipContent.issueLoan },
     { icon: FileCheck, label: "Loan Requests", page: "loan-requests", tooltip: "Review and approve loan requests from contributors" },
+    { icon: FileCheck, label: "Member Requests", page: "membership-requests", tooltip: "Approve or reject new member requests from group admins" },
+    { icon: Shield, label: "Group Admins", page: "group-admins", tooltip: "Assign and manage group admins" },
     { icon: Bell, label: "Notifications", page: "notifications", tooltip: tooltipContent.notifications },
     { icon: Settings, label: "Settings", page: "settings", tooltip: tooltipContent.settings },
   ];
