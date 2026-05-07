@@ -52,6 +52,8 @@ import NotificationBell from "@/components/shared/NotificationBell";
 import AmanaAIAssistant from "@/components/admin/AmanaAIAssistant";
 import AccountManagementPage from "@/components/admin/AccountManagementPage";
 import RotationAndSplitsPanel from "@/components/admin/RotationAndSplitsPanel";
+import MembershipRequestsPage from "@/components/admin/MembershipRequestsPage";
+import GroupAdminManagementPage from "@/components/admin/GroupAdminManagementPage";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
