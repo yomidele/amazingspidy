@@ -25,8 +25,24 @@ const AdminLogin = () => {
     try {
       const result = await secureLogin(formData.email, formData.password);
       if (!result.success) throw new Error(result.error);
-      toast.success("Welcome back, Admin!");
-      navigate("/admin");
+
+      // Determine destination by role
+      const userId = result.user?.id;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      const roleSet = new Set((roles || []).map((r: any) => r.role));
+      if (roleSet.has("admin")) {
+        toast.success("Welcome back, Admin!");
+        navigate("/admin");
+      } else if (roleSet.has("group_admin")) {
+        toast.success("Welcome back, Group Admin!");
+        navigate("/group-admin");
+      } else {
+        await supabase.auth.signOut();
+        throw new Error("This account is not an admin.");
+      }
     } catch (error: any) {
       toast.error(error.message || "An error occurred");
     } finally {
