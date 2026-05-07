@@ -247,6 +247,7 @@ export type Database = {
           last_progressed_at: string | null
           name: string
           progression_mode: string
+          requires_approval: boolean
           rotation_start_date: string | null
           total_months: number
           updated_at: string
@@ -261,6 +262,7 @@ export type Database = {
           last_progressed_at?: string | null
           name: string
           progression_mode?: string
+          requires_approval?: boolean
           rotation_start_date?: string | null
           total_months?: number
           updated_at?: string
@@ -275,6 +277,7 @@ export type Database = {
           last_progressed_at?: string | null
           name?: string
           progression_mode?: string
+          requires_approval?: boolean
           rotation_start_date?: string | null
           total_months?: number
           updated_at?: string
@@ -362,6 +365,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      group_admin_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          group_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          group_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          group_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       group_memberships: {
         Row: {
@@ -979,6 +1006,54 @@ export type Database = {
           },
         ]
       }
+      membership_requests: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          group_id: string
+          id: string
+          notes: string | null
+          phone: string | null
+          requested_by: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          group_id: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          requested_by: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          group_id?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          requested_by?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       monthly_contributions: {
         Row: {
           beneficiary_account_name: string | null
@@ -1082,6 +1157,7 @@ export type Database = {
           id: string
           locked_at: string | null
           membership_number: string | null
+          must_change_password: boolean
           phone: string | null
           updated_at: string
           user_id: string
@@ -1096,6 +1172,7 @@ export type Database = {
           id?: string
           locked_at?: string | null
           membership_number?: string | null
+          must_change_password?: boolean
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -1110,6 +1187,7 @@ export type Database = {
           id?: string
           locked_at?: string | null
           membership_number?: string | null
+          must_change_password?: boolean
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -1197,6 +1275,10 @@ export type Database = {
     }
     Functions: {
       advance_group_month: { Args: { _group_id: string }; Returns: Json }
+      approve_membership_request: {
+        Args: { _request_id: string; _user_id: string }
+        Returns: Json
+      }
       check_missing_beneficiaries: { Args: never; Returns: Json }
       get_group_members: {
         Args: { _group_id: string }
@@ -1216,6 +1298,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      group_admin_group_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1237,6 +1320,11 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_for_group: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_admin: { Args: { _user_id: string }; Returns: boolean }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
@@ -1260,6 +1348,10 @@ export type Database = {
       recalc_monthly_totals: {
         Args: { _group_id: string; _month: number; _year: number }
         Returns: undefined
+      }
+      reject_membership_request: {
+        Args: { _note?: string; _request_id: string }
+        Returns: Json
       }
       send_unpaid_reminders: { Args: never; Returns: Json }
       update_loan_status: {
