@@ -161,19 +161,45 @@ const LoanManagementPage = () => {
         principal_amount: newLoan.principal_amount,
         outstanding_balance: newLoan.principal_amount,
         monthly_repayment: newLoan.monthly_repayment || null,
-        status: "active",
+        status: "pending",
         issued_date: new Date().toISOString(),
       });
 
       if (error) throw error;
 
-      toast.success("Loan issued successfully");
+      toast.success("Loan submitted — awaiting approval");
       setIsIssueLoanOpen(false);
       setNewLoan({ user_id: "", group_id: "", principal_amount: 0, monthly_repayment: 0 });
       fetchData();
     } catch (error: any) {
       console.error("Error issuing loan:", error);
       toast.error(error.message || "Failed to issue loan");
+    }
+  };
+
+  const handleApproveLoan = async (loan: Loan) => {
+    try {
+      const { error } = await supabase
+        .from("loans")
+        .update({ status: "active", issued_date: new Date().toISOString() })
+        .eq("id", loan.id);
+      if (error) throw error;
+      toast.success("Loan approved and activated");
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to approve loan");
+    }
+  };
+
+  const handleRejectPendingLoan = async (loan: Loan) => {
+    if (!confirm("Reject and remove this pending loan?")) return;
+    try {
+      const { error } = await supabase.from("loans").delete().eq("id", loan.id);
+      if (error) throw error;
+      toast.success("Pending loan removed");
+      setLoans((prev) => prev.filter((l) => l.id !== loan.id));
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove loan");
     }
   };
 
@@ -469,19 +495,15 @@ const LoanManagementPage = () => {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={
-                            loan.status === "active"
-                              ? "default"
-                              : loan.status === "paid"
-                              ? "outline"
-                              : "destructive"
-                          }
+                          variant="outline"
                           className={
                             loan.status === "active"
-                              ? "bg-warning text-warning-foreground"
+                              ? "bg-warning text-warning-foreground border-warning"
                               : loan.status === "paid"
                               ? "bg-success/10 text-success border-success"
-                              : ""
+                              : loan.status === "pending"
+                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/40"
+                              : "bg-destructive/10 text-destructive border-destructive"
                           }
                         >
                           {loan.status || "active"}
@@ -493,11 +515,21 @@ const LoanManagementPage = () => {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 flex-wrap">
+                        {loan.status === "pending" && (
+                          <Button
+                            variant="contribution"
+                            size="sm"
+                            onClick={() => handleApproveLoan(loan)}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={loan.status === "paid"}
+                          disabled={loan.status === "paid" || loan.status === "pending"}
                           onClick={() => {
                             setSelectedLoan(loan);
                             setIsRecordRepaymentOpen(true);
@@ -511,8 +543,12 @@ const LoanManagementPage = () => {
                           size="sm"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => {
-                            setDeletingLoan(loan);
-                            setIsDeleteLoanOpen(true);
+                            if (loan.status === "pending") {
+                              handleRejectPendingLoan(loan);
+                            } else {
+                              setDeletingLoan(loan);
+                              setIsDeleteLoanOpen(true);
+                            }
                           }}
                         >
                           <Trash2 className="w-4 h-4" />

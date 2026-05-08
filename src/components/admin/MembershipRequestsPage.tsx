@@ -73,11 +73,11 @@ const MembershipRequestsPage = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle>Membership requests</CardTitle>
-        <div className="flex gap-1">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg">Membership requests</CardTitle>
+        <div className="flex gap-1 overflow-x-auto -mx-1 px-1 sm:mx-0 sm:px-0">
           {(["pending","approved","rejected"] as const).map((s) => (
-            <Button key={s} size="sm" variant={filter === s ? "default" : "outline"} onClick={() => setFilter(s)}>
+            <Button key={s} size="sm" variant={filter === s ? "default" : "outline"} onClick={() => setFilter(s)} className="capitalize shrink-0">
               {s}
             </Button>
           ))}
