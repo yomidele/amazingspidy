@@ -161,19 +161,45 @@ const LoanManagementPage = () => {
         principal_amount: newLoan.principal_amount,
         outstanding_balance: newLoan.principal_amount,
         monthly_repayment: newLoan.monthly_repayment || null,
-        status: "active",
+        status: "pending",
         issued_date: new Date().toISOString(),
       });
 
       if (error) throw error;
 
-      toast.success("Loan issued successfully");
+      toast.success("Loan submitted — awaiting approval");
       setIsIssueLoanOpen(false);
       setNewLoan({ user_id: "", group_id: "", principal_amount: 0, monthly_repayment: 0 });
       fetchData();
     } catch (error: any) {
       console.error("Error issuing loan:", error);
       toast.error(error.message || "Failed to issue loan");
+    }
+  };
+
+  const handleApproveLoan = async (loan: Loan) => {
+    try {
+      const { error } = await supabase
+        .from("loans")
+        .update({ status: "active", issued_date: new Date().toISOString() })
+        .eq("id", loan.id);
+      if (error) throw error;
+      toast.success("Loan approved and activated");
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to approve loan");
+    }
+  };
+
+  const handleRejectPendingLoan = async (loan: Loan) => {
+    if (!confirm("Reject and remove this pending loan?")) return;
+    try {
+      const { error } = await supabase.from("loans").delete().eq("id", loan.id);
+      if (error) throw error;
+      toast.success("Pending loan removed");
+      setLoans((prev) => prev.filter((l) => l.id !== loan.id));
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove loan");
     }
   };
 
