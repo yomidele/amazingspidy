@@ -495,19 +495,15 @@ const LoanManagementPage = () => {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={
-                            loan.status === "active"
-                              ? "default"
-                              : loan.status === "paid"
-                              ? "outline"
-                              : "destructive"
-                          }
+                          variant="outline"
                           className={
                             loan.status === "active"
-                              ? "bg-warning text-warning-foreground"
+                              ? "bg-warning text-warning-foreground border-warning"
                               : loan.status === "paid"
                               ? "bg-success/10 text-success border-success"
-                              : ""
+                              : loan.status === "pending"
+                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/40"
+                              : "bg-destructive/10 text-destructive border-destructive"
                           }
                         >
                           {loan.status || "active"}
