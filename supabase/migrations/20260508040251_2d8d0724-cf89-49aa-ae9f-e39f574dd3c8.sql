@@ -1,0 +1,2 @@
+ALTER TABLE public.loans DROP CONSTRAINT IF EXISTS loans_status_check;
+ALTER TABLE public.loans ADD CONSTRAINT loans_status_check CHECK (status = ANY (ARRAY['pending'::text, 'active'::text, 'paid'::text, 'defaulted'::text]));
