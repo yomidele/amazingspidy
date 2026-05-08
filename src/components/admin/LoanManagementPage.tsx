@@ -519,11 +519,21 @@ const LoanManagementPage = () => {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 flex-wrap">
+                        {loan.status === "pending" && (
+                          <Button
+                            variant="contribution"
+                            size="sm"
+                            onClick={() => handleApproveLoan(loan)}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={loan.status === "paid"}
+                          disabled={loan.status === "paid" || loan.status === "pending"}
                           onClick={() => {
                             setSelectedLoan(loan);
                             setIsRecordRepaymentOpen(true);
@@ -537,8 +547,12 @@ const LoanManagementPage = () => {
                           size="sm"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => {
-                            setDeletingLoan(loan);
-                            setIsDeleteLoanOpen(true);
+                            if (loan.status === "pending") {
+                              handleRejectPendingLoan(loan);
+                            } else {
+                              setDeletingLoan(loan);
+                              setIsDeleteLoanOpen(true);
+                            }
                           }}
                         >
                           <Trash2 className="w-4 h-4" />
