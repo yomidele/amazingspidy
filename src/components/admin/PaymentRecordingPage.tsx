@@ -105,6 +105,8 @@ const PaymentRecordingPage = () => {
   // new states for editing and deletion
   const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const [newPayment, setNewPayment] = useState({
     user_id: "",
