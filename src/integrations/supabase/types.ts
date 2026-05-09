@@ -236,6 +236,42 @@ export type Database = {
           },
         ]
       }
+      contribution_amount_history: {
+        Row: {
+          applied_retroactively: boolean
+          changed_by: string | null
+          changed_by_name: string | null
+          created_at: string
+          group_id: string
+          id: string
+          new_amount: number
+          note: string | null
+          old_amount: number
+        }
+        Insert: {
+          applied_retroactively?: boolean
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          new_amount: number
+          note?: string | null
+          old_amount: number
+        }
+        Update: {
+          applied_retroactively?: boolean
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          new_amount?: number
+          note?: string | null
+          old_amount?: number
+        }
+        Relationships: []
+      }
       contribution_groups: {
         Row: {
           contribution_amount: number
@@ -1354,6 +1390,15 @@ export type Database = {
         Returns: Json
       }
       send_unpaid_reminders: { Args: never; Returns: Json }
+      update_group_contribution_amount: {
+        Args: {
+          _apply_retroactive?: boolean
+          _group_id: string
+          _new_amount: number
+          _note?: string
+        }
+        Returns: Json
+      }
       update_loan_status: {
         Args: {
           _actor_id?: string

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Wallet, Receipt, FileCheck, TrendingUp, AlertCircle, Plus, UserPlus, Download, Bell, ArrowUpRight, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import ContributionAmountManager from "@/components/admin/ContributionAmountManager";
 
 interface Props {
   groupId: string;
@@ -180,6 +181,9 @@ const GroupAdminOverview = ({ groupId, groupName, onNavigate }: Props) => {
         <StatCard icon={Receipt} label="Monthly £" value={collected} prefix="£" accent="bg-violet-500" />
         <StatCard icon={AlertCircle} label="Missed" value={missed} accent="bg-rose-500" />
       </div>
+
+      {/* Monthly contribution amount manager */}
+      <ContributionAmountManager groupId={groupId} groupName={groupName} />
 
       {/* Quick actions + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

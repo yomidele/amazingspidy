@@ -31,9 +31,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -98,6 +105,8 @@ const PaymentRecordingPage = () => {
   // new states for editing and deletion
   const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const [newPayment, setNewPayment] = useState({
     user_id: "",
@@ -299,7 +308,11 @@ const PaymentRecordingPage = () => {
       toast.error("Please select a member");
       return;
     }
-
+    if (!newPayment.amount || newPayment.amount <= 0 || isNaN(newPayment.amount)) {
+      toast.error("Enter a valid amount greater than zero");
+      return;
+    }
+    setSavingPayment(true);
     try {
       const contribution = contributions.find((c) => c.id === selectedContribution);
       const memberName = getMemberName(newPayment.user_id);
@@ -308,7 +321,6 @@ const PaymentRecordingPage = () => {
         : "this month";
 
       if (paymentToEdit) {
-        // Updating an existing payment
         const { error } = await supabase
           .from("contribution_payments")
           .update({
@@ -320,7 +332,6 @@ const PaymentRecordingPage = () => {
           .eq("id", paymentToEdit.id);
         if (error) throw error;
 
-        // Notify contributor about the change
         await supabase.from("notifications").insert({
           user_id: newPayment.user_id,
           title: "Payment Updated",
@@ -329,7 +340,6 @@ const PaymentRecordingPage = () => {
           link: "/dashboard/contributor",
         });
       } else {
-        // Create new payment
         const { error } = await supabase.from("contribution_payments").insert({
           monthly_contribution_id: selectedContribution,
           user_id: newPayment.user_id,
@@ -337,10 +347,8 @@ const PaymentRecordingPage = () => {
           status: newPayment.status,
           payment_date: new Date().toISOString(),
         });
-
         if (error) throw error;
 
-        // Send initial notification
         if (newPayment.status === "paid") {
           await supabase.from("notifications").insert({
             user_id: newPayment.user_id,
@@ -352,24 +360,27 @@ const PaymentRecordingPage = () => {
         }
       }
 
-      // Totals are recalculated by DB trigger; refetch payments only
       await fetchPayments(selectedContribution);
 
-      // Log activity
-      const logMemberName = getMemberName(newPayment.user_id);
       await logActivity(
         paymentToEdit ? "payment_updated" : "payment_recorded",
-        `${paymentToEdit ? "Updated" : "Recorded"} contribution payment of £${newPayment.amount} for ${logMemberName}`,
+        `${paymentToEdit ? "Updated" : "Recorded"} contribution payment of £${newPayment.amount} for ${memberName}`,
         "contribution_payment", paymentToEdit?.id || selectedContribution, newPayment.user_id
       );
 
       toast.success(paymentToEdit ? "Payment updated successfully" : "Payment recorded successfully");
-      setIsRecordPaymentOpen(false);
-      setPaymentToEdit(null);
-      setNewPayment({ user_id: "", amount: getPerMemberAmount(), status: "paid" });
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        setPaymentSuccess(false);
+        setIsRecordPaymentOpen(false);
+        setPaymentToEdit(null);
+        setNewPayment({ user_id: "", amount: getPerMemberAmount(), status: "paid" });
+      }, 1100);
     } catch (error: any) {
       console.error("Error recording payment:", error);
       toast.error(error.message || "Failed to record payment");
+    } finally {
+      setSavingPayment(false);
     }
   };
 
@@ -496,73 +507,137 @@ const PaymentRecordingPage = () => {
             Record and track contribution payments from members
           </p>
         </div>
-        <Dialog open={isRecordPaymentOpen} onOpenChange={setIsRecordPaymentOpen}>
-          <DialogTrigger asChild>
-            <Button variant="contribution" disabled={!selectedContribution}>
-              <Plus className="w-4 h-4 mr-2" />
-              Record Payment
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {paymentToEdit ? "Edit Contribution Payment" : "Record Contribution Payment"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Member</Label>
-                <Select
-                  value={newPayment.user_id}
-                  onValueChange={(v) => setNewPayment({ ...newPayment, user_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {members.map((member) => (
-                      <SelectItem key={member.user_id} value={member.user_id}>
-                        {member.full_name || member.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  value={newPayment.amount}
-                  onChange={(e) =>
-                    setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={newPayment.status}
-                  onValueChange={(v) => setNewPayment({ ...newPayment, status: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="partial">Partial</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="contribution" onClick={handleRecordPayment}>
-                {paymentToEdit ? "Update Payment" : "Record Payment"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button
+          variant="contribution"
+          disabled={!selectedContribution}
+          onClick={() => {
+            setPaymentToEdit(null);
+            setNewPayment({ user_id: "", amount: getPerMemberAmount(), status: "paid" });
+            setIsRecordPaymentOpen(true);
+          }}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Record Payment
+        </Button>
       </div>
+
+      {/* Slide-over Sheet for recording / editing a payment */}
+      <Sheet
+        open={isRecordPaymentOpen}
+        onOpenChange={(o) => {
+          if (savingPayment || paymentSuccess) return;
+          setIsRecordPaymentOpen(o);
+          if (!o) setPaymentToEdit(null);
+        }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+          {paymentSuccess ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-6 animate-in fade-in zoom-in-95 duration-300">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-success/20 blur-2xl animate-pulse" />
+                <div className="relative w-20 h-20 rounded-full bg-success flex items-center justify-center shadow-2xl shadow-success/40 animate-in zoom-in spin-in-45 duration-500">
+                  <Check className="w-10 h-10 text-success-foreground" strokeWidth={3} />
+                </div>
+              </div>
+              <h3 className="mt-6 text-xl font-bold text-foreground">Payment recorded</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                £{newPayment.amount} for {getMemberName(newPayment.user_id)}
+              </p>
+            </div>
+          ) : (
+            <>
+              <SheetHeader className="px-6 pt-6 pb-2 border-b border-border/60">
+                <SheetTitle>
+                  {paymentToEdit ? "Edit Contribution Payment" : "Record Contribution Payment"}
+                </SheetTitle>
+                <SheetDescription>
+                  {currentContribution
+                    ? `${monthNames[currentContribution.month - 1]} ${currentContribution.year} • ${groupName}`
+                    : ""}
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                <div className="space-y-2">
+                  <Label>Member <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={newPayment.user_id}
+                    onValueChange={(v) => setNewPayment({ ...newPayment, user_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((member) => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.full_name || member.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!newPayment.user_id && (
+                    <p className="text-[11px] text-muted-foreground">Please select a member</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Amount (£) <span className="text-destructive">*</span></Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={isNaN(newPayment.amount) ? "" : newPayment.amount}
+                    onChange={(e) =>
+                      setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) })
+                    }
+                  />
+                  {(!newPayment.amount || newPayment.amount <= 0) && (
+                    <p className="text-[11px] text-destructive">Amount must be greater than zero</p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Expected per member: £{getPerMemberAmount().toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={newPayment.status}
+                    onValueChange={(v) => setNewPayment({ ...newPayment, status: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <SheetFooter className="px-6 py-4 border-t border-border/60 bg-muted/20">
+                <Button variant="ghost" onClick={() => setIsRecordPaymentOpen(false)} disabled={savingPayment}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contribution"
+                  onClick={handleRecordPayment}
+                  disabled={savingPayment || !newPayment.user_id || !newPayment.amount || newPayment.amount <= 0}
+                >
+                  {savingPayment
+                    ? "Saving…"
+                    : paymentToEdit
+                    ? "Update Payment"
+                    : "Record Payment"}
+                </Button>
+              </SheetFooter>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Team & Period Selector & Stats */}
       <div className="grid lg:grid-cols-4 gap-4">
