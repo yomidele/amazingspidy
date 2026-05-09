@@ -182,6 +182,9 @@ const GroupAdminOverview = ({ groupId, groupName, onNavigate }: Props) => {
         <StatCard icon={AlertCircle} label="Missed" value={missed} accent="bg-rose-500" />
       </div>
 
+      {/* Monthly contribution amount manager */}
+      <ContributionAmountManager groupId={groupId} groupName={groupName} />
+
       {/* Quick actions + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1 rounded-2xl border border-border/60 bg-card p-5">
