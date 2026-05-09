@@ -700,6 +700,14 @@ const ContributionSetupPage = () => {
         </DialogContent>
       </Dialog>
 
+      {!selectedContribution && groups.length > 0 && (
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {groups.map((g) => (
+            <ContributionAmountManager key={g.id} groupId={g.id} groupName={g.name} compact />
+          ))}
+        </div>
+      )}
+
       {!selectedContribution ? (
         /* LIST VIEW — full width, click a card to open details */
         <Card>
