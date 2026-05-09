@@ -308,8 +308,11 @@ const PaymentRecordingPage = () => {
       toast.error("Please select a member");
       return;
     }
-
-    try {
+    if (!newPayment.amount || newPayment.amount <= 0 || isNaN(newPayment.amount)) {
+      toast.error("Enter a valid amount greater than zero");
+      return;
+    }
+    setSavingPayment(true);
       const contribution = contributions.find((c) => c.id === selectedContribution);
       const memberName = getMemberName(newPayment.user_id);
       const periodName = contribution
