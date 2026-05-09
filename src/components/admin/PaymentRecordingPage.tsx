@@ -313,6 +313,7 @@ const PaymentRecordingPage = () => {
       return;
     }
     setSavingPayment(true);
+    try {
       const contribution = contributions.find((c) => c.id === selectedContribution);
       const memberName = getMemberName(newPayment.user_id);
       const periodName = contribution
@@ -320,7 +321,6 @@ const PaymentRecordingPage = () => {
         : "this month";
 
       if (paymentToEdit) {
-        // Updating an existing payment
         const { error } = await supabase
           .from("contribution_payments")
           .update({
@@ -332,7 +332,6 @@ const PaymentRecordingPage = () => {
           .eq("id", paymentToEdit.id);
         if (error) throw error;
 
-        // Notify contributor about the change
         await supabase.from("notifications").insert({
           user_id: newPayment.user_id,
           title: "Payment Updated",
@@ -341,7 +340,6 @@ const PaymentRecordingPage = () => {
           link: "/dashboard/contributor",
         });
       } else {
-        // Create new payment
         const { error } = await supabase.from("contribution_payments").insert({
           monthly_contribution_id: selectedContribution,
           user_id: newPayment.user_id,
@@ -349,10 +347,8 @@ const PaymentRecordingPage = () => {
           status: newPayment.status,
           payment_date: new Date().toISOString(),
         });
-
         if (error) throw error;
 
-        // Send initial notification
         if (newPayment.status === "paid") {
           await supabase.from("notifications").insert({
             user_id: newPayment.user_id,
@@ -364,24 +360,27 @@ const PaymentRecordingPage = () => {
         }
       }
 
-      // Totals are recalculated by DB trigger; refetch payments only
       await fetchPayments(selectedContribution);
 
-      // Log activity
-      const logMemberName = getMemberName(newPayment.user_id);
       await logActivity(
         paymentToEdit ? "payment_updated" : "payment_recorded",
-        `${paymentToEdit ? "Updated" : "Recorded"} contribution payment of £${newPayment.amount} for ${logMemberName}`,
+        `${paymentToEdit ? "Updated" : "Recorded"} contribution payment of £${newPayment.amount} for ${memberName}`,
         "contribution_payment", paymentToEdit?.id || selectedContribution, newPayment.user_id
       );
 
       toast.success(paymentToEdit ? "Payment updated successfully" : "Payment recorded successfully");
-      setIsRecordPaymentOpen(false);
-      setPaymentToEdit(null);
-      setNewPayment({ user_id: "", amount: getPerMemberAmount(), status: "paid" });
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        setPaymentSuccess(false);
+        setIsRecordPaymentOpen(false);
+        setPaymentToEdit(null);
+        setNewPayment({ user_id: "", amount: getPerMemberAmount(), status: "paid" });
+      }, 1100);
     } catch (error: any) {
       console.error("Error recording payment:", error);
       toast.error(error.message || "Failed to record payment");
+    } finally {
+      setSavingPayment(false);
     }
   };
 
