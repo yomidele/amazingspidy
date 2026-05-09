@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Wallet, Receipt, FileCheck, TrendingUp, AlertCircle, Plus, UserPlus, Download, Bell, ArrowUpRight, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import ContributionAmountManager from "@/components/admin/ContributionAmountManager";
 
 interface Props {
   groupId: string;
