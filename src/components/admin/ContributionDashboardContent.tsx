@@ -5,6 +5,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
+import ExpectedTotalEditor from "@/components/admin/ExpectedTotalEditor";
+
+interface GroupExpectedRow {
+  id: string;
+  group_id: string;
+  group_name: string;
+  month: number;
+  year: number;
+  total_expected: number;
+  is_override: boolean;
+  auto_baseline: number;
+}
+
 
 interface DashboardStats {
   totalMembers: number;
@@ -55,12 +68,56 @@ const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardConte
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchDashboardData(); }, []);
+  const [expectedRows, setExpectedRows] = useState<GroupExpectedRow[]>([]);
+
+  useEffect(() => { fetchDashboardData(); fetchExpectedRows(); }, []);
+
+  const fetchExpectedRows = async () => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    const { data: groups } = await supabase
+      .from("contribution_groups")
+      .select("id, name, contribution_amount")
+      .eq("is_active", true)
+      .order("name");
+    if (!groups?.length) { setExpectedRows([]); return; }
+    const groupIds = groups.map((g) => g.id);
+    const { data: mcs } = await supabase
+      .from("monthly_contributions")
+      .select("id, group_id, month, year, total_expected, expected_total_override")
+      .in("group_id", groupIds)
+      .eq("month", currentMonth)
+      .eq("year", currentYear);
+    const { data: memberships } = await supabase
+      .from("group_memberships")
+      .select("group_id, user_id")
+      .in("group_id", groupIds)
+      .eq("is_active", true);
+    const memberCount = new Map<string, number>();
+    for (const m of memberships || []) memberCount.set(m.group_id, (memberCount.get(m.group_id) || 0) + 1);
+    const mcByGroup = new Map((mcs || []).map((m) => [m.group_id, m]));
+    const rows: GroupExpectedRow[] = groups.map((g) => {
+      const mc = mcByGroup.get(g.id);
+      const baseline = (memberCount.get(g.id) || 0) * Number(g.contribution_amount || 0);
+      return {
+        id: mc?.id || `${g.id}-pending`,
+        group_id: g.id,
+        group_name: g.name,
+        month: currentMonth,
+        year: currentYear,
+        total_expected: Number(mc?.total_expected || 0),
+        is_override: mc?.expected_total_override != null,
+        auto_baseline: baseline,
+      };
+    });
+    setExpectedRows(rows);
+  };
 
   const fetchDashboardData = async () => {
     try {
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
+
 
       const [memberCountRes, monthlyContribRes, loansRes, paymentsRes, allProfilesRes, investmentsRes, investorPaymentsRes, repaymentsRes] = await Promise.all([
         supabase.from("group_memberships").select("*", { count: "exact", head: true }).eq("is_active", true),
@@ -220,6 +277,35 @@ const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardConte
           </Card>
         ))}
       </div>
+
+      {/* Expected Total Amount per group (current month) */}
+      {expectedRows.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base sm:text-lg">
+              Expected Total — {format(new Date(), "MMMM yyyy")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {expectedRows.map((row) => (
+                <div key={row.id} className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground px-1">{row.group_name}</p>
+                  <ExpectedTotalEditor
+                    groupId={row.group_id}
+                    month={row.month}
+                    year={row.year}
+                    expected={row.total_expected}
+                    isOverride={row.is_override}
+                    autoBaseline={row.auto_baseline}
+                    onUpdated={fetchExpectedRows}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts - horizontally scrollable on mobile */}
       {chartData.length > 0 && (
