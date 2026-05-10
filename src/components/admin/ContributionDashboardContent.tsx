@@ -278,6 +278,35 @@ const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardConte
         ))}
       </div>
 
+      {/* Expected Total Amount per group (current month) */}
+      {expectedRows.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base sm:text-lg">
+              Expected Total — {format(new Date(), "MMMM yyyy")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {expectedRows.map((row) => (
+                <div key={row.id} className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground px-1">{row.group_name}</p>
+                  <ExpectedTotalEditor
+                    groupId={row.group_id}
+                    month={row.month}
+                    year={row.year}
+                    expected={row.total_expected}
+                    isOverride={row.is_override}
+                    autoBaseline={row.auto_baseline}
+                    onUpdated={fetchExpectedRows}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Charts - horizontally scrollable on mobile */}
       {chartData.length > 0 && (
         <div className="overflow-x-auto pb-2 mb-6 -mx-3 px-3 sm:mx-0 sm:px-0">
