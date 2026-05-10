@@ -726,8 +726,13 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
           newExp = (count || 0) * Number(args.per_member_amount);
         }
         if (Number.isFinite(newExp) && newExp > 0) {
-          const { error } = await supabase.from("monthly_contributions")
-            .update({ total_expected: newExp }).eq("id", mc.id);
+          const { error } = await supabase.rpc("set_monthly_expected_total", {
+            _group_id: grp.id,
+            _month: args.month,
+            _year: args.year,
+            _amount: newExp,
+            _note: "AI assistant override",
+          });
           if (error) errors.push(`expected update: ${error.message}`);
           else steps.push(`💰 Expected → £${newExp}`);
         }
