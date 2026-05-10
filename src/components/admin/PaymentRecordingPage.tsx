@@ -53,6 +53,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import TransactionReceiptDialog from "@/components/shared/TransactionReceiptDialog";
+import ExpectedTotalEditor from "@/components/admin/ExpectedTotalEditor";
 
 interface MonthlyContribution {
   id: string;
