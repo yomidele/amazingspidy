@@ -562,10 +562,14 @@ async function executeProposal(supabase: any, proposal: any, adminId: string): P
         return { success: false, message: "Provide either per_member_amount or total_expected." };
       }
 
-      const { error } = await supabase
-        .from("monthly_contributions")
-        .update({ total_expected: newExpected })
-        .eq("id", mc.id);
+      // Persist as a manual override so subsequent recalcs don't wipe it
+      const { error } = await supabase.rpc("set_monthly_expected_total", {
+        _group_id: grp.id,
+        _month: args.month,
+        _year: args.year,
+        _amount: newExpected,
+        _note: `AI assistant: ${detail}`,
+      });
       if (error) return { success: false, message: error.message };
 
       await supabase.from("activity_logs").insert({
