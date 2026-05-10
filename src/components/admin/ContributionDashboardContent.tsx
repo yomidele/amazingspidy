@@ -5,6 +5,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
+import ExpectedTotalEditor from "@/components/admin/ExpectedTotalEditor";
+
+interface GroupExpectedRow {
+  id: string;
+  group_id: string;
+  group_name: string;
+  month: number;
+  year: number;
+  total_expected: number;
+  is_override: boolean;
+  auto_baseline: number;
+}
+
 
 interface DashboardStats {
   totalMembers: number;
