@@ -1098,6 +1098,10 @@ export type Database = {
           beneficiary_sort_code: string | null
           beneficiary_user_id: string | null
           created_at: string
+          expected_override_note: string | null
+          expected_override_set_at: string | null
+          expected_override_set_by: string | null
+          expected_total_override: number | null
           group_id: string
           id: string
           is_finalized: boolean | null
@@ -1114,6 +1118,10 @@ export type Database = {
           beneficiary_sort_code?: string | null
           beneficiary_user_id?: string | null
           created_at?: string
+          expected_override_note?: string | null
+          expected_override_set_at?: string | null
+          expected_override_set_by?: string | null
+          expected_total_override?: number | null
           group_id: string
           id?: string
           is_finalized?: boolean | null
@@ -1130,6 +1138,10 @@ export type Database = {
           beneficiary_sort_code?: string | null
           beneficiary_user_id?: string | null
           created_at?: string
+          expected_override_note?: string | null
+          expected_override_set_at?: string | null
+          expected_override_set_by?: string | null
+          expected_total_override?: number | null
           group_id?: string
           id?: string
           is_finalized?: boolean | null
@@ -1390,6 +1402,16 @@ export type Database = {
         Returns: Json
       }
       send_unpaid_reminders: { Args: never; Returns: Json }
+      set_monthly_expected_total: {
+        Args: {
+          _amount: number
+          _group_id: string
+          _month: number
+          _note?: string
+          _year: number
+        }
+        Returns: undefined
+      }
       update_group_contribution_amount: {
         Args: {
           _apply_retroactive?: boolean

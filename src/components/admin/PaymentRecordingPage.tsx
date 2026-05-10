@@ -53,6 +53,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import TransactionReceiptDialog from "@/components/shared/TransactionReceiptDialog";
+import ExpectedTotalEditor from "@/components/admin/ExpectedTotalEditor";
 
 interface MonthlyContribution {
   id: string;
@@ -683,19 +684,28 @@ const PaymentRecordingPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-contribution-light flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-contribution" />
+        {currentContribution ? (
+          <ExpectedTotalEditor
+            groupId={currentContribution.group_id}
+            month={currentContribution.month}
+            year={currentContribution.year}
+            expected={Number(currentContribution.total_expected || 0)}
+          />
+        ) : (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-contribution-light flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-contribution" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Expected</p>
+                  <p className="font-bold">£0</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Expected</p>
-                <p className="font-bold">£{currentContribution?.total_expected || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="p-4">
