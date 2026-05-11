@@ -258,6 +258,8 @@ const AdminDashboardContent = () => {
           return <MembershipRequestsPage />;
         case "group-admins":
           return <GroupAdminManagementPage />;
+        case "secure-data":
+          return <SecureDataCenter />;
         case "settings":
           return (
             <AdminSettingsPage
