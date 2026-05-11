@@ -54,6 +54,8 @@ import AccountManagementPage from "@/components/admin/AccountManagementPage";
 import RotationAndSplitsPanel from "@/components/admin/RotationAndSplitsPanel";
 import MembershipRequestsPage from "@/components/admin/MembershipRequestsPage";
 import GroupAdminManagementPage from "@/components/admin/GroupAdminManagementPage";
+import SecureDataCenter from "@/components/admin/SecureDataCenter";
+import { Lock } from "lucide-react";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -203,6 +205,7 @@ const AdminDashboardContent = () => {
     { icon: FileCheck, label: "Loan Requests", page: "loan-requests", tooltip: "Review and approve loan requests from contributors" },
     { icon: FileCheck, label: "Member Requests", page: "membership-requests", tooltip: "Approve or reject new member requests from group admins" },
     { icon: Shield, label: "Group Admins", page: "group-admins", tooltip: "Assign and manage group admins" },
+    { icon: Lock, label: "Secure Data", page: "secure-data", tooltip: "PIN-protected sensitive data and audit logs" },
     { icon: Bell, label: "Notifications", page: "notifications", tooltip: tooltipContent.notifications },
     { icon: Settings, label: "Settings", page: "settings", tooltip: tooltipContent.settings },
   ];
@@ -255,6 +258,8 @@ const AdminDashboardContent = () => {
           return <MembershipRequestsPage />;
         case "group-admins":
           return <GroupAdminManagementPage />;
+        case "secure-data":
+          return <SecureDataCenter />;
         case "settings":
           return (
             <AdminSettingsPage
@@ -469,6 +474,7 @@ const AdminDashboardContent = () => {
                    activePage === "reviews" ? "Client Reviews" :
                    activePage === "settings" ? "Settings" :
                    activePage === "user-detail" ? "User Activity" :
+                   activePage === "secure-data" ? "Secure Data Center" :
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground truncate">
