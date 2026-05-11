@@ -474,6 +474,7 @@ const AdminDashboardContent = () => {
                    activePage === "reviews" ? "Client Reviews" :
                    activePage === "settings" ? "Settings" :
                    activePage === "user-detail" ? "User Activity" :
+                   activePage === "secure-data" ? "Secure Data Center" :
                    activePage.charAt(0).toUpperCase() + activePage.slice(1)}
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground truncate">
