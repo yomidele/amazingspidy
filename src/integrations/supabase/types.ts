@@ -76,6 +76,66 @@ export type Database = {
           },
         ]
       }
+      admin_secure_sessions: {
+        Row: {
+          admin_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          ip: string | null
+          revoked: boolean
+          token: string
+          user_agent: string | null
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip?: string | null
+          revoked?: boolean
+          token: string
+          user_agent?: string | null
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip?: string | null
+          revoked?: boolean
+          token?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      admin_security_config: {
+        Row: {
+          failed_attempts: number
+          id: string
+          locked_until: string | null
+          pin_hash: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          failed_attempts?: number
+          id?: string
+          locked_until?: string | null
+          pin_hash: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          failed_attempts?: number
+          id?: string
+          locked_until?: string | null
+          pin_hash?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           admin_share_rate: number
@@ -1328,6 +1388,7 @@ export type Database = {
         Returns: Json
       }
       check_missing_beneficiaries: { Args: never; Returns: Json }
+      check_secure_session: { Args: { _token: string }; Returns: Json }
       get_group_members: {
         Args: { _group_id: string }
         Returns: {
@@ -1346,6 +1407,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_secure_stats: { Args: { _token: string }; Returns: Json }
       group_admin_group_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -1385,6 +1447,10 @@ export type Database = {
         Args: { _loan_request_id: string; _user_id: string }
         Returns: boolean
       }
+      log_secure_access: {
+        Args: { _action: string; _description: string; _token: string }
+        Returns: undefined
+      }
       notify_personalized_contribution: {
         Args: { _group_id: string; _month: number; _year: number }
         Returns: undefined
@@ -1401,6 +1467,8 @@ export type Database = {
         Args: { _note?: string; _request_id: string }
         Returns: Json
       }
+      reset_admin_pin: { Args: { _new_pin: string }; Returns: Json }
+      revoke_secure_session: { Args: { _token: string }; Returns: Json }
       send_unpaid_reminders: { Args: never; Returns: Json }
       set_monthly_expected_total: {
         Args: {
@@ -1431,6 +1499,15 @@ export type Database = {
         Returns: Json
       }
       v_month_name_from_int: { Args: { _m: number }; Returns: string }
+      verify_admin_pin: {
+        Args: {
+          _duration_minutes?: number
+          _ip?: string
+          _pin: string
+          _user_agent?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
