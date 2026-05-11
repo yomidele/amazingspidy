@@ -54,6 +54,8 @@ import AccountManagementPage from "@/components/admin/AccountManagementPage";
 import RotationAndSplitsPanel from "@/components/admin/RotationAndSplitsPanel";
 import MembershipRequestsPage from "@/components/admin/MembershipRequestsPage";
 import GroupAdminManagementPage from "@/components/admin/GroupAdminManagementPage";
+import SecureDataCenter from "@/components/admin/SecureDataCenter";
+import { Lock } from "lucide-react";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
