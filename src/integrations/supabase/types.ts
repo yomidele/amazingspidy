@@ -1261,6 +1261,7 @@ export type Database = {
           created_at: string
           email: string | null
           failed_login_attempts: number
+          fcm_token: string | null
           full_name: string | null
           id: string
           locked_at: string | null
@@ -1276,6 +1277,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           failed_login_attempts?: number
+          fcm_token?: string | null
           full_name?: string | null
           id?: string
           locked_at?: string | null
@@ -1291,6 +1293,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           failed_login_attempts?: number
+          fcm_token?: string | null
           full_name?: string | null
           id?: string
           locked_at?: string | null
