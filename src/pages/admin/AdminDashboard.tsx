@@ -55,7 +55,24 @@ import RotationAndSplitsPanel from "@/components/admin/RotationAndSplitsPanel";
 import MembershipRequestsPage from "@/components/admin/MembershipRequestsPage";
 import GroupAdminManagementPage from "@/components/admin/GroupAdminManagementPage";
 import SecureDataCenter from "@/components/admin/SecureDataCenter";
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
+
+const ComingSoon = ({ title }: { title: string }) => (
+  <div className="min-h-[60vh] flex items-center justify-center p-6">
+    <div className="max-w-md w-full text-center rounded-3xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-card p-10 shadow-xl">
+      <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/15 flex items-center justify-center mb-4">
+        <Lock className="w-8 h-8 text-primary" />
+      </div>
+      <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        This feature is locked and coming soon. Check back later for updates.
+      </p>
+      <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+        <Sparkles className="w-3 h-3" /> Coming soon
+      </div>
+    </div>
+  </div>
+);
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -255,9 +272,9 @@ const AdminDashboardContent = () => {
             />
           );
         case "membership-requests":
-          return <MembershipRequestsPage />;
+          return <ComingSoon title="Member Requests" />;
         case "group-admins":
-          return <GroupAdminManagementPage />;
+          return <ComingSoon title="Group Admins" />;
         case "secure-data":
           return <SecureDataCenter />;
         case "settings":
