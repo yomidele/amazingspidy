@@ -255,9 +255,9 @@ const AdminDashboardContent = () => {
             />
           );
         case "membership-requests":
-          return <MembershipRequestsPage />;
+          return <ComingSoon title="Member Requests" />;
         case "group-admins":
-          return <GroupAdminManagementPage />;
+          return <ComingSoon title="Group Admins" />;
         case "secure-data":
           return <SecureDataCenter />;
         case "settings":
