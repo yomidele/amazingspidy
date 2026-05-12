@@ -345,7 +345,7 @@ const ContributionSetupPage = () => {
 
   const getMemberName = (userId: string) => {
     const member = members.find(m => m.user_id === userId);
-    return member?.full_name || member?.email || "Unknown";
+    return member?.full_name || member?.email || "Member data missing";
   };
 
   return (

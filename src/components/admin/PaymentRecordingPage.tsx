@@ -244,6 +244,19 @@ const PaymentRecordingPage = () => {
           .in("user_id", userIds)
           .order("membership_number", { ascending: true, nullsFirst: false });
         if (pErr) throw pErr;
+        const fetchedIds = new Set((profilesData || []).map((p: any) => p.user_id));
+        const missing = userIds.filter((id) => !fetchedIds.has(id));
+        if (missing.length > 0) {
+          console.warn("[PaymentRecordingPage] Missing profiles for memberships", {
+            groupId: selectedGroup,
+            missingUserIds: missing,
+          });
+        }
+        (profilesData || []).forEach((p: any) => {
+          if (!p.full_name && !p.email) {
+            console.warn("[PaymentRecordingPage] Profile has no name or email", p);
+          }
+        });
         setMembers(profilesData || []);
       } catch (e: any) {
         console.error(e);
@@ -442,7 +455,7 @@ const PaymentRecordingPage = () => {
 
   const getMemberName = (userId: string) => {
     const member = members.find((m) => m.user_id === userId);
-    return member?.full_name || member?.email || "Unknown";
+    return member?.full_name || member?.email || "Member data missing";
   };
 
   const openEditDialog = (payment: Payment) => {
@@ -792,7 +805,7 @@ const PaymentRecordingPage = () => {
                     return (
                       <TableRow key={member.user_id}>
                         <TableCell className="font-medium">
-                          {member.full_name || member.email || "Unknown"}
+                          {member.full_name || member.email || "Member data missing"}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {member.membership_number || "—"}

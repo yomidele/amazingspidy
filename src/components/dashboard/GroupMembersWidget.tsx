@@ -145,7 +145,7 @@ const GroupMembersWidget = ({ userId }: Props) => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm text-white truncate">
-                        {m.full_name || "Unknown member"}
+                        {m.full_name || "Member data missing"}
                         {isSelf && <span className="ml-2 text-[10px] text-white/50">(You)</span>}
                       </p>
                       <p className="text-[11px] text-white/40 truncate">

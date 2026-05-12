@@ -141,7 +141,7 @@ const RotationAndSplitsPanel = () => {
 
   const memberName = (uid: string) => {
     const m = members.find((x) => x.user_id === uid);
-    return m?.full_name || m?.email || "Unknown";
+    return m?.full_name || m?.email || "Member data missing";
   };
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);

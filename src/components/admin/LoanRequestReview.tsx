@@ -113,7 +113,7 @@ const LoanRequestReview = ({ initialRequestId, onClearInitial }: LoanRequestRevi
 
       if (!loanRes.data) { setRequests([]); return; }
 
-      const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p.full_name || "Unknown"]));
+      const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p.full_name || "Member data missing"]));
       const groupMap = new Map((groupsRes.data || []).map((g) => [g.id, g.name]));
 
       const requestIds = loanRes.data.map((r) => r.id);
@@ -134,13 +134,13 @@ const LoanRequestReview = ({ initialRequestId, onClearInitial }: LoanRequestRevi
         return {
           id: lr.id,
           borrower_id: lr.borrower_id,
-          borrower_name: profileMap.get(lr.borrower_id) || "Unknown",
+          borrower_name: profileMap.get(lr.borrower_id) || "Member data missing",
           group_name: groupMap.get(lr.group_id) || "Unknown",
           amount: Number(lr.amount),
           duration_months: lr.duration_months,
           purpose: lr.purpose,
           status: lr.status,
-          guarantor_name: g ? (profileMap.get(g.guarantor_id) || "Unknown") : "None",
+          guarantor_name: g ? (profileMap.get(g.guarantor_id) || "Member data missing") : "None",
           guarantor_id: g?.guarantor_id || "",
           guarantor_status: g?.status || "none",
           created_at: lr.created_at,
