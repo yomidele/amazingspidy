@@ -1382,6 +1382,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _assert_secure: { Args: { _token: string }; Returns: string }
       advance_group_month: { Args: { _group_id: string }; Returns: Json }
       approve_membership_request: {
         Args: { _request_id: string; _user_id: string }
@@ -1407,7 +1408,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_secure_audit_logs_full: {
+        Args: { _limit?: number; _token: string }
+        Returns: Json
+      }
+      get_secure_groups_full: { Args: { _token: string }; Returns: Json }
+      get_secure_investments_full: { Args: { _token: string }; Returns: Json }
+      get_secure_loans_full: { Args: { _token: string }; Returns: Json }
       get_secure_stats: { Args: { _token: string }; Returns: Json }
+      get_secure_users_full: { Args: { _token: string }; Returns: Json }
       group_admin_group_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -1449,6 +1458,15 @@ export type Database = {
       }
       log_secure_access: {
         Args: { _action: string; _description: string; _token: string }
+        Returns: undefined
+      }
+      log_secure_export: {
+        Args: {
+          _dataset: string
+          _format: string
+          _row_count: number
+          _token: string
+        }
         Returns: undefined
       }
       notify_personalized_contribution: {
