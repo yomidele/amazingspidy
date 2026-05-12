@@ -49,7 +49,7 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
           .from("profiles")
           .select("user_id, full_name")
           .in("user_id", borrowerIds);
-        const profMap = new Map((profs || []).map((p) => [p.user_id, p.full_name || "Unknown"]));
+        const profMap = new Map((profs || []).map((p) => [p.user_id, p.full_name || "Member data missing"]));
         const reqMap = new Map((reqs || []).map((r) => [r.id, r]));
 
         for (const a of aData || []) {

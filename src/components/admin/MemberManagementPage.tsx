@@ -1409,7 +1409,7 @@ const MemberManagementPage = () => {
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <p className="font-medium text-sm">
-                                  {gm.member?.full_name || gm.member?.email || "Unknown"}
+                                  {gm.member?.full_name || gm.member?.email || "Member data missing"}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {gm.member?.email}

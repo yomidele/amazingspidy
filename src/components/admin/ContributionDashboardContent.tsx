@@ -132,7 +132,7 @@ const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardConte
 
       const profileMap = new Map<string, string>();
       for (const p of allProfilesRes.data || []) {
-        profileMap.set(p.user_id, p.full_name || "Unknown Member");
+        profileMap.set(p.user_id, p.full_name || "Member data missing");
       }
 
       let beneficiaryName: string | null = null;

@@ -113,7 +113,7 @@ const LoanRequestReview = ({ initialRequestId, onClearInitial }: LoanRequestRevi
 
       if (!loanRes.data) { setRequests([]); return; }
 
-      const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p.full_name || "Unknown"]));
+      const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p.full_name || "Member data missing"]));
       const groupMap = new Map((groupsRes.data || []).map((g) => [g.id, g.name]));
 
       const requestIds = loanRes.data.map((r) => r.id);

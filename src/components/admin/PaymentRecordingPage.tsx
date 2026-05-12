@@ -442,7 +442,7 @@ const PaymentRecordingPage = () => {
 
   const getMemberName = (userId: string) => {
     const member = members.find((m) => m.user_id === userId);
-    return member?.full_name || member?.email || "Unknown";
+    return member?.full_name || member?.email || "Member data missing";
   };
 
   const openEditDialog = (payment: Payment) => {
@@ -792,7 +792,7 @@ const PaymentRecordingPage = () => {
                     return (
                       <TableRow key={member.user_id}>
                         <TableCell className="font-medium">
-                          {member.full_name || member.email || "Unknown"}
+                          {member.full_name || member.email || "Member data missing"}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {member.membership_number || "—"}

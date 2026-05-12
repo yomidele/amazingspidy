@@ -93,7 +93,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", beneficiaryIds);
-      (profiles || []).forEach((p) => profilesById.set(p.user_id, p.full_name || "Unknown member"));
+      (profiles || []).forEach((p) => profilesById.set(p.user_id, p.full_name || "Member data missing"));
     }
 
     const built: BeneficiarySlot[] = [];
