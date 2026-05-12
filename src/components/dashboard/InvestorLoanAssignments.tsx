@@ -62,7 +62,7 @@ const InvestorLoanAssignments = ({ investorId }: { investorId: string }) => {
             status: a.status,
             assigned_at: a.assigned_at,
             responded_at: a.responded_at ?? null,
-            borrower_name: req ? profMap.get(req.borrower_id) || "Unknown" : "Unknown",
+            borrower_name: req ? profMap.get(req.borrower_id) || "Member data missing" : "Member data missing",
             duration_months: req?.duration_months ?? 0,
             purpose: req?.purpose ?? null,
             loan_amount: req ? Number(req.amount) : Number(a.amount),

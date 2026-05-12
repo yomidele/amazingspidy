@@ -159,7 +159,7 @@ const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardConte
 
       const loansWithNames: OutstandingLoan[] = (loansRes.data || []).map((loan) => ({
         id: loan.id,
-        memberName: profileMap.get(loan.user_id) || "Unknown Member",
+        memberName: profileMap.get(loan.user_id) || "Member data missing",
         balance: Number(loan.outstanding_balance),
         monthlyRepayment: Number(loan.monthly_repayment) || 0,
         status: loan.status === "active" ? "On Track" : loan.status || "Unknown",
@@ -167,7 +167,7 @@ const ContributionDashboardContent = ({ onNavigate }: ContributionDashboardConte
 
       const paymentsWithNames: RecentPayment[] = (paymentsRes.data || []).map((payment) => ({
         id: payment.id,
-        memberName: profileMap.get(payment.user_id) || "Unknown Member",
+        memberName: profileMap.get(payment.user_id) || "Member data missing",
         amount: Number(payment.amount),
         date: payment.payment_date ? format(new Date(payment.payment_date), "dd MMM yyyy") : "Unknown",
         status: payment.status === "paid" ? "Paid" : payment.status === "pending" ? "Pending" : payment.status || "Unknown",

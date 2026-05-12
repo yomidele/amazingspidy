@@ -107,7 +107,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
         contributionAmount: Number(g.contribution_amount),
         monthLabel: `${monthNames[m - 1]} ${y}`,
         monthNumber: g.current_month || 0,
-        beneficiaryName: profilesById.get(mc.beneficiary_user_id) || "Unknown member",
+        beneficiaryName: profilesById.get(mc.beneficiary_user_id) || "Member data missing",
         accountName: (mc as any).beneficiary_account_name || null,
         bankName: mc.beneficiary_bank_name,
         accountNumber: mc.beneficiary_account_number,
