@@ -202,6 +202,16 @@ const MemberManagementPage = () => {
           .order("membership_number", { ascending: true, nullsFirst: false });
 
         if (profilesError) throw profilesError;
+        const fetchedIds = new Set((profilesData || []).map((p: any) => p.user_id));
+        const missing = contributorIds.filter((id) => !fetchedIds.has(id));
+        if (missing.length > 0) {
+          console.warn("[MemberManagementPage] Contributor role users missing profiles", missing);
+        }
+        (profilesData || []).forEach((p: any) => {
+          if (!p.full_name && !p.email) {
+            console.warn("[MemberManagementPage] Profile missing name and email", p);
+          }
+        });
         setMembers(profilesData || []);
       } else {
         setMembers([]);
