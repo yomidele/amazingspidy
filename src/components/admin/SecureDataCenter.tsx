@@ -178,7 +178,6 @@ const SecureDataCenter = () => {
         headers: {
           Authorization: `Bearer ${authSession.access_token}`,
           "Content-Type": "application/json",
-          "Cache-Control": "no-store",
         },
         body: JSON.stringify({ dataset: openDataset, format, secure_token: session.token }),
       });
