@@ -1,15 +1,5 @@
-import { useHomepageTheme } from "@/contexts/HomepageThemeContext";
-import ClassicHeroSection from "./ClassicHeroSection";
-import ModernHeroSection from "./ModernHeroSection";
+import PremiumHeroSection from "./PremiumHeroSection";
 
-const HeroSection = () => {
-  const { theme } = useHomepageTheme();
-
-  if (theme === "classic") {
-    return <ClassicHeroSection />;
-  }
-
-  return <ModernHeroSection />;
-};
+const HeroSection = () => <PremiumHeroSection />;
 
 export default HeroSection;
