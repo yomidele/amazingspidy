@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { clearRememberMe } from "@/lib/rememberMe";
 
 /**
  * Centralized logout function. Performs the actual sign-out and
@@ -9,8 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 export const logoutUser = async (redirectTo: string = "/") => {
   try {
     await supabase.auth.signOut();
+    clearRememberMe();
   } finally {
     // Hard redirect to ensure all in-memory state is cleared.
     window.location.href = redirectTo;
   }
 };
+
