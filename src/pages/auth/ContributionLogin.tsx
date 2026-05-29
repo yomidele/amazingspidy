@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { secureLogin } from "@/lib/secureAuth";
+import { setRememberMe } from "@/lib/rememberMe";
 import RoleChooserModal from "@/components/shared/RoleChooserModal";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ContributionLogin = () => {
   const navigate = useNavigate();
