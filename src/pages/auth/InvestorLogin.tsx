@@ -27,6 +27,7 @@ const InvestorLogin = () => {
     try {
       const result = await secureLogin(formData.email, formData.password);
       if (!result.success) throw new Error(result.error);
+      setRememberMe(rememberMe);
 
       const data = result;
 
