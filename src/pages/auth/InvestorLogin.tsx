@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { secureLogin } from "@/lib/secureAuth";
+import { setRememberMe } from "@/lib/rememberMe";
+import { Checkbox } from "@/components/ui/checkbox";
 import RoleChooserModal from "@/components/shared/RoleChooserModal";
 
 const InvestorLogin = () => {
@@ -15,6 +17,7 @@ const InvestorLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
+  const [rememberMe, setRememberMeState] = useState(true);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +27,7 @@ const InvestorLogin = () => {
     try {
       const result = await secureLogin(formData.email, formData.password);
       if (!result.success) throw new Error(result.error);
+      setRememberMe(rememberMe);
 
       const data = result;
 
@@ -164,7 +168,14 @@ const InvestorLogin = () => {
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <Checkbox
+                  checked={rememberMe}
+                  onCheckedChange={(v) => setRememberMeState(v === true)}
+                />
+                <span className="text-sm text-muted-foreground">Remember me</span>
+              </label>
               <Link to="/forgot-password" className="text-sm text-gray-700 font-medium hover:underline">
                 Forgot password?
               </Link>

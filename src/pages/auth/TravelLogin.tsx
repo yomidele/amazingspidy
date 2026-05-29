@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { secureLogin } from "@/lib/secureAuth";
+import { setRememberMe } from "@/lib/rememberMe";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const TravelLogin = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMeState] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -28,6 +31,7 @@ const TravelLogin = () => {
       if (isLogin) {
         const result = await secureLogin(formData.email, formData.password);
         if (!result.success) throw new Error(result.error);
+        setRememberMe(rememberMe);
         toast.success("Welcome back!");
         navigate("/dashboard/travel");
       } else {
@@ -201,7 +205,14 @@ const TravelLogin = () => {
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <Checkbox
+                  checked={rememberMe}
+                  onCheckedChange={(v) => setRememberMeState(v === true)}
+                />
+                <span className="text-sm text-muted-foreground">Remember me</span>
+              </label>
               <Link to="/forgot-password" className="text-sm text-travel font-medium hover:underline">
                 Forgot password?
               </Link>

@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { secureLogin } from "@/lib/secureAuth";
+import { setRememberMe } from "@/lib/rememberMe";
 import RoleChooserModal from "@/components/shared/RoleChooserModal";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ContributionLogin = () => {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ const ContributionLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
+  const [rememberMe, setRememberMeState] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -30,6 +33,7 @@ const ContributionLogin = () => {
       if (isLogin) {
         const result = await secureLogin(formData.email, formData.password);
         if (!result.success) throw new Error(result.error);
+        setRememberMe(rememberMe);
 
         const data = result;
 
@@ -239,7 +243,14 @@ const ContributionLogin = () => {
             </div>
 
             {isLogin && (
-              <div className="flex justify-end -mt-2">
+              <div className="flex items-center justify-between -mt-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={rememberMe}
+                    onCheckedChange={(v) => setRememberMeState(v === true)}
+                  />
+                  <span className="text-sm text-muted-foreground">Remember me</span>
+                </label>
                 <Link
                   to="/forgot-password"
                   className="text-sm text-contribution font-medium hover:underline"
