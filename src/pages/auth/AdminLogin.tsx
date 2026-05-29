@@ -15,6 +15,7 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMeState] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
