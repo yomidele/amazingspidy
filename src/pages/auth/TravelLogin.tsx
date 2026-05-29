@@ -31,6 +31,7 @@ const TravelLogin = () => {
       if (isLogin) {
         const result = await secureLogin(formData.email, formData.password);
         if (!result.success) throw new Error(result.error);
+        setRememberMe(rememberMe);
         toast.success("Welcome back!");
         navigate("/dashboard/travel");
       } else {
