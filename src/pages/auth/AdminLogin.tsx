@@ -28,6 +28,7 @@ const AdminLogin = () => {
     try {
       const result = await secureLogin(formData.email, formData.password);
       if (!result.success) throw new Error(result.error);
+      setRememberMe(rememberMe);
 
       // Determine destination by role
       const userId = result.user?.id;
