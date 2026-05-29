@@ -89,7 +89,7 @@ const AuroraScene = () => {
         {orbs.map((o, i) => (
           <FloatingOrb key={i} {...o} />
         ))}
-        <Environment_Removed />
+        
         <MouseParallax />
       </Suspense>
     </Canvas>
