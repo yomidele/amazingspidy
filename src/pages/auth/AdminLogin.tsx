@@ -184,7 +184,14 @@ const AdminLogin = () => {
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <Checkbox
+                  checked={rememberMe}
+                  onCheckedChange={(v) => setRememberMeState(v === true)}
+                />
+                <span className="text-sm text-muted-foreground">Remember me</span>
+              </label>
               <Link to="/forgot-password" className="text-sm text-primary font-medium hover:underline">
                 Forgot password?
               </Link>
