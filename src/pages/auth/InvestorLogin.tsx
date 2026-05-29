@@ -17,6 +17,7 @@ const InvestorLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
+  const [rememberMe, setRememberMeState] = useState(true);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
