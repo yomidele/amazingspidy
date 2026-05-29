@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, MeshDistortMaterial, Sphere, Environment } from "@react-three/drei";
+import { Float, MeshDistortMaterial, Sphere } from "@react-three/drei";
 import * as THREE from "three";
 
 const prefersReducedMotion =
@@ -89,7 +89,7 @@ const AuroraScene = () => {
         {orbs.map((o, i) => (
           <FloatingOrb key={i} {...o} />
         ))}
-        <Environment preset="city" />
+        <Environment_Removed />
         <MouseParallax />
       </Suspense>
     </Canvas>
