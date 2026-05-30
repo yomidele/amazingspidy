@@ -40,21 +40,28 @@ const GlassCard = ({ children, className = "", delay = 0, hover = true }: {
   className?: string;
   delay?: number;
   hover?: boolean;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-    className={`
-      rounded-2xl border border-white/10 bg-[#11161D]
-      shadow-[0_8px_32px_rgba(0,0,0,0.3)]
-      ${hover ? "transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]" : ""}
-      ${className}
-    `}
-  >
-    {children}
-  </motion.div>
-);
+}) => {
+  const { isDark } = useDashboardTheme();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className={`
+        rounded-2xl border
+        ${isDark
+          ? "border-white/10 bg-[#11161D] shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
+          : "border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.06)]"}
+        ${hover ? (isDark
+          ? "transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
+          : "transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_28px_rgba(15,23,42,0.1)]") : ""}
+        ${className}
+      `}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 const ContributorDashboard = () => {
   const navigate = useNavigate();
