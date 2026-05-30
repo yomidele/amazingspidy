@@ -2,8 +2,55 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+
+/**
+ * Bridge for Flutter WebView host: when the user taps a system notification,
+ * Flutter calls `window.handleNotificationTap(data)` with the payload.
+ * We route based on `data.url` (preferred) or `data.type`.
+ */
+const NotificationTapBridge = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    window.handleNotificationTap = (data: any) => {
+      try {
+        if (!data) return;
+        if (typeof data.url === "string" && data.url.length > 0) {
+          if (/^https?:\/\//i.test(data.url)) window.location.href = data.url;
+          else navigate(data.url);
+          return;
+        }
+        switch (data.type) {
+          case "loan":
+          case "loan_request":
+            navigate(data.id ? `/admin/loan-requests/${data.id}` : "/dashboard/contributor");
+            break;
+          case "contribution":
+            navigate("/dashboard/contributor");
+            break;
+          case "investor":
+            navigate("/investor-dashboard");
+            break;
+          case "notification":
+            navigate(data.id ? `/dashboard/notifications/${data.id}` : "/dashboard/notifications");
+            break;
+          case "admin":
+            navigate("/admin");
+            break;
+          default:
+            navigate("/dashboard/notifications");
+        }
+      } catch (err) {
+        console.error("handleNotificationTap error:", err);
+      }
+    };
+    return () => {
+      delete window.handleNotificationTap;
+    };
+  }, [navigate]);
+  return null;
+};
 import Index from "./pages/Index";
 import IndexRoute from "./components/auth/IndexRoute";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -47,6 +94,7 @@ const App = () => (
         <AuthProvider>
         <LogoutConfirmProvider>
         <ActiveRoleProvider>
+        <NotificationTapBridge />
         <Routes>
           <Route path="/" element={<IndexRoute />} />
           
