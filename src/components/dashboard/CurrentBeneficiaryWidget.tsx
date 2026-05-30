@@ -208,7 +208,7 @@ const CurrentBeneficiaryWidget = ({ userId }: Props) => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.05 }}
-          className="rounded-2xl border border-amber-400/20 bg-gradient-to-br from-amber-500/10 via-white/[0.04] to-white/[0.02] backdrop-blur-xl p-5"
+          className="rounded-2xl border border-amber-400/20 bg-[#141A22] p-5"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
