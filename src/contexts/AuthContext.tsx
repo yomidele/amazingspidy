@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useFCMToken } from "@/hooks/useFCMToken";
 
 interface AuthContextValue {
   user: User | null;
@@ -19,7 +20,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Register listener BEFORE getSession so we never miss the initial event.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setLoading(false);
@@ -32,6 +32,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Capture & persist Firebase Cloud Messaging token once user is signed in
+  useFCMToken(session?.user?.id ?? null);
 
   return (
     <AuthContext.Provider value={{ user: session?.user ?? null, session, loading }}>
