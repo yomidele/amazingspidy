@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
+import IndexRoute from "./components/auth/IndexRoute";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import ContributionLogin from "./pages/auth/ContributionLogin";
 import TravelLogin from "./pages/auth/TravelLogin";
@@ -24,6 +26,8 @@ import NotificationsPage from "./pages/dashboard/NotificationsPage";
 import NotificationDetailPage from "./pages/dashboard/NotificationDetailPage";
 import { LogoutConfirmProvider } from "./components/shared/LogoutConfirmProvider";
 import { ActiveRoleProvider } from "./contexts/ActiveRoleContext";
+import { AuthProvider } from "./contexts/AuthContext";
+
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -40,10 +44,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <AuthProvider>
         <LogoutConfirmProvider>
         <ActiveRoleProvider>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<IndexRoute />} />
           
           {/* Teemah Travels Page */}
           <Route path="/teemah-travels" element={<TeemahTravelsPage />} />
@@ -59,25 +64,27 @@ const App = () => (
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           
-          {/* User Dashboards */}
-          <Route path="/dashboard/contributor" element={<ContributorDashboard />} />
-          <Route path="/dashboard/travel" element={<TravelDashboard />} />
-          <Route path="/investor-dashboard" element={<InvestorDashboard />} />
-          <Route path="/dashboard/notifications" element={<NotificationsPage />} />
-          <Route path="/dashboard/notifications/:id" element={<NotificationDetailPage />} />
+          {/* User Dashboards (protected) */}
+          <Route path="/dashboard/contributor" element={<ProtectedRoute redirectTo="/login/contribution"><ContributorDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/travel" element={<ProtectedRoute redirectTo="/login/travel"><TravelDashboard /></ProtectedRoute>} />
+          <Route path="/investor-dashboard" element={<ProtectedRoute redirectTo="/login/investor"><InvestorDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/notifications" element={<ProtectedRoute redirectTo="/login/contribution"><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/dashboard/notifications/:id" element={<ProtectedRoute redirectTo="/login/contribution"><NotificationDetailPage /></ProtectedRoute>} />
           
-          {/* Admin Dashboard */}
-          <Route path="/admin/*" element={<AdminDashboard />} />
-          <Route path="/admin/manual" element={<AdminManualPage />} />
+          {/* Admin Dashboard (protected) */}
+          <Route path="/admin/*" element={<ProtectedRoute redirectTo="/login/admin"><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/manual" element={<ProtectedRoute redirectTo="/login/admin"><AdminManualPage /></ProtectedRoute>} />
 
-          {/* Group Admin Dashboard */}
-          <Route path="/group-admin/*" element={<GroupAdminDashboard />} />
+          {/* Group Admin Dashboard (protected) */}
+          <Route path="/group-admin/*" element={<ProtectedRoute redirectTo="/login/admin"><GroupAdminDashboard /></ProtectedRoute>} />
           
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         </ActiveRoleProvider>
         </LogoutConfirmProvider>
+        </AuthProvider>
+
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
