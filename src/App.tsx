@@ -94,6 +94,7 @@ const App = () => (
         <AuthProvider>
         <LogoutConfirmProvider>
         <ActiveRoleProvider>
+        <NotificationTapBridge />
         <Routes>
           <Route path="/" element={<IndexRoute />} />
           
