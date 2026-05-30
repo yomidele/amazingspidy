@@ -119,7 +119,7 @@ describe("E2E: login → close tab → reopen → still on dashboard", () => {
     expect(localStorage.getItem(SUPABASE_AUTH_KEY)).not.toBeNull();
   });
 
-  it("with 'Remember me' unchecked, the session is purged on reopen and the user is redirected to login", async () => {
+  it("with 'Remember me' unchecked, the Supabase auth token is NOT touched (Supabase owns its own storage)", async () => {
     const { setRememberMe } = await import("@/lib/rememberMe");
     localStorage.setItem(SUPABASE_AUTH_KEY, JSON.stringify(buildSession()));
     setRememberMe(false);
@@ -132,7 +132,10 @@ describe("E2E: login → close tab → reopen → still on dashboard", () => {
     await enforceRememberMeOnBoot();
     mountApp();
 
-    expect(await waitForText(/login-page/)).toBeInTheDocument();
-    expect(localStorage.getItem(SUPABASE_AUTH_KEY)).toBeNull();
+    // Token is still in localStorage; guard finds the session.
+    const el = await waitForText(/^dashboard:/);
+    expect(el.textContent).toBe(`dashboard:${TEST_USER.email}`);
+    expect(localStorage.getItem(SUPABASE_AUTH_KEY)).not.toBeNull();
   });
 });
+

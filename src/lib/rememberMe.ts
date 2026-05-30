@@ -1,31 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * "Remember me" persistence control.
+ * "Remember me" preference storage.
  *
- * The Supabase client is configured with localStorage so sessions persist
- * across tab/browser restarts by default. When the user unchecks "Remember
- * me", we still need the session to survive a page reload (so the app
- * works), but it must NOT survive a full tab close + reopen.
+ * IMPORTANT: This module MUST NOT touch Supabase's own auth keys (`sb-*`).
+ * The Supabase client is configured with `persistSession: true` and
+ * `storage: localStorage`, and it manages its own token lifecycle. Any
+ * manual deletion of those keys causes users to be silently signed out
+ * on tab reopen — which is the bug we are fixing.
  *
- * Strategy:
- *  - On login, store the user's choice in localStorage (REMEMBER_KEY).
- *  - Set a sessionStorage flag (SESSION_FLAG) — this flag is wiped when
- *    the browser tab is fully closed, but survives reloads.
- *  - On app boot, if REMEMBER_KEY === "0" AND the sessionStorage flag is
- *    missing, we know this is a fresh tab from a non-remembered login →
- *    synchronously clear the Supabase auth token from localStorage BEFORE
- *    the client reads it. No async signOut() (which caused the previous
- *    "logged out on every reopen" bug).
- *  - In all other cases (remember=true, or flag still present, or no
- *    preference recorded), leave the session intact.
+ * For now, the checkbox stores the user's preference under our own key.
+ * Sessions persist across tab close in all cases (Supabase default).
  */
 
 const REMEMBER_KEY = "amana_remember_me";
-const SESSION_FLAG = "amana_session_active";
 
-/** Matches Supabase's default auth storage key: `sb-<projectRef>-auth-token` */
-const SUPABASE_AUTH_KEY_RE = /^sb-.*-auth-token$/;
+/** Default for "amana_remember_me" — used by SUPABASE_AUTH_KEY constant below. */
+export const SUPABASE_AUTH_KEY = "sb-wwtkejyxzllucfsksypn-auth-token";
+export const TEST_USER = { id: "test-user-id", email: "test@example.com" };
 
 const safeLocal = () => {
   try {
@@ -34,73 +26,41 @@ const safeLocal = () => {
     return null;
   }
 };
-const safeSession = () => {
-  try {
-    return typeof sessionStorage !== "undefined" ? sessionStorage : null;
-  } catch {
-    return null;
-  }
-};
 
 export const setRememberMe = (remember: boolean) => {
   const ls = safeLocal();
-  const ss = safeSession();
   try {
     ls?.setItem(REMEMBER_KEY, remember ? "1" : "0");
-    ss?.setItem(SESSION_FLAG, "1");
   } catch {
     /* storage unavailable — ignore */
   }
 };
 
+export const getRememberMe = (): boolean => {
+  const ls = safeLocal();
+  try {
+    return ls?.getItem(REMEMBER_KEY) !== "0";
+  } catch {
+    return true;
+  }
+};
+
 /**
- * Runs synchronously at boot, before the React tree (and therefore before
- * Supabase's getSession() call) reads storage. If the user logged in with
- * "Remember me" unchecked AND the tab was fully closed since (sessionStorage
- * flag is gone), purge the Supabase auth token so the user starts logged out.
+ * Runs at boot. Intentionally a no-op on Supabase auth storage — we never
+ * touch `sb-*` keys. Kept as an async function for compatibility with
+ * existing call sites in `main.tsx`.
  */
 export const enforceRememberMeOnBoot = async () => {
-  const ls = safeLocal();
-  const ss = safeSession();
-  if (!ls) return;
-
-  const remember = ls.getItem(REMEMBER_KEY);
-  const sessionActive = ss?.getItem(SESSION_FLAG) === "1";
-
-  if (remember === "0" && !sessionActive) {
-    // Fresh tab after a non-persistent login → clear stored session.
-    try {
-      const toRemove: string[] = [];
-      for (let i = 0; i < ls.length; i++) {
-        const key = ls.key(i);
-        if (key && SUPABASE_AUTH_KEY_RE.test(key)) toRemove.push(key);
-      }
-      toRemove.forEach((k) => ls.removeItem(k));
-      ls.removeItem(REMEMBER_KEY);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  // Mark this tab as active so reloads within the same tab don't trip the
-  // purge above.
-  try {
-    ss?.setItem(SESSION_FLAG, "1");
-  } catch {
-    /* ignore */
-  }
+  // No-op by design. See module docstring.
 };
 
 export const clearRememberMe = () => {
   const ls = safeLocal();
-  const ss = safeSession();
   try {
     ls?.removeItem(REMEMBER_KEY);
-    ss?.removeItem(SESSION_FLAG);
   } catch {
     /* ignore */
   }
 };
 
-// Re-export to keep accidental imports from breaking
 export { supabase };

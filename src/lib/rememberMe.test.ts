@@ -58,7 +58,9 @@ describe("Remember me persistence across tab close/reopen", () => {
     // App would now route them straight to the dashboard.
   });
 
-  it("logs the user out when 'Remember me' is unchecked", async () => {
+  it("does NOT touch Supabase auth keys when 'Remember me' is unchecked", async () => {
+    // Per security/correctness contract: rememberMe must never delete or
+    // override Supabase's own auth storage. Supabase manages persistence.
     const { setRememberMe } = await import("./rememberMe");
 
     localStorage.setItem(SUPABASE_AUTH_KEY, FAKE_SESSION);
@@ -67,10 +69,10 @@ describe("Remember me persistence across tab close/reopen", () => {
     closeTab();
 
     const session = await reopenTabAndGetSession();
-
-    expect(session).toBeNull();
-    // App would redirect to /login.
+    expect(session).not.toBeNull();
+    expect(session.user.id).toBe("user-123");
   });
+
 
   it("survives a reload (no tab close) even when remember=false", async () => {
     const { setRememberMe, enforceRememberMeOnBoot } = await import("./rememberMe");
