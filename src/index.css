@@ -333,6 +333,8 @@
     color: hsl(222 47% 11%) !important;
   }
 
+  .dashboard-light .text-white\/20,
+  .dashboard-light .text-white\/30,
   .dashboard-light .text-white\/40,
   .dashboard-light .text-white\/50 {
     color: hsl(215 16% 47%) !important;
