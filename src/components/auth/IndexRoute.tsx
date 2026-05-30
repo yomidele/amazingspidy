@@ -25,10 +25,11 @@ const IndexRoute = () => {
         .eq("user_id", session.user.id);
       if (cancelled) return;
       const list = (roles ?? []).map((r: any) => r.role);
+      // Priority: admin -> contributor (default for dual-role users) -> investor -> travel
       let next = "/dashboard/contributor";
       if (list.includes("admin")) next = "/admin";
-      else if (list.includes("investor")) next = "/investor-dashboard";
       else if (list.includes("contributor")) next = "/dashboard/contributor";
+      else if (list.includes("investor")) next = "/investor-dashboard";
       else if (list.includes("travel")) next = "/dashboard/travel";
       setTarget(next);
       setResolving(false);
