@@ -321,7 +321,9 @@
   }
 
   .dashboard-light .bg-\[\#0B0F14\],
-  .dashboard-light .bg-\[\#0D1117\] {
+  .dashboard-light .bg-\[\#0D1117\],
+  .dashboard-light .bg-\[\#11161D\],
+  .dashboard-light .bg-\[\#141A22\] {
     background: hsl(0 0% 100%) !important;
   }
 
