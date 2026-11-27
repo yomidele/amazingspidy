@@ -24,6 +24,9 @@ import { useInvestorModuleStatus } from "@/hooks/useInvestorModuleStatus";
 import { useExitConfirm } from "@/hooks/useExitConfirm";
 import { useLogoutConfirm } from "@/components/shared/LogoutConfirmProvider";
 import InvestorLoanAssignments from "@/components/dashboard/InvestorLoanAssignments";
+import InvestorSubscriptionExpiredScreen from "@/components/dashboard/InvestorSubscriptionExpiredScreen";
+import { useInvestorSubscriptionExpiry } from "@/hooks/useInvestorSubscriptionExpiry";
+import { isInvestorSubscriptionExpired } from "@/lib/investorSubscription";
 import RoleSwitcher from "@/components/shared/RoleSwitcher";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
@@ -71,6 +74,7 @@ const InvestorDashboard = () => {
   const [investmentDialogOpen, setInvestmentDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const { status: investorModuleStatus, loading: moduleLoading } = useInvestorModuleStatus();
+  const subscriptionExpired = useInvestorSubscriptionExpiry();
 
   const { setActiveRole, hasContributor } = useActiveRole();
 
@@ -103,6 +107,11 @@ const InvestorDashboard = () => {
       setUser(session.user);
       setIsVerified(true);
 
+      if (isInvestorSubscriptionExpired()) {
+        setLoading(false);
+        return;
+      }
+
       const [profileRes, investmentsRes, paymentsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", session.user.id).maybeSingle(),
         supabase.from("investments").select("*").eq("investor_id", session.user.id).order("created_at", { ascending: false }),
@@ -134,7 +143,7 @@ const InvestorDashboard = () => {
   // Intercept browser back so investors aren't accidentally logged out.
   useExitConfirm(handleLogout, { message: "Do you want to logout?", enabled: isVerified === true });
 
-  if (isVerified === null || moduleLoading) {
+  if (isVerified === null || (!subscriptionExpired && moduleLoading)) {
     return (
       <div className="min-h-screen bg-[#0B0F14] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -144,6 +153,14 @@ const InvestorDashboard = () => {
           <p className="text-white/40 text-sm">Verifying access...</p>
         </div>
       </div>
+    );
+  }
+
+  if (subscriptionExpired) {
+    return (
+      <InvestorSubscriptionExpiredScreen
+        onReturnToContributor={hasContributor ? () => navigate("/dashboard/contributor") : undefined}
+      />
     );
   }
 

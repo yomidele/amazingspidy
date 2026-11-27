@@ -1,0 +1,1 @@
+- Investor subscription expiry is checked in the frontend via shared date logic; do not add backend enforcement for this subscription.
